@@ -1,0 +1,23 @@
+{
+  "input_shape": [
+    null,
+    200,
+    6
+  ],
+  "output_shape": [
+    null,
+    11
+  ],
+  "window_size": 200,
+  "num_features": 6,
+  "num_classes": 11,
+  "total_params": 499131,
+  "layer_types": {
+    "Conv1D": 2,
+    "BatchNormalization": 5,
+    "Dropout": 5,
+    "Bidirectional": 2,
+    "Flatten": 1,
+    "Dense": 2
+  }
+}
