@@ -255,15 +255,6 @@ python analyze_data.py
 
 ---
 
-## 👤 Contact
-
-**Student:** [Your Name]  
-**Student ID:** [Your ID]  
-**Email:** [Your Email]  
-**Thesis Supervisor:** [Mentor Name]
-
----
-
 ## 📝 Notes
 
 - Project started: October 2025
