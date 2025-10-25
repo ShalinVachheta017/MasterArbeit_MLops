@@ -64,6 +64,9 @@ env/
 # Archive
 09_archive/
 
+# Documentation (private progress tracking - all docs lder)
+07_docs/
+
 # OS
 .DS_Store
 Thumbs.db
