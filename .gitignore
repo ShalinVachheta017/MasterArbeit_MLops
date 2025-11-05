@@ -1,77 +1,158 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
+# Python# Python
 
-# Virtual environments
-venv/
-ENV/
-env/
-.venv
+__pycache__/__pycache__/
 
-# Jupyter Notebook
-.ipynb_checkpoints
-*/.ipynb_checkpoints/*
+*.py[cod]*.py[cod]
 
-# IDEs
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
+*$py.class*$py.class
 
-# Data files (excluding samples)
-01_data/raw/*
-01_data/processed/*.csv
-!01_data/samples/
+*.so*.so
 
-# Keep metadata files
+.Python.Python
+
+build/build/
+
+develop-eggs/develop-eggs/
+
+dist/dist/
+
+downloads/downloads/
+
+eggs/eggs/
+
+.eggs/.eggs/
+
+lib/lib/
+
+lib64/lib64/
+
+parts/parts/
+
+sdist/sdist/
+
+var/var/
+
+wheels/wheels/
+
+*.egg-info/*.egg-info/
+
+.installed.cfg.installed.cfg
+
+*.egg*.egg
+
+
+
+# Virtual environments# Virtual environments
+
+venv/venv/
+
+ENV/ENV/
+
+env/env/
+
+.venv.venv
+
+
+
+# Jupyter Notebook# Jupyter Notebook
+
+.ipynb_checkpoints.ipynb_checkpoints
+
+*/.ipynb_checkpoints/**/.ipynb_checkpoints/*
+
+
+
+# IDEs# IDEs
+
+.vscode/.vscode/
+
+.idea/.idea/
+
+*.swp*.swp
+
+*.swo*.swo
+
+*~*~
+
+
+
+# Data files (large files)# Data files (excluding samples)
+
+data/raw/*.xlsx01_data/raw/*
+
+data/raw/*.csv01_data/processed/*.csv
+
+data/processed/*.csv!01_data/samples/
+
+data/prepared/*.npy
+
+!data/samples/# Keep metadata files
+
 !01_data/processed/*.json
 
-# Model files
-03_models/pretrained/*.keras
+# Keep small metadata files
+
+!data/**/*.json# Model files
+
+!data/**/*.md03_models/pretrained/*.keras
+
 03_models/pretrained/*.h5
-03_models/trained/*.keras
-03_models/trained/*.h5
-!03_models/pretrained/model_info.json
-!03_models/trained/model_info.json
 
-# Logs
-06_logs/**/*.log
-06_logs/**/*.txt
+# Model files (large)03_models/trained/*.keras
 
-# Outputs
-05_outputs/analysis/*.json
-05_outputs/reports/*
+models/**/*.keras03_models/trained/*.h5
 
-# Archive
-09_archive/
+models/**/*.h5!03_models/pretrained/model_info.json
 
-# Documentation (private progress tracking - all docs lder)
-07_docs/
+!models/**/model_info.json!03_models/trained/model_info.json
+
+
+
+# Logs# Logs
+
+logs/**/*.log06_logs/**/*.log
+
+logs/**/*.txt06_logs/**/*.txt
+
+
+
+# Temporary files# Outputs
+
+*.tmp05_outputs/analysis/*.json
+
+current_structure.txt05_outputs/reports/*
+
+
+
+# Documentation (private)# Archive
+
+docs/private/09_archive/
+
+
+
+# OS# Documentation (private progress tracking - all docs lder)
+
+.DS_Store07_docs/
+
+Thumbs.db
 
 # OS
-.DS_Store
-Thumbs.db
-*.tmp
 
-# Environment variables
-.env
-.env.local
+# Environment variables.DS_Store
+
+.envThumbs.db
+
+.env.local*.tmp
+
+
+
+# MLflow# Environment variables
+
+mlruns/.env
+
+mlartifacts/.env.local
+
+
+# Docker
+.dockerignore
+docker-compose.override.yml

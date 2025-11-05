@@ -1,0 +1,12 @@
+{
+  "config": {
+    "accel_file": "D:\\study apply\\ML Ops\\Thesis code\\data\\2025-03-23-15-23-10-accelerometer_data.xlsx",
+    "gyro_file": "D:\\study apply\\ML Ops\\Thesis code\\data\\2025-03-23-15-23-10-gyroscope_data.xlsx",
+    "target_hz": 50,
+    "tolerance_ms": 1
+  },
+  "rows": {
+    "native": 345418,
+    "resampled": 181699
+  }
+}

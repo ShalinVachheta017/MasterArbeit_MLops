@@ -1,0 +1,36 @@
+# ===== Use CUDA 12.8 wheels from the official PyTorch index =====
+
+
+# ===== Core data wrangling =====
+numpy>=1.24
+pandas>=2.0
+scipy>=1.10
+
+# ===== Deep Learning Framework =====
+# TensorFlow/Keras for model loading and training
+tensorflow>=2.14  # For CPU
+# For GPU: tensorflow-gpu>=2.14 (if CUDA is available)
+
+# ===== PyTorch (GPU), 1D-CNN & LSTM =====
+# Keep these in sync (2.7.x / 0.22.x / 2.7.x) for compatibility
+# NOTE: Your model is in Keras format, PyTorch is optional
+--extra-index-url https://download.pytorch.org/whl/cu121
+torch==2.4.0+cu121
+torchvision==0.19.0+cu121
+torchaudio==2.4.0+cu121
+
+
+# ===== Metrics & evaluation =====
+scikit-learn>=1.3      # precision, recall, f1, accuracy
+torchmetrics>=1.3
+
+# ===== Experiment tracking =====
+mlflow>=2.11
+
+# ===== Useful basics =====
+matplotlib>=3.8
+seaborn>=0.13
+tqdm>=4.66
+jupyterlab>=4.1
+python-dotenv>=1.0
+pyyaml>=6.0.1
