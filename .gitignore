@@ -156,3 +156,4 @@ mlartifacts/.env.local
 # Docker
 .dockerignore
 docker-compose.override.yml
+all_users_data_labeled.csv
