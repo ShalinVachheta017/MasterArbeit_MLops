@@ -1,487 +1,324 @@
-# MLOps Pipeline for Anxiety Detection Using Wearable Sensors# MLOps Pipeline for Mental Health Monitoring
+# MLOps Pipeline for Mental Health Monitoring
 
+**Master's Thesis Project**  
+**Duration:** 6 months (October 2025 - April 2026)  
+**Last Updated:** November 28, 2025
 
+**Current Status:** Data preprocessing complete, awaiting mentor confirmation on dataset issue  
+**Progress:** ~20% complete
 
-**Master's Thesis Project** | November 2025 - April 2026  **Master's Thesis Project**  
+---
 
-**Focus:** Building Production-Ready MLOps Infrastructure**Duration:** 6 months (October 2025 - April 2026)  
+## 📋 Project Overview
 
-**Current Status:** Phase 1 Complete (25%) - Assessment & Analysis Done  
+Developing an end-to-end MLOps pipeline for mental health monitoring using wearable sensor data (accelerometer + gyroscope). The system uses a pre-trained 1D-CNN-BiLSTM model to predict 11 anxiety-related activities.
 
----**Current Blocker:** Missing training labels (mentor communication in progress)
+### Key Components
 
+- ✅ Data preprocessing pipeline (windowing, normalization, train/val/test splits)
+- ✅ Pre-trained 1D-CNN-BiLSTM model analyzed (1.5M parameters, 11 classes)
+- ✅ Prepared data: 3,852 windows from 6 users (385K samples)
+- 🔴 **Current Blocker:** Production data has different accelerometer units than training
+- ⏸️ Awaiting mentor confirmation (new dataset OR conversion formula OR semi-supervised approach)
+- ⏸️ Inference pipeline (blocked until data issue resolved)
+- ⏸️ MLOps infrastructure (API, monitoring, CI/CD) - planned after inference works
 
+---
 
-## 🎯 Project Overview---
-
-
-
-This thesis demonstrates a **complete MLOps pipeline** for anxiety-related activity recognition using wearable IMU sensors. Rather than retraining an existing model, we focus on **operationalizing ML systems**: deployment, monitoring, and continuous delivery.## 📋 Project Overview
-
-
-
-### Key Insight 💡Developing an end-to-end MLOps pipeline for continuous mental health monitoring using wearable sensor data (accelerometer + gyroscope). The system predicts anxiety levels using a 1D-CNN-BiLSTM deep learning model.
-
-The pretrained model was already trained on our labeled dataset. Therefore, our thesis focuses on:
-
-- ✅ **MLOps Infrastructure** (deployment, monitoring, CI/CD)### Key Components
-
-- ❌ **NOT** Model retraining (already done)- ✅ Data preprocessing pipeline (sensor fusion, 50Hz resampling)
-
-- ✅ Pre-trained 1D-CNN-BiLSTM model (11-class classification)
-
----- ⏸️ Training pipeline with MLflow tracking (blocked - needs labels)
-
-- ⏸️ Evaluation system (blocked - needs labels)
-
-## 📁 Simplified Project Structure- ⏸️ MLOps infrastructure (API, monitoring, CI/CD) (blocked - needs trained model)
-
-
-
-```---
-
-MasterArbeit_MLops/
-
-│## 📁 Project Structure
-
-├── data/                          # All data files
-
-│   ├── raw/                       # Labeled dataset (385K samples)```
-
-│   ├── processed/                 # Production data (unlabeled)thesis-mlops-mental-health/
-
-│   └── prepared/                  # Windowed data for validation│
-
-│├── 01_data/                    # All data files
-
-├── models/                        # Model artifacts│   ├── raw/                    # Original Excel sensor data (March 2025)
-
-│   └── pretrained/                # USE pretrained model AS-IS│   ├── processed/              # Preprocessed 50Hz CSVs
-
-││   └── samples/                # Sample/test data
-
-├── src/                           # Source code│
-
-│   ├── preprocessing/             # Data preparation├── 02_src/                     # Source code
-
-│   ├── inference/                 # Prediction pipeline (TODO)│   ├── preprocessing/          # Data preprocessing pipeline
-
-│   ├── monitoring/                # Model monitoring (TODO)│   ├── analysis/               # Model & data analysis scripts
-
-│   ├── utils/                     # Helper functions (TODO)│   └── training/               # Training pipeline (to be built)
-
-│   └── config.py                  # Centralized configuration│
-
-│├── 03_models/                  # Trained models
-
-├── api/                           # FastAPI serving (TODO)│   ├── pretrained/             # Pre-trained model from mentor
-
-├── notebooks/                     # Jupyter notebooks│   └── trained/                # Future trained models
-
-├── tests/                         # Unit tests (TODO)│
-
-├── docker/                        # Containerization (TODO)├── 04_notebooks/               # Jupyter notebooks
-
-├── logs/                          # Application logs│   ├── exploration/            # Data exploration notebooks
-
-├── docs/                          # Documentation│   └── experiments/            # Experimental notebooks
-
-└── config/                        # Configuration files│
-
-```├── 05_outputs/                 # Analysis outputs & results
-
-│   ├── analysis/               # Data & model analysis results
-
----│   └── reports/                # Evaluation reports (future)
-
-│
-
-## 🧠 Model Information├── 06_logs/                    # Log files
-
-│   ├── preprocessing/          # Preprocessing logs
-
-### Architecture: 1D-CNN-BiLSTM│   ├── training/               # Training logs (future)
-
-- **Input:** 200 timesteps × 6 sensors (4 seconds at 50Hz)│   └── evaluation/             # Evaluation logs (future)
-
-- **Sensors:** Ax, Ay, Az (accelerometer), Gx, Gy, Gz (gyroscope)│
-
-- **Output:** 11 activity classes├── 07_docs/                    # Documentation
-
-- **Parameters:** 499,131│   ├── mentor_communication/   # Email and detailed request to mentor
-
-- **Status:** ⚠️ **USE AS-IS - DO NOT RETRAIN**│   ├── project_info/           # Project status and assessments
-
-│   ├── planning/               # Roadmaps and questions
-
-### Activity Classes (11 total)│   └── technical/              # Technical documentation
-
-1. ear_rubbing│
-
-2. forehead_rubbing├── 08_config/                  # Configuration files
-
-3. hair_pulling│   ├── requirements.txt        # Python dependencies
-
-4. hand_scratching│   └── .pylintrc              # Linting configuration
-
-5. hand_tapping│
-
-6. knuckles_cracking├── 09_archive/                 # Old/backup files
-
-7. nail_biting│
-
-8. nape_rubbing└── README.md                   # This file
-
-9. sitting```
-
-10. smoking
-
-11. standing---
-
-
-
----## 🚀 Quick Start
-
-
-
-## 🚀 MLOps Components (Thesis Focus)### 1. Setup Environment
-
-
-
-### ✅ Completed```powershell
-
-- [x] Project restructuring (simplified folder names)# Create conda environment
-
-- [x] Data preparation pipelineconda create -n thesis-mlops python=3.11 -y
-
-- [x] Model architecture analysisconda activate thesis-mlops
-
-- [x] Data leakage analysis
-
-# Install dependencies
-
-### 📋 Next Stepspip install -r 08_config/requirements.txt
+## 📁 Project Structure
 
 ```
-
-**Phase 1: Inference Pipeline** (Month 2 - December)
-
-- [ ] Create prediction script using pretrained model### 2. Run Data Preprocessing
-
-- [ ] Load scaler parameters from config
-
-- [ ] Implement sliding window inference```powershell
-
-- [ ] Support batch predictionscd 02_src/preprocessing
-
-python sensor_data_pipeline.py
-
-**Phase 2: API Serving** (Month 2-3 - December-January)```
-
-- [ ] FastAPI REST endpoint
-
-- [ ] `/predict` endpoint (sensor data → predictions)### 3. Analyze Model
-
-- [ ] `/health` endpoint
-
-- [ ] Input validation```powershell
-
-- [ ] Response formattingcd 02_src/analysis
-
-python inspect_model.py
-
-**Phase 3: Monitoring** (Month 3 - January)```
-
-- [ ] Prometheus metrics
-
-- [ ] Grafana dashboards### 4. Analyze Data
-
-- [ ] Prediction tracking
-
-- [ ] Data drift detection```powershell
-
-python analyze_data.py
-
-**Phase 4: MLflow** (Month 3 - January)```
-
-- [ ] Model registry setup
-
-- [ ] Log pretrained model---
-
-- [ ] Version tracking
-
-- [ ] Production environments## 📊 Current Progress (Phase 1 Complete - 25%)
-
-
-
-**Phase 5: Docker** (Month 3-4 - February)### ✅ Completed
-
-- [ ] Dockerfile for API
-
-- [ ] Docker Compose setup**Data Preprocessing Pipeline**
-
-- [ ] Environment configuration- Built modular system with 8 specialized classes
-
-- Processed March 2025 sensor data (181,699 samples)
-
-**Phase 6: CI/CD** (Month 4 - February)- Achieved 95.1% sensor alignment accuracy
-
-- [ ] GitHub Actions workflow- Resampled to exact 50Hz
-
-- [ ] Automated testing- Output: `01_data/processed/sensor_fused_50Hz.csv`
-
-- [ ] Docker image building
-
-- [ ] Deployment automation**Model Analysis**
-
-- Inspected pre-trained 1D-CNN-BiLSTM architecture
-
----- Input: (200, 6) - 200 timesteps × 6 sensors
-
-- Output: (11) - 11-class classification
-
-## 📊 Dataset Information- Parameters: 1.5M total, 498K trainable
-
-- Saved: `03_models/pretrained/model_info.json`
-
-### Labeled Data (385K samples)
-
-- **File:** `data/raw/all_users_data_labeled.csv`**Data Quality Analysis**
-
-- **Users:** 6 users- Analyzed 69K + 182K samples
-
-- **Sample Rate:** 50Hz- Missing values: Only 0.014%
-
-- **Activities:** 11 classes (well-balanced)- All sensors within expected ranges
-
-- **Usage:** ⚠️ Model validation ONLY (already trained on this)- **CRITICAL FINDING:** No training labels found!
-
-- Outputs: `05_outputs/analysis/`
-
-### Production Data (181K samples)
-
-- **File:** `data/processed/sensor_fused_50Hz.csv`### 🔴 Current Blocker
-
-- **Sample Rate:** 50Hz
-
-- **Labels:** NONE (unlabeled)**Missing Training Labels**
-
-- **Usage:** Production testing, drift detection- Preprocessed data contains only sensor readings (Ax, Ay, Az, Gx, Gy, Gz)
-
-- No label/class column present in any file
-
----- Cannot proceed with training pipeline without ground truth
-
-- **Status:** Mentor communication sent on October 23, 2025
-
-## 🛠️ Setup Instructions- **Documents:** See `07_docs/mentor_communication/`
-
-
-
-```powershell### ⏸️ Blocked - Awaiting Labels
-
-# 1. Activate environment
-
-conda activate thesis-mlops- Data preparation script (sliding windows, normalization)
-
-- Training pipeline (MLflow tracking, callbacks)
-
-# 2. Verify structure- Evaluation system (metrics, confusion matrix)
-
-ls- MLOps deployment (API, monitoring)
-
-
-
-# 3. Test imports---
-
-python -c "from src.config import PRETRAINED_MODEL, WINDOW_SIZE; print('Config OK')"
-
-```## 📖 Key Documents
-
-
-
----### Start Here
-
-- **`07_docs/project_info/START_HERE.md`** - Project overview and current status
-
-## 📈 Thesis Timeline
-
-### Mentor Communication
-
-- **Month 1 (Nov):** ✅ Setup, data understanding, restructuring- **`07_docs/mentor_communication/EMAIL_TO_MENTOR.md`** - Short email to mentor
-
-- **Month 2 (Dec):** Inference pipeline + FastAPI- **`07_docs/mentor_communication/MENTOR_REQUEST_DETAILED.md`** - Detailed questions and context
-
-- **Month 3 (Jan):** MLflow + Monitoring
-
-- **Month 4 (Feb):** Docker + CI/CD### Project Status
-
-- **Month 5 (Mar-Apr):** Documentation + Thesis writing- **`07_docs/project_info/PROJECT_ASSESSMENT.md`** - Phase 1 assessment results
-
-- **`07_docs/project_info/QUICK_SUMMARY.md`** - Fast reference with key numbers
-
----- **`07_docs/project_info/TERMINAL_ANALYSIS.md`** - Terminal output explained
-
-
-
-## 🎓 Why This Approach?### Planning
-
-- **`07_docs/planning/COMPLETE_PIPELINE_ROADMAP.md`** - Full 8-phase thesis plan
-
-### The Problem with Retraining- **`07_docs/planning/MENTOR_QUESTIONS.md`** - Critical questions for mentor
-
-The pretrained model's architecture **exactly matches** our dataset:
-
-- Same 11 classes### Technical Documentation
-
-- Same 200 timesteps- **`07_docs/technical/README_modular.md`** - Preprocessing pipeline documentation
-
-- Same 6 sensors- **`07_docs/technical/for scale .md`** - Scaling design notes
-
-
-
-This means it was likely trained on our data. Retraining would be meaningless!---
-
-
-
-### The Solution: Focus on MLOps## 🔧 Technical Stack
-
-Instead of retraining, we demonstrate:
-
-1. **Model serving** in production**Languages & Frameworks**
-
-2. **API development** with FastAPI- Python 3.11
-
-3. **Monitoring** with Prometheus/Grafana- TensorFlow 2.20.0
-
-4. **CI/CD** automation- Keras 3.11.3
-
-5. **Containerization** with Docker
-
-6. **Model registry** with MLflow**Data Processing**
-
+MasterArbeit_MLops/
+│
+├── data/                       # All data files
+│   ├── raw/                    # Original labeled dataset (385K samples, 6 users)
+│   ├── processed/              # Production unlabeled data (181K samples)
+│   ├── prepared/               # Windowed train/val/test arrays + scaler config
+│   └── samples/                # Sample data
+│
+├── src/                        # Source code
+│   ├── preprocessing/          # Data pipelines (windowing, normalization)
+│   ├── evaluation/             # Model evaluation scripts
+│   ├── inference/              # Inference pipeline (blocked)
+│   ├── monitoring/             # MLOps monitoring (future)
+│   ├── training/               # Training scripts (future)
+│   └── utils/                  # Helper functions
+│
+├── models/                     # Model artifacts
+│   └── pretrained/             # 1D-CNN-BiLSTM (1.5M params, 11 classes)
+│
+├── notebooks/                  # Jupyter notebooks
+│   ├── exploration/            # Data exploration
+│   └── experiments/            # Experiments
+│
+├── docs/                       # Documentation
+│   ├── PROJECT_STATUS.md       # Current blocker + mentor email template
+│   ├── DATASET_DIFFERENCE_SUMMARY.md  # Data mismatch details
+│   └── CRITICAL_MODEL_ISSUE.md # Model evaluation results
+│
+├── logs/                       # Log files
+├── tests/                      # Unit tests (future)
+├── docker/                     # Containerization (future)
+├── config/                     # Configuration files
+│
+├── CURRENT_STATUS.md           # 📍 START HERE - Complete current status
+├── REPO_STRUCTURE.md           # Repository layout description
+└── README.md                   # This file
+```
+
+---
+
+## 🚀 Quick Start
+
+### 1. Read Current Status First!
+
+```powershell
+# Read this file to understand where we are and what's blocking us
+cat CURRENT_STATUS.md
+```
+
+### 2. Setup Environment
+
+```powershell
+# Create conda environment
+conda create -n thesis-mlops python=3.11 -y
+conda activate thesis-mlops
+
+# Install dependencies
+pip install -r config/requirements.txt
+```
+
+### 3. View Prepared Data
+
+```powershell
+# Check prepared training/validation/test data
+python -c "import numpy as np; X = np.load('data/prepared/train_X.npy'); print(f'Train shape: {X.shape}')"
+```
+
+### 4. Review Data Issue
+
+```powershell
+# Read about the current blocker (accelerometer unit mismatch)
+cat docs/DATASET_DIFFERENCE_SUMMARY.md
+cat docs/PROJECT_STATUS.md
+```
+
+---
+
+## 📊 Current Progress (~20% Complete)
+
+### ✅ Completed
+
+**Data Preprocessing Pipeline**
+- ✅ Built modular preprocessing system
+- ✅ Created training/validation/test splits (by user, no data leakage)
+- ✅ Generated 3,852 windows (200 timesteps × 6 sensors)
+  - Train: 2,538 windows (users 1,2,3,4)
+  - Val: 641 windows (user 5)
+  - Test: 673 windows (user 6)
+- ✅ Applied StandardScaler normalization
+- ✅ Saved scaler parameters: `data/prepared/config.json`
+
+**Model Analysis**
+- ✅ Analyzed pre-trained 1D-CNN-BiLSTM (1.5M parameters)
+- ✅ Verified architecture: Conv1D → BiLSTM → Dense
+- ✅ Input: (200, 6), Output: (11 classes)
+- ✅ Model info documented: `models/pretrained/model_info.json`
+
+**Data Quality Analysis**
+- ✅ Analyzed training data (385K samples, 6 users, 11 activities)
+- ✅ Analyzed production data (181K samples, unlabeled)
+- ✅ **CRITICAL FINDING:** Accelerometer unit mismatch detected!
+  - Production Az mean ≈ -1001.6 vs Training Az mean ≈ -3.5
+  - ~50-120x scale difference (likely raw counts vs m/s² or g)
+  - Gyroscope channels are compatible ✓
+
+### 🔴 Current Blocker
+
+**Production Data Has Different Accelerometer Units**
+- Production accelerometer values are tens to hundreds of times larger than training
+- Applying training StandardScaler creates out-of-distribution inputs
+- Model predictions unreliable until units are aligned
+- **Status:** Awaiting mentor confirmation (requesting new dataset or conversion formula)
+- **Documents:** 
+  - `CURRENT_STATUS.md` - Complete status and next steps
+  - `docs/PROJECT_STATUS.md` - Blocker details + mentor email template
+  - `docs/DATASET_DIFFERENCE_SUMMARY.md` - Statistical comparison
+
+### ⏸️ Blocked - Awaiting Mentor Response
+
+- Inference pipeline (needs compatible production data)
+- FastAPI serving (depends on inference)
+- Monitoring & drift detection (depends on inference)
+- MLOps deployment (CI/CD, Docker)
+
+### 🎯 Next Steps (After Mentor Confirmation)
+
+**Option 1:** If mentor provides unit conversion or new dataset
+- Convert production data to match training units
+- Resume inference pipeline development
+- Proceed with MLOps infrastructure
+
+**Option 2:** If no conversion available
+- Implement semi-supervised learning (pseudo-labeling)
+- Fine-tune model on production distribution
+- Adds valuable thesis content on handling distribution shift
+
+---
+
+## 🧠 Model Information
+
+### Architecture: 1D-CNN-BiLSTM
+- **Input:** 200 timesteps × 6 sensors (4 seconds at 50Hz)
+- **Sensors:** Ax, Ay, Az (accelerometer), Gx, Gy, Gz (gyroscope)
+- **Output:** 11 activity classes
+- **Parameters:** 1.5M total
+- **Location:** `models/pretrained/fine_tuned_model_1dcnnbilstm.keras`
+
+### Activity Classes (11 total)
+1. ear_rubbing
+2. forehead_rubbing
+3. hair_pulling
+4. hand_scratching
+5. hand_tapping
+6. knuckles_cracking
+7. nail_biting
+8. nape_rubbing
+9. sitting
+10. smoking
+11. standing
+
+---
+
+## 📖 Key Documents
+
+### 📍 Start Here (Most Important!)
+- **`CURRENT_STATUS.md`** - **READ THIS FIRST!** Complete current status, blocker, and next steps
+- **`README.md`** - This file - Project overview
+- **`REPO_STRUCTURE.md`** - Repository layout description
+
+### Current Issue Documentation
+- **`docs/PROJECT_STATUS.md`** - Blocker summary + mentor email template (ready to send)
+- **`docs/DATASET_DIFFERENCE_SUMMARY.md`** - Statistical comparison of training vs production data
+- **`docs/CRITICAL_MODEL_ISSUE.md`** - Model evaluation results showing data mismatch impact
+
+### Data Artifacts
+- **`data/prepared/README.md`** - Prepared data documentation
+- **`data/prepared/config.json`** - Scaler parameters (means, stds) for production inference
+
+---
+
+## 🔧 Technical Stack
+
+**Languages & Frameworks**
+- Python 3.11
+- TensorFlow 2.20.0
+- Keras 3.11.3
+
+**Data Processing**
 - Pandas, NumPy
+- scikit-learn (StandardScaler)
 
-**This is MORE valuable for an MLOps thesis!**- OpenPyXL (Excel reading)
-
-
-
----**MLOps Tools** (planned)
-
+**MLOps Tools** (planned)
 - MLflow (experiment tracking, model registry)
-
-## 🔧 Technology Stack- FastAPI (inference API)
-
+- FastAPI (inference API)
 - Docker (containerization)
+- GitHub Actions (CI/CD)
 
-- **ML Framework:** TensorFlow 2.20, Keras 3.12- GitHub Actions (CI/CD)
-
-- **API:** FastAPI
-
-- **Monitoring:** Prometheus + Grafana**Monitoring** (planned)
-
-- **Model Registry:** MLflow- Drift detection
-
-- **Containerization:** Docker- Performance monitoring
-
-- **CI/CD:** GitHub Actions- Logging & alerting
-
-- **Data:** pandas, numpy, scikit-learn
+**Monitoring** (planned)
+- Drift detection
+- Performance monitoring
+- Logging & alerting
 
 ---
 
----
+## 📅 Timeline
 
-## 📈 Model Specifications
+**Original Plan:** 6 months (October 2025 - April 2026)
 
-## 📝 Key Files
+**Phase 1: Data Preprocessing & Analysis** (Oct-Nov) - ✅ **COMPLETE**
+- ✅ Data preprocessing pipeline built
+- ✅ Training/val/test splits prepared (3,852 windows)
+- ✅ Model architecture analyzed
+- ✅ Data quality analysis
+- ✅ **Critical finding:** Accelerometer unit mismatch identified
 
-**Architecture:** 1D-CNN-BiLSTM
+**Phase 2: Issue Resolution** (Late Nov - Early Dec) - 🔴 **CURRENT**
+- 🔴 Awaiting mentor confirmation on dataset issue
+- ⏸️ Decision pending: New dataset OR conversion formula OR semi-supervised approach
 
-- `src/config.py` - Centralized configuration- **Input:** (None, 200, 6) → 4 seconds at 50Hz, 6 sensors
+**Phase 3-6: MLOps Development** (Dec-Feb) - ⏸️ **BLOCKED**
+- Inference pipeline
+- FastAPI serving
+- Monitoring & drift detection
+- Docker & CI/CD
 
-- `src/preprocessing/prepare_training_data.py` - Data preparation- **Output:** (None, 11) → 11-class classification
+**Phase 7: Documentation & Thesis** (Mar-Apr) - ⏸️ **FUTURE**
+- Thesis writing
+- Defense preparation
 
-- `data/prepared/config.json` - Scaler parameters- **Layers:**
-
-- `models/pretrained/fine_tuned_model_1dcnnbilstm.keras` - Model  - 2× Conv1D (16, 32 filters)
-
-  - 2× Bidirectional LSTM (64, 32 units)
-
----  - 5× BatchNormalization
-
-  - 5× Dropout
-
-## ✅ Progress Tracking  - 2× Dense (32, 11 units)
-
-- **Parameters:** 1,496,307 total
-
-- [x] Clean project structure (Nov 4, 2025)- **Optimizer:** Adam (lr=0.0001)
-
-- [x] Remove numbered folder prefixes- **Loss:** categorical_crossentropy
-
-- [x] Delete temporary analysis scripts
-
-- [x] Create standardized layout---
-
-- [ ] Build inference pipeline
-
-- [ ] Create FastAPI endpoint## 📅 Timeline
-
-- [ ] Setup monitoring
-
-- [ ] Implement CI/CD**Phase 1: Assessment** (Weeks 1-3) - ✅ **COMPLETE**
-
-- Data preprocessing pipeline
-
-**Last Updated:** November 4, 2025- Model architecture analysis
-
-- Data quality assessment
-
-**Phase 2: Mentor Communication** (Week 4) - 🔴 **IN PROGRESS**
-- Sent detailed request for labels
-- Awaiting response
-
-**Phase 3-8** (Weeks 5-24) - ⏸️ **BLOCKED**
-- Data preparation
-- Training pipeline
-- Evaluation system
-- MLOps infrastructure
-- Testing & monitoring
-- Documentation & thesis writing
+**Current Progress:** ~20% complete  
+**Expected Delay:** 2-3 weeks if semi-supervised approach needed  
+**Impact:** Manageable - still on track for April 2026 completion
 
 ---
 
 ## 🎯 Next Steps
 
-### Immediate (This Week)
-1. ✅ Send mentor email with detailed questions
-2. ⏸️ Wait for mentor response
-3. ⏸️ Review thesis registration form with mentor
+### Immediate (This Week - Nov 28 - Dec 1)
+1. 📧 **Contact mentor** about dataset issue
+   - Request new dataset with correct units OR
+   - Request conversion formula for accelerometer units OR
+   - Confirm if we should proceed with semi-supervised approach
+2. 📚 Research semi-supervised learning techniques (backup plan)
+   - Pseudo-labeling / self-training
+   - Active learning for smart labeling
 
-### After Receiving Labels (Week 5+)
-1. Build data preparation script (200-timestep sliding windows)
-2. Implement training pipeline with MLflow
-3. Create evaluation system
-4. Deploy MLOps infrastructure
+### After Mentor Confirmation (Dec 2-8)
+
+**Path A: If Mentor Provides Solution**
+1. Apply unit conversion to production data
+2. Validate distributions match training data
+3. Resume inference pipeline development
+4. Proceed with MLOps infrastructure
+
+**Path B: If Semi-Supervised Approach Needed**
+1. Implement pseudo-labeling or active learning
+2. Fine-tune model on production distribution
+3. Validate on held-out labeled data
+4. Document approach for thesis (adds value!)
+5. Proceed with MLOps infrastructure
+
+### Long-term (Dec-Apr)
+1. Complete inference pipeline
+2. Build FastAPI serving
+3. Implement monitoring & drift detection
+4. Docker containerization & CI/CD
 5. Write thesis documentation
 
-### Alternative Path (If Labels Unavailable)
-1. Pivot to MLOps-only focus
-2. Use pre-trained model for inference
-3. Focus on deployment, monitoring, versioning
-4. Update thesis scope accordingly
-
 ---
 
-## 📝 Notes
+## 📝 Important Notes
 
-- Project started: October 2025
+### Current Situation
+- **Blocker:** Production accelerometer data has different units/scale than training data
+- **Action:** Awaiting mentor confirmation on solution path
+- **Timeline Impact:** 2-3 weeks delay if semi-supervised approach needed
+- **Thesis Impact:** POSITIVE - Real-world MLOps challenge adds valuable content
+
+### Key Files to Review
+1. **`CURRENT_STATUS.md`** ← Start here for complete picture
+2. **`docs/PROJECT_STATUS.md`** ← Mentor email template ready
+3. **`docs/DATASET_DIFFERENCE_SUMMARY.md`** ← Data statistics
+
+### Project Info
+- Started: October 2025
 - Target completion: April 2026
-- Current progress: 25% (Phase 1 complete)
-- Next milestone: Receive training labels from mentor
-- Registration date: November 1, 2025
+- Current progress: ~20% complete
+- Registration: November 1, 2025
 
 ---
 
-**Last Updated:** October 23, 2025
+**Last Updated:** November 28, 2025  
+**Status:** Awaiting mentor confirmation on dataset issue  
+**Next Action:** Send mentor email, research semi-supervised learning as backup
