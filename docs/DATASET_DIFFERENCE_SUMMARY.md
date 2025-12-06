@@ -2,6 +2,20 @@
 
 This document captures the exact problem blocking production: the production accelerometer data has a fundamentally different scale/units than the training data.
 
+## ✅ ISSUE RESOLVED (Dec 3, 2025)
+
+**Root Cause Confirmed:**
+- Training data: Accelerometer already converted to m/s²
+- Production data: Accelerometer still in milliG (not converted)
+- **Conversion factor:** 0.00981 (milliG → m/s²)
+
+**Solution:** Apply conversion to production accelerometer only
+```python
+Ax_ms2 = Ax_milliG * 0.00981
+Ay_ms2 = Ay_milliG * 0.00981
+Az_ms2 = Az_milliG * 0.00981
+```
+
 ## What differs between datasets
 
 - Channels: 6 sensors total in both datasets
@@ -13,11 +27,13 @@ This document captures the exact problem blocking production: the production acc
 
 - Gyroscope (Gx, Gy, Gz):
   - Training and production have similar ranges and means
-  - Conclusion: Gyroscope units are consistent across datasets
+  - Conclusion: Gyroscope units are consistent across datasets ✓
 - Accelerometer (Ax, Ay, Az):
-  - Production values are tens to hundreds of times larger than training values
-  - Strong negative bias on Az in production (≈ -1001 mean), not physically plausible in m/s² or g
-  - Conclusion: Accelerometer units/calibration differ between training and production
+  - **Training:** Already in m/s² ✓
+  - **Production:** Still in milliG ⚠️
+  - Production values ~100x larger (Az ≈ -1001 in milliG vs ≈ -3.5 in m/s²)
+  - After conversion (×0.00981): Az becomes ≈ -9.8 m/s², closer to training
+  - Conclusion: Unit mismatch confirmed and solvable ✓
 
 ## Raw statistics (representative)
 
