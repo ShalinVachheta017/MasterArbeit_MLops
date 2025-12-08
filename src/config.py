@@ -16,10 +16,6 @@ DATA_PREPARED = DATA_DIR / "prepared"  # Windowed data ready for training
 
 # Source code directories
 SRC_DIR = PROJECT_ROOT / "src"
-SRC_PREPROCESSING = SRC_DIR / "preprocessing"
-SRC_INFERENCE = SRC_DIR / "inference"
-SRC_MONITORING = SRC_DIR / "monitoring"
-SRC_UTILS = SRC_DIR / "utils"
 
 # Model directories
 MODELS_DIR = PROJECT_ROOT / "models"
@@ -33,6 +29,9 @@ NOTEBOOKS_DIR = PROJECT_ROOT / "notebooks"
 
 # Logs
 LOGS_DIR = PROJECT_ROOT / "logs"
+
+# Outputs
+OUTPUTS_DIR = PROJECT_ROOT / "outputs"
 
 # Docs
 DOCS_DIR = PROJECT_ROOT / "docs"

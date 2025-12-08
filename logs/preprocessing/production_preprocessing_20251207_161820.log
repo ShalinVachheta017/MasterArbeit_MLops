@@ -1,0 +1,40 @@
+2025-12-07 16:18:20 | INFO | ================================================================================
+2025-12-07 16:18:20 | INFO | Preprocessing Pipeline Started - Log: production_preprocessing_20251207_161820.log
+2025-12-07 16:18:20 | INFO | ================================================================================
+2025-12-07 16:18:20 | INFO | Mode: PRODUCTION
+2025-12-07 16:18:20 | INFO | Input: data\processed\sensor_fused_50Hz.csv
+2025-12-07 16:18:20 | INFO | Loading data from: D:\study apply\ML Ops\MasterArbeit_MLops\data\processed\sensor_fused_50Hz.csv
+2025-12-07 16:18:20 | INFO |   Loaded: 181,699 rows, 8 columns
+2025-12-07 16:18:20 | INFO | Preprocessor initialized:
+2025-12-07 16:18:20 | INFO |   Window size: 200 samples
+2025-12-07 16:18:20 | INFO |   Overlap: 50%
+2025-12-07 16:18:20 | INFO |   Step size: 100 samples
+2025-12-07 16:18:20 | INFO | 
+2025-12-07 16:18:20 | INFO | ================================================================================
+2025-12-07 16:18:20 | INFO | DATA FORMAT DETECTION
+2025-12-07 16:18:20 | INFO | ================================================================================
+2025-12-07 16:18:20 | INFO |   Format: UNLABELED (production data)
+2025-12-07 16:18:20 | INFO |   Columns: Ax, Ay, Az, Gx, Gy, Gz + timestamp
+2025-12-07 16:18:20 | INFO |   Samples: 181,699
+2025-12-07 16:18:20 | INFO | ================================================================================
+2025-12-07 16:18:20 | INFO | 
+2025-12-07 16:18:20 | INFO | ================================================================================
+2025-12-07 16:18:20 | INFO | UNIT DETECTION AND CONVERSION
+2025-12-07 16:18:20 | INFO | ================================================================================
+2025-12-07 16:18:20 | INFO | Detecting accelerometer units...
+2025-12-07 16:18:20 | INFO |   Accelerometer statistics:
+2025-12-07 16:18:20 | INFO |     Mean (abs): nan
+2025-12-07 16:18:20 | INFO |     Max (abs):  nan
+2025-12-07 16:18:20 | INFO |     Range: [nan, nan]
+2025-12-07 16:18:20 | WARNING |   ⚠ Ambiguous units detected!
+2025-12-07 16:18:20 | WARNING |     Max absolute value nan in ambiguous range [50-100]
+2025-12-07 16:18:20 | WARNING |     Manual inspection recommended
+2025-12-07 16:18:20 | ERROR |   → Decision: CANNOT PROCEED (ambiguous units)
+2025-12-07 16:18:20 | ERROR | ✗ PREPROCESSING FAILED: Cannot determine accelerometer units. Please verify data manually or specify units explicitly.
+Traceback (most recent call last):
+  File "D:\study apply\ML Ops\MasterArbeit_MLops\src\preprocess_data.py", line 618, in main
+    df, conversion_applied = unit_detector.process_units(df, accel_cols)
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\study apply\ML Ops\MasterArbeit_MLops\src\preprocess_data.py", line 228, in process_units
+    raise ValueError(
+ValueError: Cannot determine accelerometer units. Please verify data manually or specify units explicitly.

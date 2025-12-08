@@ -4,19 +4,22 @@ Production Data Preprocessing Pipeline
 Preprocesses unlabeled production data using the SAME scaler and windowing
 strategy as the training data preparation.
 
-Input:  data/processed/sensor_fused_50Hz.csv (unlabeled)
+Input:  data/processed/sensor_fused_50Hz_converted.csv (unlabeled, units converted)
 Output: data/prepared/production_X.npy (windows, no labels)
         data/prepared/production_metadata.json
 
-Key Difference from Training Pipeline:
-- NO labels (production data is unlabeled)
-- Uses SAVED scaler from training data (no fitting!)
-- Same windowing (200 samples, 50% overlap)
-- Same sensor columns and order
+Key Steps:
+1. Load converted production data (accelerometer already in m/s²)
+2. Apply SAVED scaler from training data (no fitting!)
+3. Create sliding windows (200 samples, 50% overlap)
+4. Save preprocessed windows ready for model inference
+
+IMPORTANT: Run convert_production_units.py FIRST to convert accelerometer
+           units from milliG to m/s² (factor: 0.00981)
 
 Usage:
 ------
-python src/preprocessing/prepare_production_data.py
+python src/prepare_production_data.py
 """
 
 import json
@@ -28,7 +31,7 @@ from datetime import datetime
 import sys
 
 # Add src to path for imports
-sys.path.append(str(Path(__file__).parent.parent))
+sys.path.append(str(Path(__file__).parent))
 from config import (
     PROJECT_ROOT,
     DATA_PROCESSED,
@@ -65,13 +68,18 @@ def load_scaler_config():
 
 
 def load_production_data():
-    """Load unlabeled production data."""
-    csv_path = DATA_PROCESSED / "sensor_fused_50Hz.csv"
+    """Load unlabeled production data (CONVERTED from milliG to m/s²)."""
+    # Use CONVERTED data (units now match training data)
+    csv_path = DATA_PROCESSED / "sensor_fused_50Hz_converted.csv"
     
     print(f"\nLoading production data from: {csv_path}")
+    print(f"  (Accelerometer converted from milliG to m/s² using factor 0.00981)")
     
     if not csv_path.exists():
-        raise FileNotFoundError(f"Production data not found: {csv_path}")
+        raise FileNotFoundError(
+            f"Converted production data not found: {csv_path}\n"
+            f"Please run convert_production_units.py first!"
+        )
     
     df = pd.read_csv(csv_path)
     print(f"Loaded: {len(df)} samples")
@@ -192,7 +200,8 @@ def save_production_data(X_windows, metadata):
     
     meta_summary = {
         'created_date': datetime.now().isoformat(),
-        'source_file': 'data/processed/sensor_fused_50Hz.csv',
+        'source_file': 'data/processed/sensor_fused_50Hz_converted.csv',
+        'unit_conversion': 'Accelerometer converted from milliG to m/s² (factor: 0.00981)',
         'preprocessing_pipeline': 'prepare_production_data.py',
         'total_windows': len(X_windows),
         'window_size': WINDOW_SIZE,
@@ -277,8 +286,8 @@ def create_inference_readme():
     content = """# Production Data - Preprocessed for Inference
 
 **Created:** {date}  
-**Source:** `data/processed/sensor_fused_50Hz.csv`  
-**Pipeline:** `src/preprocessing/prepare_production_data.py`
+**Source:** `data/processed/sensor_fused_50Hz_converted.csv`  
+**Pipeline:** `src/prepare_production_data.py`
 
 ---
 
@@ -291,10 +300,11 @@ def create_inference_readme():
 
 ## Preprocessing Applied
 
-1. **Sensor Extraction:** Ax, Ay, Az, Gx, Gy, Gz
-2. **Normalization:** StandardScaler (using training data parameters)
-3. **Windowing:** 200 samples, 50% overlap
-4. **Output:** (N, 200, 6) float32 array
+1. **Unit Conversion:** Accelerometer converted from milliG to m/s² (factor: 0.00981)
+2. **Sensor Extraction:** Ax, Ay, Az, Gx, Gy, Gz
+3. **Normalization:** StandardScaler (using training data parameters)
+4. **Windowing:** 200 samples, 50% overlap
+5. **Output:** (N, 200, 6) float32 array
 
 ---
 

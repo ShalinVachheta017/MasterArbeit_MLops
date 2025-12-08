@@ -1,3 +1,30 @@
+'''
+Docstring for sensor_data_pipeline
+Purpose: Process RAW sensor data from Excel files (Garmin watch format)
+
+Key Components:
+
+ProcessingConfig: Configuration dataclass for processing parameters
+LoggerSetup: Logging infrastructure with rotating file handler
+SensorDataLoader: Load and validate Excel files with sensor data
+Parse list columns (x, y, z stored as strings)
+Normalize column names (vendor-specific → standardized)
+Validate required columns exist
+DataProcessor: Transform raw data to time series
+Explode list columns to individual rows
+Create precise timestamps (base_time + offset)
+Handle native sampling rates (accelerometer ≠ gyroscope)
+SensorFusion: Merge accelerometer + gyroscope data
+Align timestamps with tolerance
+Resample to target frequency (50Hz)
+Interpolate missing values
+MetadataTracker: Track data lineage and statistics
+Input: Raw Excel files from Garmin watch
+Output: sensor_fused_50Hz.csv (time-aligned, resampled sensor data)
+
+Status: Used for initial raw data processing (not needed for preprocessed data)
+
+'''
 
 
 import ast
