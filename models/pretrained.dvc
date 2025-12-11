@@ -1,0 +1,6 @@
+outs:
+- md5: 3bb89afbead08f80d8435437d67a6eb2.dir
+  size: 6095958
+  nfiles: 2
+  hash: md5
+  path: pretrained

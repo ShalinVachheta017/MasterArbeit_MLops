@@ -1,0 +1,83 @@
+# ============================================================================
+# Docker Ignore File
+# ============================================================================
+# Exclude files from Docker build context to keep images small and fast
+# ============================================================================
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# DVC
+.dvc
+.dvc_storage
+*.dvc
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info
+.eggs
+.pytest_cache
+.mypy_cache
+.ruff_cache
+*.egg
+MANIFEST
+
+# Virtual environments
+venv
+.venv
+env
+.env
+.conda
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# Jupyter
+.ipynb_checkpoints
+*.ipynb
+
+# Logs (we mount these as volumes)
+logs/
+*.log
+
+# Data (we mount these as volumes)
+data/raw/
+data/processed/
+data/prepared/
+*.csv
+*.xlsx
+*.npy
+
+# Models (we mount these as volumes)
+models/
+
+# MLflow (we mount these as volumes)
+mlruns/
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Tests
+tests/
+
+# Archive
+**/archive/
+**/old_*/
+**/backup/
+
+# Misc
+.DS_Store
+Thumbs.db
+*.bak
+*.tmp

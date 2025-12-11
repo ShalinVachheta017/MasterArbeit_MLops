@@ -37,6 +37,8 @@ from logging.handlers import RotatingFileHandler
 
 import numpy as np
 import pandas as pd
+import yaml
+from scipy.signal import butter, filtfilt
 
 
 # ============================================================================
@@ -671,6 +673,199 @@ class Resampler:
 
 
 # ============================================================================
+# GRAVITY REMOVAL PREPROCESSING
+# ============================================================================
+
+class GravityRemovalPreprocessor:
+    """
+    Removes gravity component from accelerometer data using high-pass filtering.
+    
+    This addresses domain shift when training data has gravity removed but
+    production data still contains gravity. Uses a Butterworth high-pass filter
+    following the approach from the UCI HAR dataset (Anguita et al., 2013).
+    
+    Theory:
+        - Gravity is a constant (DC) component at ~9.81 m/s²
+        - Human movement is dynamic (varying frequency)
+        - High-pass filter removes low-frequency components (gravity)
+        - Cutoff at 0.3 Hz captures gravity while preserving movement
+    
+    Example:
+        >>> preprocessor = GravityRemovalPreprocessor(enable_gravity_removal=True)
+        >>> df_processed = preprocessor.process_dataframe(df)
+        >>> # Az mean will shift from ~-9.81 to ~0
+    """
+    
+    ACCEL_COLUMNS = ['Ax', 'Ay', 'Az']
+    
+    def __init__(
+        self,
+        enable_gravity_removal: bool = True,
+        sampling_frequency: float = 50.0,
+        cutoff_hz: float = 0.3,
+        filter_order: int = 3,
+        config_path: Optional[Path] = None,
+        logger: Optional[logging.Logger] = None
+    ):
+        """
+        Initialize gravity removal preprocessor.
+        
+        Args:
+            enable_gravity_removal: Toggle to enable/disable gravity removal.
+                                    Set to False to skip processing (passthrough).
+            sampling_frequency: Sampling rate of the data in Hz (default: 50 Hz)
+            cutoff_hz: High-pass filter cutoff frequency in Hz (default: 0.3 Hz)
+            filter_order: Butterworth filter order (default: 3)
+            config_path: Optional path to YAML config file
+            logger: Optional logger instance
+        """
+        # Load from config if provided
+        if config_path and config_path.exists():
+            self._load_config(config_path)
+        else:
+            self.enable_gravity_removal = enable_gravity_removal
+            self.sampling_frequency = sampling_frequency
+            self.cutoff_hz = cutoff_hz
+            self.filter_order = filter_order
+        
+        self.logger = logger or logging.getLogger(__name__)
+        
+        # Pre-compute filter coefficients if enabled (for efficiency)
+        if self.enable_gravity_removal:
+            self._compute_filter_coefficients()
+    
+    def _load_config(self, config_path: Path) -> None:
+        """Load settings from YAML config file."""
+        with open(config_path, 'r', encoding='utf-8') as f:
+            config = yaml.safe_load(f)
+        
+        preprocessing = config.get('preprocessing', {})
+        gravity_filter = preprocessing.get('gravity_filter', {})
+        
+        self.enable_gravity_removal = preprocessing.get('enable_gravity_removal', True)
+        self.sampling_frequency = preprocessing.get('sampling_frequency_hz', 50.0)
+        self.cutoff_hz = gravity_filter.get('cutoff_hz', 0.3)
+        self.filter_order = gravity_filter.get('order', 3)
+    
+    def _compute_filter_coefficients(self) -> None:
+        """
+        Pre-compute Butterworth filter coefficients.
+        
+        Called once during initialization for efficiency.
+        Uses Nyquist frequency for normalization as required by scipy.
+        """
+        # Nyquist frequency = half of sampling frequency
+        nyquist = self.sampling_frequency / 2.0
+        
+        # Normalized cutoff (0 to 1 where 1 = Nyquist)
+        normalized_cutoff = self.cutoff_hz / nyquist
+        
+        # Design high-pass Butterworth filter
+        # btype='high': High-pass filter (removes frequencies below cutoff)
+        self.b, self.a = butter(
+            self.filter_order,
+            normalized_cutoff,
+            btype='high'
+        )
+        
+        self.logger.debug(
+            f"Gravity filter initialized: cutoff={self.cutoff_hz}Hz, "
+            f"order={self.filter_order}, fs={self.sampling_frequency}Hz"
+        )
+    
+    def remove_gravity(self, acceleration_data: np.ndarray) -> np.ndarray:
+        """
+        Apply high-pass filter to remove gravity from acceleration data.
+        
+        Args:
+            acceleration_data: Numpy array of shape (n_samples,) or (n_samples, 3)
+                               Contains acceleration values in m/s²
+        
+        Returns:
+            np.ndarray: Filtered data with gravity removed (body acceleration)
+        
+        Note:
+            Uses filtfilt for zero-phase filtering (no time delay)
+        """
+        if not self.enable_gravity_removal:
+            return acceleration_data
+        
+        # Handle 1D and 2D arrays
+        if acceleration_data.ndim == 1:
+            return filtfilt(self.b, self.a, acceleration_data)
+        else:
+            # Apply filter to each column (axis)
+            return filtfilt(self.b, self.a, acceleration_data, axis=0)
+    
+    def process_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Process DataFrame to remove gravity from accelerometer columns.
+        
+        Args:
+            df: Input DataFrame with Ax, Ay, Az columns
+        
+        Returns:
+            pd.DataFrame: DataFrame with gravity removed from accelerometer columns.
+                          Gyroscope columns (Gx, Gy, Gz) are unchanged.
+        
+        Example:
+            >>> df['Az'].mean()  # Before: -9.83
+            >>> df_processed = preprocessor.process_dataframe(df)
+            >>> df_processed['Az'].mean()  # After: ~0.0
+        """
+        if not self.enable_gravity_removal:
+            self.logger.info("Gravity removal disabled - returning data unchanged")
+            return df
+        
+        self.logger.info("Applying gravity removal to accelerometer data...")
+        
+        # Create copy to avoid modifying original
+        df_processed = df.copy()
+        
+        # Track statistics for logging
+        stats_before = {}
+        stats_after = {}
+        
+        # Apply gravity removal to each accelerometer column
+        for col in self.ACCEL_COLUMNS:
+            if col in df_processed.columns:
+                # Store before stats
+                stats_before[col] = df_processed[col].mean()
+                
+                # Apply filter
+                df_processed[col] = self.remove_gravity(df_processed[col].values)
+                
+                # Store after stats
+                stats_after[col] = df_processed[col].mean()
+        
+        # Log transformation results
+        self.logger.info(
+            f"Gravity removal complete: "
+            f"Az mean: {stats_before.get('Az', 0):.2f} → {stats_after.get('Az', 0):.2f} m/s²"
+        )
+        
+        return df_processed
+
+
+def load_pipeline_config(config_path: Path) -> dict:
+    """
+    Load pipeline configuration from YAML file.
+    
+    Args:
+        config_path: Path to pipeline_config.yaml
+    
+    Returns:
+        Dictionary with configuration values
+    """
+    if not config_path.exists():
+        logging.warning(f"Config file not found: {config_path}, using defaults")
+        return {}
+    
+    with open(config_path, 'r') as f:
+        return yaml.safe_load(f)
+
+
+# ============================================================================
 # DATA EXPORT
 # ============================================================================
 
@@ -772,7 +967,8 @@ class SensorDataPipeline:
             1. Store configuration (create default if not provided)
             2. Setup logging (creates logs/preprocessing/ directory)
             3. Initialize all processing components
-            4. Create output directories
+            4. Load pipeline config from YAML
+            5. Create output directories
         """
         self.base_dir = base_dir
         self.config = config or ProcessingConfig()  # Use default config if none provided
@@ -782,11 +978,21 @@ class SensorDataPipeline:
         self.logger_setup = LoggerSetup(log_dir)
         self.logger = self.logger_setup.get_logger()
         
+        # Load pipeline configuration from YAML
+        self.config_path = base_dir / "config" / "pipeline_config.yaml"
+        self.pipeline_config = load_pipeline_config(self.config_path)
+        
         # Initialize all processing components (dependency injection pattern)
         self.data_loader = SensorDataLoader(self.logger)
         self.data_processor = DataProcessor(self.logger)
         self.sensor_fusion = SensorFusion(self.config, self.logger)
         self.resampler = Resampler(self.config, self.logger)
+        
+        # Initialize gravity removal preprocessor (config-controlled)
+        self.gravity_preprocessor = GravityRemovalPreprocessor(
+            config_path=self.config_path if self.config_path.exists() else None,
+            logger=self.logger
+        )
         
         # Setup output directory and exporter
         self.output_dir = base_dir / "pre_processed_data"
@@ -801,7 +1007,7 @@ class SensorDataPipeline:
         """
         Process accelerometer and gyroscope files through complete pipeline.
         
-        Complete Pipeline (10 steps):
+        Complete Pipeline (11 steps):
             Step 1:  Load raw Excel files
             Step 2:  Normalize column names
             Step 3:  Validate required columns
@@ -811,7 +1017,8 @@ class SensorDataPipeline:
             Step 7:  Process sensor data (timestamps, data types)
             Step 8:  Merge sensors by timestamp alignment
             Step 9:  Resample to target frequency
-            Step 10: Export results with metadata
+            Step 10: Apply gravity removal (if enabled in config)
+            Step 11: Export results with metadata
         
         Args:
             accel_path: Path to accelerometer Excel file
@@ -872,7 +1079,14 @@ class SensorDataPipeline:
             resampled_data = self.resampler.add_timestamp_columns(resampled_data)
             
             # ================================================================
-            # STEP 10: EXPORT
+            # STEP 10: GRAVITY REMOVAL (if enabled in config)
+            # ================================================================
+            # Apply gravity removal to accelerometer data
+            # Toggle controlled by config/pipeline_config.yaml
+            resampled_data = self.gravity_preprocessor.process_dataframe(resampled_data)
+            
+            # ================================================================
+            # STEP 11: EXPORT
             # ================================================================
             input_files = {
                 "accelerometer": str(accel_path),
