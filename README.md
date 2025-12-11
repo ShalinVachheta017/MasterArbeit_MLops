@@ -1,86 +1,158 @@
-# MLOps Pipeline for Mental Health Monitoring
+# 🧠 MLOps Pipeline for Mental Health Monitoring
 
-**Master's Thesis Project**  
-**Duration:** 6 months (October 2025 - April 2026)  
-**Last Updated:** December 6, 2025
+[![Python 3.11](https://img.shields.io/badge/Python-3.11-blue.svg)](https://python.org)
+[![TensorFlow](https://img.shields.io/badge/TensorFlow-2.14+-orange.svg)](https://tensorflow.org)
+[![DVC](https://img.shields.io/badge/DVC-3.50+-purple.svg)](https://dvc.org)
+[![MLflow](https://img.shields.io/badge/MLflow-2.11+-green.svg)](https://mlflow.org)
+[![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://docker.com)
 
-**Current Status:** ✅ Unit conversion complete, ready for inference testing  
-**Progress:** ~25% complete
-
----
-
-## 📋 Project Overview
-
-Developing an end-to-end MLOps pipeline for mental health monitoring using wearable sensor data (accelerometer + gyroscope). The system uses a pre-trained 1D-CNN-BiLSTM model to predict 11 anxiety-related activities.
-
-### Key Components
-
-- ✅ Data preprocessing pipeline (windowing, normalization, train/val/test splits)
-- ✅ Pre-trained 1D-CNN-BiLSTM model analyzed (1.5M parameters, 11 classes)
-- ✅ Prepared data: 3,852 windows from 6 users (385K samples)
-- ✅ **Unit conversion resolved:** Production accelerometer converted from milliG to m/s² (factor: 0.00981)
-- ✅ Converted production data: 181,699 samples now in correct units
-- ⏳ **Next:** Test inference with converted production data
-- ⏸️ MLOps infrastructure (API, monitoring, CI/CD) - after successful inference
+**Master's Thesis Project** | October 2025 - April 2026  
+**Last Updated:** December 11, 2025  
+**Progress:** ~50% complete
 
 ---
 
-## 📁 Project Structure
+## 📋 Table of Contents
+
+1. [Project Overview](#-project-overview)
+2. [Architecture & Pipeline Flow](#-architecture--pipeline-flow)
+3. [Quick Start](#-quick-start)
+4. [Project Structure](#-project-structure)
+5. [DVC - Data Version Control](#-dvc---data-version-control)
+6. [MLflow - Experiment Tracking](#-mlflow---experiment-tracking)
+7. [Docker - Containerization](#-docker---containerization)
+8. [Pipeline Stages](#-pipeline-stages)
+9. [Adding New Datasets](#-adding-new-datasets)
+10. [API Reference](#-api-reference)
+11. [Configuration](#-configuration)
+12. [Troubleshooting](#-troubleshooting)
+
+---
+
+## 🎯 Project Overview
+
+An end-to-end MLOps pipeline for **Human Activity Recognition (HAR)** using wearable sensor data. The system recognizes 11 anxiety-related activities from accelerometer and gyroscope data collected via Garmin smartwatches.
+
+### Key Features
+
+| Feature | Technology | Status |
+|---------|------------|--------|
+| Data Versioning | DVC | ✅ Complete |
+| Experiment Tracking | MLflow | ✅ Complete |
+| Containerization | Docker | ✅ Complete |
+| Model Serving API | FastAPI | ✅ Complete |
+| Gravity Removal | Butterworth Filter | ✅ Complete |
+| CI/CD Pipeline | GitHub Actions | ⏳ Next |
+| Monitoring | Prometheus/Grafana | ⏳ Planned |
+
+### Model Details
+
+- **Architecture:** 1D-CNN-BiLSTM (1.5M parameters)
+- **Input:** 200 timesteps × 6 sensors (4 seconds @ 50Hz)
+- **Output:** 11 activity classes
+- **Sensors:** Ax, Ay, Az (accelerometer) + Gx, Gy, Gz (gyroscope)
+
+### Activity Classes
 
 ```
-MasterArbeit_MLops/
-│
-├── data/                       # All data files
-│   ├── raw/                    # Original labeled dataset (385K samples, 6 users)
-│   ├── processed/              # Production unlabeled data (181K samples)
-│   ├── prepared/               # Windowed train/val/test arrays + scaler config
-│   └── samples/                # Sample data
-│
-├── src/                        # Source code
-│   ├── preprocessing/          # Data pipelines (windowing, normalization)
-│   ├── evaluation/             # Model evaluation scripts
-│   ├── inference/              # Inference pipeline (blocked)
-│   ├── monitoring/             # MLOps monitoring (future)
-│   ├── training/               # Training scripts (future)
-│   └── utils/                  # Helper functions
-│
-├── models/                     # Model artifacts
-│   └── pretrained/             # 1D-CNN-BiLSTM (1.5M params, 11 classes)
-│
-├── notebooks/                  # Jupyter notebooks
-│   ├── exploration/            # Data exploration
-│   └── experiments/            # Experiments
-│
-├── docs/                       # Documentation
-│   ├── UNIT_CONVERSION_SOLUTION.md     # ✅ Solution to unit mismatch
-│   ├── DATASET_DIFFERENCE_SUMMARY.md   # Data analysis & conversion
-│   └── CRITICAL_MODEL_ISSUE.md         # Model evaluation history
-│
-├── research_papers/            # Research papers & references
-├── images/                     # Project images & figures
-├── logs/                       # Log files
-├── tests/                      # Unit tests (future)
-├── docker/                     # Containerization (future)
-├── config/                     # Configuration files
-│
-├── CURRENT_STATUS.md           # 📍 START HERE - Where we are now (Dec 6, 2025)
-└── README.md                   # This file
+0: ear_rubbing      4: hand_tapping     8: sitting
+1: forehead_rubbing 5: knuckles_cracking 9: smoking
+2: hair_pulling     6: nail_biting      10: standing
+3: hand_scratching  7: nape_rubbing
+```
+
+---
+
+## 🏗️ Architecture & Pipeline Flow
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        MLOps Pipeline Architecture                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+                              ┌──────────────┐
+                              │  New Dataset │
+                              │  (Garmin CSV)│
+                              └──────┬───────┘
+                                     │
+                                     ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         1. DATA INGESTION                                   │
+│  ┌─────────────┐    ┌──────────────┐    ┌─────────────────┐                │
+│  │ Raw Data    │───▶│ Validation   │───▶│ DVC Tracking    │                │
+│  │ (data/raw/) │    │ (data_       │    │ (dvc add)       │                │
+│  │             │    │  validator)  │    │                 │                │
+│  └─────────────┘    └──────────────┘    └─────────────────┘                │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                     │
+                                     ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         2. PREPROCESSING                                    │
+│  ┌─────────────┐    ┌──────────────┐    ┌─────────────────┐                │
+│  │ Sensor      │───▶│ Gravity      │───▶│ Windowing       │                │
+│  │ Fusion      │    │ Removal      │    │ (200 samples)   │                │
+│  │ (50Hz)      │    │ (0.3Hz HPF)  │    │                 │                │
+│  └─────────────┘    └──────────────┘    └─────────────────┘                │
+│         │                   │                    │                          │
+│         ▼                   ▼                    ▼                          │
+│  data/processed/     config/pipeline_     data/prepared/                   │
+│  sensor_fused.csv    config.yaml          train_X.npy, etc.                │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                     │
+                                     ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         3. TRAINING (Optional)                              │
+│  ┌─────────────┐    ┌──────────────┐    ┌─────────────────┐                │
+│  │ Load Data   │───▶│ Train Model  │───▶│ Log to MLflow   │                │
+│  │ (DVC pull)  │    │ (1D-CNN-     │    │ (metrics,       │                │
+│  │             │    │  BiLSTM)     │    │  artifacts)     │                │
+│  └─────────────┘    └──────────────┘    └─────────────────┘                │
+│                            │                    │                           │
+│                            ▼                    ▼                           │
+│                     models/trained/       mlruns/                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                     │
+                                     ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         4. INFERENCE (Production)                           │
+│  ┌─────────────┐    ┌──────────────┐    ┌─────────────────┐                │
+│  │ Docker      │───▶│ FastAPI      │───▶│ Predictions     │                │
+│  │ Container   │    │ /predict     │    │ + Confidence    │                │
+│  │             │    │ endpoint     │    │                 │                │
+│  └─────────────┘    └──────────────┘    └─────────────────┘                │
+│         │                                                                   │
+│         ▼                                                                   │
+│  localhost:8000/docs  (Swagger UI)                                         │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                     │
+                                     ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         5. MONITORING (Planned)                             │
+│  ┌─────────────┐    ┌──────────────┐    ┌─────────────────┐                │
+│  │ Data Drift  │    │ Prediction   │    │ Model           │                │
+│  │ Detection   │    │ Drift        │    │ Retraining      │                │
+│  │             │    │ Detection    │    │ Trigger         │                │
+│  └─────────────┘    └──────────────┘    └─────────────────┘                │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
 ## 🚀 Quick Start
 
-### 1. Read Current Status First!
+### Prerequisites
+
+- Python 3.11+
+- Docker Desktop
+- Git
+
+### 1. Clone & Setup
 
 ```powershell
-# Read this file to understand where we are and what's blocking us
-cat CURRENT_STATUS.md
-```
+# Clone repository
+git clone https://github.com/ShalinVachheta017/MasterArbeit_MLops-.git
+cd MasterArbeit_MLops
 
-### 2. Setup Environment
-
-```powershell
 # Create conda environment
 conda create -n thesis-mlops python=3.11 -y
 conda activate thesis-mlops
@@ -89,238 +161,810 @@ conda activate thesis-mlops
 pip install -r config/requirements.txt
 ```
 
-### 3. View Prepared Data
+### 2. Pull Data with DVC
 
 ```powershell
-# Check prepared training/validation/test data
-python -c "import numpy as np; X = np.load('data/prepared/train_X.npy'); print(f'Train shape: {X.shape}')"
+# Pull all versioned data from DVC storage
+dvc pull
+
+# Verify data
+ls data/prepared/
+ls models/pretrained/
 ```
 
-### 4. Review Data Issue
+### 3. Start Services with Docker
 
 ```powershell
-# Read about the current blocker (accelerometer unit mismatch)
-cat docs/DATASET_DIFFERENCE_SUMMARY.md
-cat docs/PROJECT_STATUS.md
+# Start MLflow + Inference API
+docker-compose up -d mlflow inference
+
+# Check status
+docker-compose ps
+
+# View logs
+docker-compose logs -f inference
+```
+
+### 4. Test the API
+
+```powershell
+# Health check
+curl http://localhost:8000/health
+
+# Model info
+curl http://localhost:8000/model/info
+
+# Open Swagger UI in browser
+start http://localhost:8000/docs
+```
+
+### 5. View Experiments in MLflow
+
+```powershell
+# Open MLflow UI
+start http://localhost:5000
 ```
 
 ---
 
-## 📊 Current Progress (~20% Complete)
+## 📁 Project Structure
 
-### ✅ Completed
-
-**Data Preprocessing Pipeline**
-- ✅ Built modular preprocessing system
-- ✅ Created training/validation/test splits (by user, no data leakage)
-- ✅ Generated 3,852 windows (200 timesteps × 6 sensors)
-  - Train: 2,538 windows (users 1,2,3,4)
-  - Val: 641 windows (user 5)
-  - Test: 673 windows (user 6)
-- ✅ Applied StandardScaler normalization
-- ✅ Saved scaler parameters: `data/prepared/config.json`
-
-**Model Analysis**
-- ✅ Analyzed pre-trained 1D-CNN-BiLSTM (1.5M parameters)
-- ✅ Verified architecture: Conv1D → BiLSTM → Dense
-- ✅ Input: (200, 6), Output: (11 classes)
-- ✅ Model info documented: `models/pretrained/model_info.json`
-**Data Quality Analysis**
-- ✅ Analyzed training data (385K samples, 6 users, 11 activities)
-- ✅ Analyzed production data (181K samples, unlabeled)
-- ✅ **Root cause identified:** Unit mismatch (training in m/s², production in milliG)
-- ✅ **Solution received from mentor:** Conversion factor = 0.00981
-- ✅ **Conversion completed (Dec 3, 2025):**
-  - Az: -1001.6 milliG → -9.8 m/s² (Earth's gravity ✓)
-  - All accelerometer channels now in correct units
-  - Gyroscope channels unchanged (already compatible)
-
-### ✅ Blocker Resolved (Dec 3, 2025)
-
-**Production Data Unit Conversion Complete**
-- Created conversion script: `src/preprocessing/convert_production_units.py`
-- Converted data saved: `data/processed/sensor_fused_50Hz_converted.csv`
-- Conversion log: `logs/preprocessing/unit_conversion.log`
-- **Status:** Ready for inference testing
-- **Documents:** 
-  - `CURRENT_STATUS.md` - Current status (Dec 6, 2025)
-  - `docs/UNIT_CONVERSION_SOLUTION.md` - Complete solution documentation
-  - `docs/DATASET_DIFFERENCE_SUMMARY.md` - Analysis and resolution
-
-### 🎯 Current Phase: Inference Testing
-
-**This Week (Dec 6-13, 2025):**
-1. Update `prepare_production_data.py` to use converted data
-2. Apply training StandardScaler to converted production data
-3. Create production windows (200 timesteps, 50% overlap)
-4. Test model predictions on converted data
-5. Validate confidence scores and prediction distribution
-
-**Next Phase:**
-- If inference works well → Build FastAPI serving
-- If predictions poor → Investigate domain adaptation or fine-tuning
-- Adds valuable thesis content on handling distribution shift
-
----
-
-## 🧠 Model Information
-
-### Architecture: 1D-CNN-BiLSTM
-- **Input:** 200 timesteps × 6 sensors (4 seconds at 50Hz)
-- **Sensors:** Ax, Ay, Az (accelerometer), Gx, Gy, Gz (gyroscope)
-- **Output:** 11 activity classes
-- **Parameters:** 1.5M total
-- **Location:** `models/pretrained/fine_tuned_model_1dcnnbilstm.keras`
-
-### Activity Classes (11 total)
-1. ear_rubbing
-2. forehead_rubbing
-3. hair_pulling
-4. hand_scratching
-5. hand_tapping
-6. knuckles_cracking
-7. nail_biting
-8. nape_rubbing
-9. sitting
-10. smoking
-11. standing
+```
+MasterArbeit_MLops/
+│
+├── 📂 config/                      # Configuration files
+│   ├── pipeline_config.yaml        # Preprocessing settings (gravity removal toggle)
+│   ├── mlflow_config.yaml          # MLflow experiment settings
+│   ├── requirements.txt            # Python dependencies
+│   └── .pylintrc                   # Code quality settings
+│
+├── 📂 data/                        # Data files (tracked by DVC)
+│   ├── raw/                        # Original sensor data
+│   │   └── *.xlsx                  # Garmin accelerometer/gyroscope exports
+│   ├── processed/                  # Preprocessed data
+│   │   └── sensor_fused_50Hz.csv   # Fused & resampled sensor data
+│   ├── prepared/                   # ML-ready data
+│   │   ├── train_X.npy, train_y.npy
+│   │   ├── val_X.npy, val_y.npy
+│   │   ├── test_X.npy, test_y.npy
+│   │   ├── production_X.npy        # Unlabeled production data
+│   │   └── config.json             # Scaler parameters
+│   ├── prepared.dvc                # DVC tracking file
+│   ├── processed.dvc
+│   └── raw.dvc
+│
+├── 📂 models/                      # Model artifacts (tracked by DVC)
+│   ├── pretrained/                 # Pre-trained model
+│   │   └── fine_tuned_model_1dcnnbilstm.keras
+│   ├── trained/                    # New trained models
+│   └── pretrained.dvc              # DVC tracking file
+│
+├── 📂 src/                         # Source code
+│   ├── config.py                   # Path configurations
+│   ├── sensor_data_pipeline.py     # Main preprocessing pipeline
+│   ├── data_validator.py           # Input data validation
+│   ├── mlflow_tracking.py          # MLflow integration
+│   ├── run_inference.py            # Batch inference script
+│   ├── evaluate_predictions.py     # Model evaluation
+│   └── preprocess_data.py          # Data preparation
+│
+├── 📂 docker/                      # Docker configurations
+│   ├── Dockerfile.training         # Training container
+│   ├── Dockerfile.inference        # Inference API container
+│   └── api/
+│       ├── __init__.py
+│       └── main.py                 # FastAPI application
+│
+├── 📂 notebooks/                   # Jupyter notebooks
+│   └── exploration/
+│       └── gravity_removal_demo.ipynb  # Gravity removal analysis
+│
+├── 📂 research_papers/             # Reference datasets & papers (DVC tracked)
+│   ├── anxiety_dataset.csv         # Anxiety study dataset
+│   └── all_users_data_labeled.csv  # Labeled training data
+│
+├── 📂 mlruns/                      # MLflow tracking data (git-ignored)
+├── 📂 logs/                        # Application logs
+├── 📂 tests/                       # Unit tests (TODO)
+├── 📂 docs/                        # Documentation
+│
+├── 📄 docker-compose.yml           # Service orchestration
+├── 📄 .gitignore                   # Git ignore rules
+├── 📄 .dockerignore                # Docker build exclusions
+├── 📄 .dvcignore                   # DVC ignore rules
+└── 📄 README.md                    # This file
+```
 
 ---
 
-## 📖 Key Documents
+## 📦 DVC - Data Version Control
 
-### 📍 Start Here (Most Important!)
-- **`CURRENT_STATUS.md`** - **READ THIS FIRST!** Complete current status, blocker, and next steps
-- **`README.md`** - This file - Project overview
-- **`REPO_STRUCTURE.md`** - Repository layout description
+DVC tracks large data files and models, keeping Git history clean while enabling full reproducibility.
 
-### Current Issue Documentation
-- **`docs/PROJECT_STATUS.md`** - Blocker summary + mentor email template (ready to send)
-- **`docs/DATASET_DIFFERENCE_SUMMARY.md`** - Statistical comparison of training vs production data
-- **`docs/CRITICAL_MODEL_ISSUE.md`** - Model evaluation results showing data mismatch impact
+### What's Tracked by DVC
 
-### Data Artifacts
-- **`data/prepared/README.md`** - Prepared data documentation
-- **`data/prepared/config.json`** - Scaler parameters (means, stds) for production inference
+| Directory | Contents | Size |
+|-----------|----------|------|
+| `data/raw/` | Original Garmin exports | ~60MB |
+| `data/processed/` | Fused sensor CSVs | ~110MB |
+| `data/prepared/` | Windowed .npy arrays | ~50MB |
+| `models/pretrained/` | Keras model | ~18MB |
+| `research_papers/*.csv` | Reference datasets | ~120MB |
 
----
+### DVC Commands
 
-## 🔧 Technical Stack
+```powershell
+# ═══════════════════════════════════════════════════════════════
+# PULLING DATA (After cloning or when data updates)
+# ═══════════════════════════════════════════════════════════════
 
-**Languages & Frameworks**
-- Python 3.11
-- TensorFlow 2.20.0
-- Keras 3.11.3
+# Pull all tracked data
+dvc pull
 
-**Data Processing**
-- Pandas, NumPy
-- scikit-learn (StandardScaler)
+# Pull specific directory
+dvc pull data/prepared.dvc
 
-**MLOps Tools** (planned)
-- MLflow (experiment tracking, model registry)
-- FastAPI (inference API)
-- Docker (containerization)
-- GitHub Actions (CI/CD)
+# Pull specific file
+dvc pull models/pretrained.dvc
 
-**Monitoring** (planned)
-- Drift detection
-- Performance monitoring
-- Logging & alerting
 
----
+# ═══════════════════════════════════════════════════════════════
+# ADDING NEW DATA (When you have new datasets)
+# ═══════════════════════════════════════════════════════════════
 
-## 📅 Timeline
+# 1. Add new file/folder to DVC tracking
+dvc add data/raw/new_dataset.csv
 
-**Original Plan:** 6 months (October 2025 - April 2026)
+# 2. Push to DVC remote storage
+dvc push
 
-**Phase 1: Data Preprocessing & Analysis** (Oct-Nov) - ✅ **COMPLETE**
-- ✅ Data preprocessing pipeline built
-- ✅ Training/val/test splits prepared (3,852 windows)
-- ✅ Model architecture analyzed
-- ✅ Data quality analysis
-- ✅ **Critical finding:** Accelerometer unit mismatch identified
+# 3. Commit the .dvc file to Git
+git add data/raw/new_dataset.csv.dvc data/raw/.gitignore
+git commit -m "Add new dataset"
+git push
 
-**Phase 2: Issue Resolution** (Late Nov - Early Dec) - 🔴 **CURRENT**
-- 🔴 Awaiting mentor confirmation on dataset issue
-- ⏸️ Decision pending: New dataset OR conversion formula OR semi-supervised approach
-**Phase 2: Issue Resolution** (Late Nov - Early Dec) - ✅ **COMPLETE**
-- ✅ Identified unit mismatch (Nov 28)
-- ✅ Received conversion factor from mentor (Dec 3)
-- ✅ Converted production data (Dec 3)
-- ✅ Validated conversion results
 
-**Phase 3: Inference Testing** (Dec 6-13) - ⏳ **IN PROGRESS**
-- ⏳ Prepare production data with converted units
-- ⏳ Test model inference
-- ⏳ Validate predictions
+# ═══════════════════════════════════════════════════════════════
+# CHECKING STATUS
+# ═══════════════════════════════════════════════════════════════
 
-**Phase 4-6: MLOps Development** (Late Dec-Feb) - ⏸️ **UPCOMING**
-- FastAPI serving
-- Monitoring & drift detection
-- Docker & CI/CD
-**Current Progress:** ~25% complete  
-**Delay Resolution:** Blocker resolved in 5 days (Nov 28 - Dec 3)
-**Impact:** Minimal - back on track for April 2026 completion
-**Expected Delay:** 2-3 weeks if semi-supervised approach needed  
-**Impact:** Manageable - still on track for April 2026 completion
+# See what's changed
+dvc status
 
----
+# See what's tracked
+dvc list . --dvc-only
 
-### Immediate (This Week - Dec 6-13, 2025)
+# Check remote storage
+dvc remote list
 
-**Inference Testing:**
-1. ⏳ Update `src/preprocessing/prepare_production_data.py`
-   - Load converted data: `data/processed/sensor_fused_50Hz_converted.csv`
-   - Apply training StandardScaler
-   - Create windows (200 timesteps, 50% overlap)
-2. ⏳ Test model predictions
-   - Load pretrained model
-   - Run inference on production windows
-   - Check confidence scores
-3. ⏳ Validate results
-   - Analyze prediction distribution
-   - Compare with expected patterns
-   - Decide: proceed with API or need fine-tuning?
-4. Document approach for thesis (adds value!)
-5. Proceed with MLOps infrastructure
 
-### Long-term (Dec-Apr)
-1. Complete inference pipeline
-2. Build FastAPI serving
-3. Implement monitoring & drift detection
-4. Docker containerization & CI/CD
-5. Write thesis documentation
+# ═══════════════════════════════════════════════════════════════
+# SWITCHING BETWEEN DATA VERSIONS
+# ═══════════════════════════════════════════════════════════════
+
+# Checkout specific Git commit (data version follows)
+git checkout <commit-hash>
+dvc checkout
+
+# Go back to latest
+git checkout main
+dvc checkout
+```
+
+### DVC Remote Storage
+
+Currently using local storage. To switch to cloud:
+
+```powershell
+# Add Google Drive remote
+dvc remote add gdrive gdrive://<folder-id>
+dvc remote default gdrive
+
+# Add S3 remote
+dvc remote add s3 s3://my-bucket/dvc-storage
+dvc remote default s3
+```
 
 ---
 
-## 📝 Important Notes
+## 📊 MLflow - Experiment Tracking
 
-### Current Situation
-- **Blocker:** Production accelerometer data has different units/scale than training data
-- **Action:** Awaiting mentor confirmation on solution path
-- **Timeline Impact:** 2-3 weeks delay if semi-supervised approach needed
-- **Thesis Impact:** POSITIVE - Real-world MLOps challenge adds valuable content
+MLflow tracks experiments, parameters, metrics, and model artifacts.
 
-### Current Situation
-- **Previous Blocker:** Unit mismatch → ✅ RESOLVED (Dec 3, 2025)
-- **Current Phase:** Inference testing with converted production data
-- **Timeline Impact:** Minimal (5-day delay resolved)
-- **Thesis Value:** Real-world data quality issue adds authentic MLOps content
+### Starting MLflow UI
 
-### Key Files to Review
-1. **`CURRENT_STATUS.md`** ← Updated Dec 6 - Where we are now
-2. **`docs/UNIT_CONVERSION_SOLUTION.md`** ← How we solved the unit mismatch
-3. **`docs/DATASET_DIFFERENCE_SUMMARY.md`** ← Analysis & resolution
+```powershell
+# Option 1: Via Docker Compose (recommended)
+docker-compose up -d mlflow
+start http://localhost:5000
 
-### Project Info
-- Started: October 2025
-- Target completion: April 2026
-- Current progress: ~25% complete
-- Registration: November 1, 2025
-- Conversion: `data/processed/sensor_fused_50Hz_converted.csv`
+# Option 2: Standalone
+mlflow ui --port 5000
+```
+
+### Using MLflow in Code
+
+```python
+from src.mlflow_tracking import MLflowTracker
+
+# Initialize tracker
+tracker = MLflowTracker(experiment_name="anxiety-activity-recognition")
+
+# Log a training run
+with tracker.start_run(run_name="training_v1") as run:
+    # Log parameters
+    run.log_params({
+        "learning_rate": 0.001,
+        "batch_size": 32,
+        "epochs": 50,
+        "window_size": 200,
+        "gravity_removal": True
+    })
+    
+    # Train your model...
+    history = model.fit(X_train, y_train, ...)
+    
+    # Log training history (metrics per epoch)
+    run.log_training_history(history)
+    
+    # Log final metrics
+    run.log_metrics({
+        "accuracy": 0.95,
+        "f1_macro": 0.93,
+        "loss": 0.12
+    })
+    
+    # Log confusion matrix
+    run.log_confusion_matrix(y_true, y_pred, class_names=ACTIVITY_CLASSES)
+    
+    # Log the model
+    run.log_keras_model(
+        model,
+        artifact_path="har_model",
+        registered_model_name="har-1dcnn-bilstm"
+    )
+
+# Find best run
+best_run = tracker.get_best_run(metric="accuracy")
+print(f"Best accuracy: {best_run['metrics.accuracy']}")
+```
+
+### MLflow CLI Commands
+
+```powershell
+# List experiments
+python src/mlflow_tracking.py --list-experiments
+
+# List runs for an experiment
+python src/mlflow_tracking.py --list-runs "anxiety-activity-recognition"
+
+# Start UI
+python src/mlflow_tracking.py --ui
+```
 
 ---
 
-**Last Updated:** December 6, 2025  
-**Status:** Ready for inference testing  
-**Next Action:** Test model predictions on converted production data
+## 🐳 Docker - Containerization
+
+Docker ensures reproducible environments across development, testing, and production.
+
+### Available Images
+
+| Image | Purpose | Port |
+|-------|---------|------|
+| `har-inference` | FastAPI model serving | 8000 |
+| `har-training` | Model training environment | - |
+| MLflow (via compose) | Experiment tracking | 5000 |
+
+### Docker Commands
+
+```powershell
+# ═══════════════════════════════════════════════════════════════
+# BUILDING IMAGES
+# ═══════════════════════════════════════════════════════════════
+
+# Build inference API image
+docker build -t har-inference -f docker/Dockerfile.inference .
+
+# Build training image
+docker build -t har-training -f docker/Dockerfile.training .
+
+
+# ═══════════════════════════════════════════════════════════════
+# RUNNING WITH DOCKER COMPOSE (Recommended)
+# ═══════════════════════════════════════════════════════════════
+
+# Start all services (MLflow + Inference)
+docker-compose up -d
+
+# Start specific service
+docker-compose up -d inference
+
+# View logs
+docker-compose logs -f inference
+
+# Stop all
+docker-compose down
+
+# Run training (on-demand)
+docker-compose --profile training run training python src/train.py
+
+
+# ═══════════════════════════════════════════════════════════════
+# RUNNING STANDALONE CONTAINERS
+# ═══════════════════════════════════════════════════════════════
+
+# Run inference API
+docker run -d \
+  --name har-api \
+  -p 8000:8000 \
+  -v ${PWD}/models:/app/models:ro \
+  har-inference
+
+# Run training with mounted volumes
+docker run -it \
+  --name har-train \
+  -v ${PWD}/data:/app/data \
+  -v ${PWD}/mlruns:/app/mlruns \
+  har-training \
+  python src/train.py
+
+
+# ═══════════════════════════════════════════════════════════════
+# USEFUL COMMANDS
+# ═══════════════════════════════════════════════════════════════
+
+# Check running containers
+docker ps
+
+# Check container logs
+docker logs har-inference-test
+
+# Shell into container
+docker exec -it har-inference-test /bin/bash
+
+# Clean up
+docker system prune -a
+```
+
+### Docker Compose Services
+
+```yaml
+# docker-compose.yml structure:
+services:
+  mlflow:      # MLflow tracking server (port 5000)
+  inference:   # FastAPI model serving (port 8000)
+  training:    # Training environment (on-demand, profile: training)
+  preprocessing:  # Data preprocessing (on-demand, profile: preprocessing)
+```
+
+---
+
+## 🔄 Pipeline Stages
+
+### Stage 1: Data Ingestion
+
+```powershell
+# Place new raw data in data/raw/
+cp new_accelerometer.xlsx data/raw/
+cp new_gyroscope.xlsx data/raw/
+
+# Validate the data
+python -c "
+from src.data_validator import DataValidator
+import pandas as pd
+
+df = pd.read_excel('data/raw/new_accelerometer.xlsx')
+validator = DataValidator()
+result = validator.validate(df)
+print(f'Valid: {result.is_valid}')
+print(f'Errors: {result.errors}')
+"
+```
+
+### Stage 2: Preprocessing
+
+```powershell
+# Run the preprocessing pipeline
+python src/sensor_data_pipeline.py
+
+# Or with Docker
+docker-compose --profile preprocessing run preprocessing
+```
+
+**Pipeline Steps (sensor_data_pipeline.py):**
+1. Load accelerometer & gyroscope data
+2. Merge sensors on timestamp
+3. Handle missing values
+4. Resample to 50Hz
+5. Fuse sensor streams
+6. Convert units (milliG → m/s²)
+7. Remove duplicate timestamps
+8. Apply temporal sorting
+9. Validate data quality
+10. **Apply gravity removal** (if enabled in config)
+11. Save to `data/processed/`
+
+### Stage 3: Data Preparation
+
+```powershell
+# Create ML-ready windows
+python src/preprocess_data.py
+```
+
+**Steps:**
+1. Load preprocessed data
+2. Create sliding windows (200 samples, 50% overlap)
+3. Split by user (train/val/test)
+4. Apply StandardScaler normalization
+5. Save as .npy arrays
+
+### Stage 4: Training (Optional)
+
+```powershell
+# Train with MLflow tracking
+python src/train.py
+
+# Or with Docker
+docker-compose --profile training run training
+```
+
+### Stage 5: Inference
+
+```powershell
+# Batch inference
+python src/run_inference.py
+
+# API inference (start the service first)
+docker-compose up -d inference
+curl -X POST http://localhost:8000/predict \
+  -H "Content-Type: application/json" \
+  -d '{"window": [[0.1, 0.2, -9.8, 0.01, 0.02, 0.03], ...]}'
+```
+
+---
+
+## 📥 Adding New Datasets
+
+When you receive new sensor data (e.g., new participant data), follow this workflow:
+
+### Step-by-Step Process
+
+```powershell
+# ═══════════════════════════════════════════════════════════════
+# STEP 1: Add Raw Data
+# ═══════════════════════════════════════════════════════════════
+
+# Copy new data to raw folder
+cp new_participant_accelerometer.xlsx data/raw/
+cp new_participant_gyroscope.xlsx data/raw/
+
+
+# ═══════════════════════════════════════════════════════════════
+# STEP 2: Validate Data Quality
+# ═══════════════════════════════════════════════════════════════
+
+python -c "
+from src.data_validator import DataValidator
+import pandas as pd
+
+# Load and validate
+df = pd.read_excel('data/raw/new_participant_accelerometer.xlsx')
+validator = DataValidator()
+result = validator.validate(df)
+
+if result.is_valid:
+    print('✅ Data validation passed')
+    print(f'Stats: {result.stats}')
+else:
+    print('❌ Validation failed:')
+    for error in result.errors:
+        print(f'  - {error}')
+"
+
+
+# ═══════════════════════════════════════════════════════════════
+# STEP 3: Run Preprocessing Pipeline
+# ═══════════════════════════════════════════════════════════════
+
+# Check gravity removal setting
+cat config/pipeline_config.yaml | Select-String "enable_gravity_removal"
+
+# Run preprocessing
+python src/sensor_data_pipeline.py
+
+
+# ═══════════════════════════════════════════════════════════════
+# STEP 4: Create ML-Ready Data
+# ═══════════════════════════════════════════════════════════════
+
+python src/preprocess_data.py
+
+
+# ═══════════════════════════════════════════════════════════════
+# STEP 5: Version with DVC
+# ═══════════════════════════════════════════════════════════════
+
+# Update DVC tracking
+dvc add data/raw data/processed data/prepared
+
+# Push to storage
+dvc push
+
+# Commit to Git
+git add data/*.dvc
+git commit -m "Add new participant data (participant_id: XXX)"
+git push
+
+
+# ═══════════════════════════════════════════════════════════════
+# STEP 6: Run Inference (if using existing model)
+# ═══════════════════════════════════════════════════════════════
+
+python src/run_inference.py --input data/prepared/production_X.npy
+
+
+# ═══════════════════════════════════════════════════════════════
+# STEP 7: (Optional) Retrain Model
+# ═══════════════════════════════════════════════════════════════
+
+# If you have labels, retrain with MLflow tracking
+python src/train.py --experiment "new_data_v2"
+```
+
+### Data Flow Diagram for New Data
+
+```
+New Garmin Export (XLSX)
+         │
+         ▼
+┌─────────────────┐
+│ data/raw/       │  ← Place files here
+│ new_acc.xlsx    │
+│ new_gyro.xlsx   │
+└────────┬────────┘
+         │  dvc add data/raw
+         ▼
+┌─────────────────┐
+│ Preprocessing   │  ← python src/sensor_data_pipeline.py
+│ (fusion, 50Hz,  │
+│  gravity removal│
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│ data/processed/ │  ← Intermediate result
+│ sensor_fused.csv│
+└────────┬────────┘
+         │  python src/preprocess_data.py
+         ▼
+┌─────────────────┐
+│ data/prepared/  │  ← ML-ready data
+│ production_X.npy│
+└────────┬────────┘
+         │  dvc push + git commit
+         ▼
+┌─────────────────┐
+│ DVC Storage     │  ← Versioned & tracked
+│ (local/.dvc_    │
+│  storage)       │
+└─────────────────┘
+```
+
+---
+
+## 🌐 API Reference
+
+### Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/` | API info |
+| GET | `/health` | Health check |
+| GET | `/model/info` | Model details |
+| POST | `/predict` | Single window prediction |
+| POST | `/predict/batch` | Batch predictions |
+| POST | `/predict/stream` | Stream of readings |
+
+### Example Requests
+
+```powershell
+# Health Check
+curl http://localhost:8000/health
+# Response: {"status":"healthy","model_loaded":true,...}
+
+# Model Info
+curl http://localhost:8000/model/info
+# Response: {"model_name":"1D-CNN-BiLSTM HAR","input_shape":[200,6],...}
+
+# Single Prediction (200x6 window)
+curl -X POST http://localhost:8000/predict \
+  -H "Content-Type: application/json" \
+  -d '{
+    "window": [
+      [0.1, 0.2, -9.8, 0.01, 0.02, 0.03],
+      ... (200 rows total)
+    ],
+    "return_probabilities": true
+  }'
+
+# Batch Prediction
+curl -X POST http://localhost:8000/predict/batch \
+  -H "Content-Type: application/json" \
+  -d '{
+    "windows": [
+      [[...], [...], ...],
+      [[...], [...], ...]
+    ]
+  }'
+```
+
+### Swagger UI
+
+Interactive API documentation available at: http://localhost:8000/docs
+
+---
+
+## ⚙️ Configuration
+
+### Pipeline Configuration (`config/pipeline_config.yaml`)
+
+```yaml
+preprocessing:
+  # Toggle gravity removal (fixes domain shift)
+  enable_gravity_removal: true
+  
+  # Filter parameters
+  gravity_filter:
+    cutoff_hz: 0.3    # High-pass cutoff frequency
+    order: 3          # Butterworth filter order
+  
+  sampling_frequency_hz: 50
+
+validation:
+  enabled: true
+  thresholds:
+    max_missing_ratio: 0.05
+    max_acceleration_ms2: 50.0
+```
+
+### MLflow Configuration (`config/mlflow_config.yaml`)
+
+```yaml
+mlflow:
+  tracking_uri: "mlruns"
+  experiment_name: "anxiety-activity-recognition"
+  
+  registry:
+    model_name: "har-1dcnn-bilstm"
+
+run_defaults:
+  tags:
+    project: "MasterArbeit_MLops"
+    model_type: "1D-CNN-BiLSTM"
+```
+
+---
+
+## 🔧 Troubleshooting
+
+### DVC Issues
+
+```powershell
+# "Unable to find DVC remote"
+dvc remote list  # Check remotes
+dvc remote add -d local_storage .dvc_storage  # Add local remote
+
+# "Checkout failed"
+dvc fetch  # Download from remote first
+dvc checkout  # Then checkout
+
+# "File already tracked by Git"
+git rm -r --cached data/folder
+dvc add data/folder
+```
+
+### Docker Issues
+
+```powershell
+# "Port already in use"
+docker-compose down
+docker stop $(docker ps -q)
+
+# "Model not found"
+# Ensure model is mounted correctly
+docker run -v ${PWD}/models:/app/models:ro har-inference
+
+# "Out of memory"
+docker system prune -a  # Clean up unused images
+```
+
+### MLflow Issues
+
+```powershell
+# "Experiment not found"
+python -c "import mlflow; mlflow.set_experiment('anxiety-activity-recognition')"
+
+# "Cannot connect to tracking server"
+docker-compose up -d mlflow
+```
+
+### Gravity Removal
+
+```powershell
+# Check if gravity removal is enabled
+cat config/pipeline_config.yaml | Select-String "enable_gravity"
+
+# Toggle in config
+# enable_gravity_removal: true  → removes gravity
+# enable_gravity_removal: false → keeps gravity
+```
+
+---
+
+## 📈 Current Progress
+
+| Phase | Task | Status |
+|-------|------|--------|
+| **Month 1** | Data ingestion & preprocessing | ✅ Complete |
+| **Month 2** | Model versioning (DVC, MLflow) | ✅ Complete |
+| **Month 2** | Docker containerization | ✅ Complete |
+| **Month 3** | CI/CD pipeline (GitHub Actions) | ⏳ Next |
+| **Month 3** | FastAPI deployment | ✅ Complete |
+| **Month 4** | Monitoring & drift detection | ⏳ Planned |
+| **Month 5** | Refinement & documentation | ⏳ Planned |
+| **Month 6** | Thesis writing | ⏳ Planned |
+
+---
+
+## 📚 Key Findings
+
+### Domain Shift Issue (Resolved)
+
+**Problem:** Model predicted 95% "hand_tapping" on all production data.
+
+**Root Cause:** 
+- Training data: Gravity **removed** (Az ≈ -3.42 m/s²)
+- Production data: Gravity **present** (Az ≈ -9.83 m/s²)
+
+**Solution:** Butterworth high-pass filter (0.3 Hz) to remove gravity component.
+
+**Results:**
+| Metric | Before | After |
+|--------|--------|-------|
+| Az mean | -9.83 m/s² | ~0 m/s² |
+| hand_tapping % | 95.4% | 4.2% |
+| Unique classes | 4/11 | 7/11 |
+
+---
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create feature branch: `git checkout -b feature/new-feature`
+3. Pull data: `dvc pull`
+4. Make changes
+5. Run tests: `pytest tests/`
+6. Push data: `dvc push`
+7. Commit: `git commit -m "Add new feature"`
+8. Push: `git push origin feature/new-feature`
+9. Open Pull Request
+
+---
+
+## 📄 License
+
+This project is part of a Master's Thesis at [University Name].
+
+---
+
+## 📞 Contact
+
+- **Author:** [Your Name]
+- **Email:** [your.email@university.edu]
+- **GitHub:** [@ShalinVachheta017](https://github.com/ShalinVachheta017)
+
+---
+
+**Last Updated:** December 11, 2025  
+**Version:** 2.0.0
