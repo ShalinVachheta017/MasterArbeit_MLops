@@ -1,3 +1,11 @@
+> ⚠️ **ARCHIVED - SAFE TO DELETE**
+> 
+> **Reason:** Superseded by `docs/PATH_COMPARISON_ANALYSIS.md`
+> 
+> **Why not needed:** This document described the original model issue. The analysis has been consolidated into the current PATH_COMPARISON_ANALYSIS document which is more complete and up-to-date.
+
+---
+
 # 🚨 CRITICAL: Model Performance Issue Detected
 
 **Date:** November 5, 2025  

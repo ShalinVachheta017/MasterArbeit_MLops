@@ -1,3 +1,11 @@
+> ⚠️ **ARCHIVED - SAFE TO DELETE**
+> 
+> **Reason:** Issue resolved, duplicate information
+> 
+> **Why not needed:** The unit conversion issue (milliG → m/s²) was fixed. This info is now in `docs/UNIT_CONVERSION_SOLUTION.md`.
+
+---
+
 # Dataset Difference Summary (Nov 5, 2025)
 
 This document captures the exact problem blocking production: the production accelerometer data has a fundamentally different scale/units than the training data.

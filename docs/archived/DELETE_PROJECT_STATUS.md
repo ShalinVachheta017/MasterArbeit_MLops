@@ -1,3 +1,10 @@
+> ⚠️ **ARCHIVED - SAFE TO DELETE**
+> 
+> **Reason:** Outdated snapshot from Nov 5, 2025
+> 
+> **Why not needed:** Project status has changed significantly. Current status is tracked in PATH_COMPARISON_ANALYSIS.md.
+
+---
 # Project Status (Nov 5, 2025)
 
 Single source of truth for current state. This replaces other ad‑hoc notes created today.
