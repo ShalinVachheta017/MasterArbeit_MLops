@@ -62,6 +62,8 @@ from dataclasses import dataclass, asdict
 
 import numpy as np
 import pandas as pd
+import mlflow
+from mlflow.tracking import MlflowClient
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
@@ -704,47 +706,86 @@ class InferencePipeline:
             Dictionary with results and file paths
         """
         try:
-            # 1. Load model
-            model_loader = ModelLoader(self.config, self.logger)
-            model = model_loader.load()
+            # Initialize MLflow experiment
+            mlflow.set_experiment("inference-production")
             
-            # 2. Load data
-            data_loader = DataLoader(self.config, self.logger)
-            data = data_loader.load()
-            
-            # 3. Run inference
-            engine = InferenceEngine(model, self.config, self.logger)
-            results_df = engine.predict_with_details(data)
-            
-            # Get raw probabilities for export
-            _, probabilities = engine.predict_batch(data)
-            
-            # 4. Export results
-            exporter = ResultsExporter(self.config, self.logger)
-            output_files = exporter.export(
-                results_df, 
-                probabilities, 
-                data_loader.metadata
-            )
-            
-            # Final summary
-            self.logger.info("=" * 60)
-            self.logger.info("✅ PIPELINE COMPLETE")
-            self.logger.info("=" * 60)
-            self.logger.info(f"📂 Output directory: {self.config.output_dir}")
-            for name, path in output_files.items():
-                self.logger.info(f"   {name.upper()}: {path.name}")
-            
-            return {
-                "success": True,
-                "results": results_df,
-                "probabilities": probabilities,
-                "output_files": output_files,
-                "config": asdict(self.config)
-            }
+            with mlflow.start_run(run_name=f"inference_{datetime.now().strftime('%Y%m%d_%H%M%S')}"):
+                # Log configuration
+                mlflow.log_params({
+                    "mode": self.config.mode,
+                    "batch_size": self.config.batch_size,
+                    "confidence_threshold": self.config.confidence_threshold,
+                    "input_path": str(self.config.input_path),
+                    "model_path": str(self.config.model_path),
+                })
+                
+                # 1. Load model
+                model_loader = ModelLoader(self.config, self.logger)
+                model = model_loader.load()
+                mlflow.log_param("model_params", model.count_params())
+                
+                # 2. Load data
+                data_loader = DataLoader(self.config, self.logger)
+                data = data_loader.load()
+                mlflow.log_param("n_windows", data_loader.metadata["n_windows"])
+                mlflow.log_param("timesteps", data_loader.metadata["timesteps"])
+                mlflow.log_param("channels", data_loader.metadata["channels"])
+                
+                # 3. Run inference
+                engine = InferenceEngine(model, self.config, self.logger)
+                results_df = engine.predict_with_details(data)
+                
+                # Get raw probabilities for export
+                _, probabilities = engine.predict_batch(data)
+                
+                # Log inference metrics
+                mlflow.log_metrics({
+                    "total_windows": len(results_df),
+                    "uncertain_count": int(results_df['is_uncertain'].sum()),
+                    "avg_confidence": float(results_df['confidence'].mean()),
+                    "std_confidence": float(results_df['confidence'].std()),
+                })
+                
+                # Log activity distribution
+                activity_dist = results_df['predicted_activity'].value_counts().to_dict()
+                for activity, count in activity_dist.items():
+                    mlflow.log_metric(f"count_{activity}", count)
+                
+                # 4. Export results
+                exporter = ResultsExporter(self.config, self.logger)
+                output_files = exporter.export(
+                    results_df, 
+                    probabilities, 
+                    data_loader.metadata
+                )
+                
+                # Log output artifacts
+                for file_path in output_files.values():
+                    if file_path.exists():
+                        mlflow.log_artifact(str(file_path))
+                
+                # Final summary
+                self.logger.info("=" * 60)
+                self.logger.info("✅ PIPELINE COMPLETE")
+                self.logger.info("=" * 60)
+                self.logger.info(f"📂 Output directory: {self.config.output_dir}")
+                for name, path in output_files.items():
+                    self.logger.info(f"   {name.upper()}: {path.name}")
+                
+                self.logger.info(f"📊 MLflow run ID: {mlflow.active_run().info.run_id}")
+                
+                return {
+                    "success": True,
+                    "results": results_df,
+                    "probabilities": probabilities,
+                    "output_files": output_files,
+                    "config": asdict(self.config),
+                    "mlflow_run_id": mlflow.active_run().info.run_id
+                }
             
         except Exception as e:
             self.logger.error(f"❌ Pipeline failed: {str(e)}", exc_info=True)
+            mlflow.log_param("error", str(e))
             return {
                 "success": False,
                 "error": str(e),

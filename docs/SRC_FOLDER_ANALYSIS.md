@@ -1,7 +1,25 @@
 # SRC Folder Analysis - Current Structure
 
-**Date:** December 7, 2025  
+**Date:** December 12, 2025 (Updated with new MLflow tracking)
 **Purpose:** Document all Python files in src/ and their roles
+
+---
+
+## 🆕 NEW ADDITIONS (December 12, 2025)
+
+### MLflow Tracking Integration
+- **run_inference.py:** Now includes MLflow experiment tracking
+  - `mlflow.set_experiment("inference-production")`
+  - `mlflow.log_params()` for configuration
+  - `mlflow.log_metrics()` for inference statistics
+  - `mlflow.log_artifact()` for output files
+- **Result:** All experiments visible in MLflow UI at http://localhost:5000
+
+### Fresh Pipeline Execution
+- Complete pipeline executed with 1,815 windows
+- Domain calibration applied (-6.295 m/s² offset)
+- MLflow experiment: `63f4a91bc5924b5cafb4bcb028f69d6b`
+- Results: 99.1% forehead_rubbing, 52% average confidence
 
 ---
 
@@ -219,23 +237,38 @@ python src/preprocess_data.py --mode production --input data/processed/sensor_fu
 
 ---
 
+## Recent Additions (December 12, 2025)
+
+### 🆕 New Tracking Module: `mlflow_tracking.py` (654 lines)
+**Purpose:** Centralized MLflow integration for the MLOps pipeline
+
+**Key Components:**
+- **MLflowTracker:** Main class for experiment management
+  - `set_experiment()`: Create/select experiment
+  - `start_run()`: Begin a tracked run
+  - `log_params()`: Log configuration parameters
+  - `log_metrics()`: Log performance metrics
+  - `log_model()`: Register models in registry
+  - `log_artifact()`: Save output files
+
+**Usage in Pipeline:**
+- Automatically tracks all inference runs
+- Logs inference speed, confidence stats, activity distribution
+- Stores prediction artifacts (CSV, JSON, NPY files)
+- Provides run history for experiment comparison
+
+**Result:** All experiments visible at `http://localhost:5000`
+
+---
+
 ## Next Steps
 
-1. ✅ Create `preprocess_data.py` with:
-   - Unit detection logic
-   - Automatic conversion
-   - Unified windowing
-   - Comprehensive logging
-
-2. ✅ Add data comparison utility:
-   - Side-by-side statistics
-   - Distribution plots
-   - Drift detection
-
-3. ✅ Test on both datasets:
-   - Training data (should match existing outputs)
-   - Production data (should handle unit detection)
-
+1. ✅ MLflow integration complete
+2. ✅ Inference tracking automated
+3. ✅ Pipeline reproducible and versioned
+4. ⏭️ Run regularly for trend analysis
+5. ⏭️ Compare runs across days/weeks
+6. ⏭️ Use metrics in thesis chapters
 4. ✅ Archive old files:
    - Move to `09_archive/old_src/`
    - Document what was replaced

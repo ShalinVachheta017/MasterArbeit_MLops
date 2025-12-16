@@ -24,6 +24,7 @@ from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
+from scipy.signal import butter, filtfilt
 from sklearn.preprocessing import StandardScaler
 
 # Add src to path for imports
@@ -240,6 +241,153 @@ class UnitDetector:
 
 
 # ============================================================================
+# GRAVITY REMOVAL (after unit conversion)
+# ============================================================================
+
+class GravityRemover:
+    """
+    Remove gravity component from accelerometer data using high-pass filter.
+    Apply AFTER unit conversion (expects m/s² input).
+    """
+    
+    ACCEL_COLUMNS = ['Ax', 'Ay', 'Az']
+    
+    def __init__(self, logger: logging.Logger, cutoff_hz: float = 0.3, 
+                 sampling_freq: float = 50.0, order: int = 3):
+        self.logger = logger
+        self.cutoff_hz = cutoff_hz
+        self.sampling_freq = sampling_freq
+        self.order = order
+    
+    def remove_gravity(self, df: pd.DataFrame, enable: bool = True) -> pd.DataFrame:
+        """Apply high-pass Butterworth filter to remove gravity."""
+        if not enable:
+            self.logger.info("Gravity removal: DISABLED (skipping)")
+            return df
+        
+        self.logger.info("")
+        self.logger.info("="*80)
+        self.logger.info("GRAVITY REMOVAL")
+        self.logger.info("="*80)
+        
+        # Find available accel columns
+        accel_cols = [c for c in self.ACCEL_COLUMNS if c in df.columns]
+        if not accel_cols:
+            self.logger.warning("No accelerometer columns found, skipping gravity removal")
+            return df
+        
+        df_out = df.copy()
+        
+        # Design Butterworth high-pass filter
+        nyquist = self.sampling_freq / 2
+        normalized_cutoff = self.cutoff_hz / nyquist
+        b, a = butter(self.order, normalized_cutoff, btype='high')
+        
+        # Log before stats
+        self.logger.info(f"  Filter: Butterworth high-pass, cutoff={self.cutoff_hz}Hz, order={self.order}")
+        for col in accel_cols:
+            self.logger.info(f"  BEFORE {col}: mean={df[col].mean():.3f} m/s²")
+        
+        # Apply filter
+        for col in accel_cols:
+            values = df[col].values
+            # Handle NaN by interpolating temporarily
+            valid_mask = ~np.isnan(values)
+            if valid_mask.sum() > self.order * 3:  # Need enough points for filter
+                temp = np.interp(np.arange(len(values)), 
+                                np.where(valid_mask)[0], 
+                                values[valid_mask])
+                filtered = filtfilt(b, a, temp)
+                df_out[col] = filtered
+            else:
+                self.logger.warning(f"  Not enough valid points in {col} for filtering")
+        
+        # Log after stats
+        for col in accel_cols:
+            self.logger.info(f"  AFTER  {col}: mean={df_out[col].mean():.3f} m/s²")
+        
+        self.logger.info("  ✓ Gravity removal complete")
+        self.logger.info("="*80)
+        
+        return df_out
+
+
+# ============================================================================
+# DOMAIN CALIBRATION (align production distribution to training)
+# ============================================================================
+
+class DomainCalibrator:
+    """
+    Calibrate production data to match training data distribution.
+    This addresses domain shift when sensor orientations differ between
+    training and production environments.
+    
+    Paper Support: 
+    - Domain Adaptation Survey (Chakma 2023)
+    - Heterogeneity Activity Recognition Dataset (Stisen 2015)
+    """
+    
+    SENSOR_COLUMNS = ['Ax', 'Ay', 'Az', 'Gx', 'Gy', 'Gz']
+    
+    def __init__(self, logger: logging.Logger, training_mean: np.ndarray = None):
+        self.logger = logger
+        # Training data statistics from config.json (scaler was fit on this)
+        # These are RAW values in m/s² (before normalization)
+        if training_mean is None:
+            # Default from all_users_data_labeled.csv training
+            self.training_mean = np.array([3.22, 1.28, -3.53, 0.60, 0.23, 0.09])
+        else:
+            self.training_mean = training_mean
+    
+    def calibrate(self, df: pd.DataFrame, enable: bool = True) -> pd.DataFrame:
+        """
+        Shift production data to match training distribution mean.
+        
+        This is simpler and more robust than gravity removal because:
+        1. It preserves the relative motion patterns
+        2. It aligns with what the model learned during training
+        3. It handles arbitrary orientation differences, not just gravity
+        """
+        if not enable:
+            self.logger.info("Domain calibration: DISABLED (skipping)")
+            return df
+        
+        self.logger.info("")
+        self.logger.info("="*80)
+        self.logger.info("DOMAIN CALIBRATION")
+        self.logger.info("="*80)
+        
+        # Find available sensor columns
+        sensor_cols = [c for c in self.SENSOR_COLUMNS if c in df.columns]
+        if not sensor_cols:
+            self.logger.warning("No sensor columns found, skipping calibration")
+            return df
+        
+        df_out = df.copy()
+        
+        self.logger.info("  Aligning production distribution to training distribution")
+        self.logger.info(f"  {'Channel':<8} {'Prod Mean':<12} {'Train Mean':<12} {'Offset':<12}")
+        self.logger.info("-" * 50)
+        
+        for i, col in enumerate(sensor_cols):
+            if col in df.columns:
+                prod_mean = df[col].mean()
+                train_mean = self.training_mean[i]
+                offset = prod_mean - train_mean
+                
+                # Apply calibration: shift production to match training mean
+                df_out[col] = df[col] - offset
+                
+                self.logger.info(f"  {col:<8} {prod_mean:<12.3f} {train_mean:<12.3f} {offset:<12.3f}")
+        
+        self.logger.info("-" * 50)
+        self.logger.info("  ✓ Calibration complete - production aligned to training")
+        self.logger.info("="*80)
+        
+        return df_out
+
+
+# ============================================================================
 # DATA PREPROCESSING PIPELINE
 # ============================================================================
 
@@ -369,7 +517,8 @@ class UnifiedPreprocessor:
             self.logger.info(f"    Mean:  {self.scaler.mean_}")
             self.logger.info(f"    Scale: {self.scaler.scale_}")
             
-            df_normalized[sensor_cols] = self.scaler.transform(df[sensor_cols])
+            # BUG FIX: transform df_normalized (NaN-handled), not df (original)
+            df_normalized[sensor_cols] = self.scaler.transform(df_normalized[sensor_cols])
         else:
             raise ValueError(f"Invalid mode: {mode}. Only 'transform' (production) is supported.")
         
@@ -572,7 +721,18 @@ def main():
     parser = argparse.ArgumentParser(description="Production preprocessing pipeline (unit auto-detection)")
     parser.add_argument('--input', type=str, required=True,
                        help='Input CSV file path (relative to project root)')
+    parser.add_argument('--gravity-removal', action='store_true', default=False,
+                       help='Enable gravity removal (high-pass filter at 0.3Hz)')
+    parser.add_argument('--calibrate', action='store_true', default=False,
+                       help='Enable domain calibration (align production to training distribution)')
     args = parser.parse_args()
+    
+    # Validate options
+    if args.gravity_removal and args.calibrate:
+        print("ERROR: Cannot use both --gravity-removal and --calibrate. Choose one.")
+        print("  --gravity-removal: Removes DC offset (gravity) using high-pass filter")
+        print("  --calibrate: Shifts production distribution to match training (RECOMMENDED)")
+        sys.exit(1)
     
     # Setup logging
     logger_setup = PreprocessLogger("production_preprocessing")
@@ -581,6 +741,8 @@ def main():
     try:
         logger.info("Mode: PRODUCTION")
         logger.info(f"Input: {args.input}")
+        logger.info(f"Gravity removal: {'ENABLED' if args.gravity_removal else 'DISABLED'}")
+        logger.info(f"Domain calibration: {'ENABLED' if args.calibrate else 'DISABLED'}")
         
         # Load data
         input_path = PROJECT_ROOT / args.input
@@ -590,6 +752,8 @@ def main():
         
         # Initialize components
         unit_detector = UnitDetector(logger)
+        gravity_remover = GravityRemover(logger)
+        calibrator = DomainCalibrator(logger)
         preprocessor = UnifiedPreprocessor(logger)
         
         # Detect data format
@@ -598,6 +762,12 @@ def main():
         # Detect and convert units (accelerometer only)
         accel_cols = [col for col in sensor_cols if col.startswith('A')]
         df, conversion_applied = unit_detector.process_units(df, accel_cols)
+        
+        # Apply gravity removal OR calibration (not both)
+        if args.gravity_removal:
+            df = gravity_remover.remove_gravity(df, enable=True)
+        elif args.calibrate:
+            df = calibrator.calibrate(df, enable=True)
         
         # Normalize data (production only)
         df_normalized = preprocessor.normalize_data(df, sensor_cols, mode='transform')

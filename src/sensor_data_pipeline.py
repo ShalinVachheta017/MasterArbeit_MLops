@@ -27,11 +27,12 @@ Status: Used for initial raw data processing (not needed for preprocessed data)
 '''
 
 
+import argparse
 import ast
 import json
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 from logging.handlers import RotatingFileHandler
 
@@ -93,6 +94,49 @@ class LoggerSetup:
     
     def get_logger(self) -> logging.Logger:
         return self.logger
+
+
+# ============================================================================
+# RAW FILE DISCOVERY
+# ============================================================================
+
+def find_latest_sensor_pair(raw_dir: Path) -> Tuple[Path, Path]:
+    """Locate the newest matching accelerometer/gyroscope Excel pair in data/raw.
+
+    Matching rule:
+        - Look for filenames containing "accelerometer" and "gyroscope" (case-insensitive)
+        - Prefer pairs that share the same prefix before the sensor keyword
+        - If no exact prefix match is found, fall back to the newest accel + newest gyro
+
+    Raises:
+        FileNotFoundError: if either sensor type is missing.
+    """
+    accel_files = sorted(
+        [p for p in raw_dir.glob("*accelerometer*.*") if p.is_file()],
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    )
+    gyro_files = sorted(
+        [p for p in raw_dir.glob("*gyroscope*.*") if p.is_file()],
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    )
+
+    if not accel_files:
+        raise FileNotFoundError(f"No accelerometer files found in {raw_dir}")
+    if not gyro_files:
+        raise FileNotFoundError(f"No gyroscope files found in {raw_dir}")
+
+    # Try to pair by prefix (portion before the word 'accelerometer')
+    for accel in accel_files:
+        prefix = accel.name.split("accelerometer")[0]
+        candidates = [g for g in gyro_files if g.name.startswith(prefix) and "gyroscope" in g.name.lower()]
+        if candidates:
+            gyro = candidates[0]  # candidates are already time-sorted
+            return accel, gyro
+
+    # Fallback: newest accel with newest gyro
+    return accel_files[0], gyro_files[0]
 
 
 # ============================================================================
@@ -994,8 +1038,8 @@ class SensorDataPipeline:
             logger=self.logger
         )
         
-        # Setup output directory and exporter
-        self.output_dir = base_dir / "pre_processed_data"
+        # Setup output directory and exporter (under data/preprocessed)
+        self.output_dir = base_dir / "data" / "preprocessed"
         self.data_exporter = DataExporter(self.output_dir, self.logger)
         
         # Create log directories for future pipeline stages
@@ -1107,10 +1151,25 @@ class SensorDataPipeline:
 # ============================================================================
 
 def main():
+    parser = argparse.ArgumentParser(description="Run sensor data preprocessing end-to-end")
+    parser.add_argument("--accel", type=str, help="Path to accelerometer Excel file (optional)")
+    parser.add_argument("--gyro", type=str, help="Path to gyroscope Excel file (optional)")
+    args = parser.parse_args()
+
     base_dir = Path(__file__).resolve().parent.parent
-    accel_path = base_dir / "data" / "2025-03-23-15-23-10-accelerometer_data.xlsx"
-    gyro_path = base_dir / "data" / "2025-03-23-15-23-10-gyroscope_data.xlsx"
     pipeline = SensorDataPipeline(base_dir)
+
+    if args.accel and args.gyro:
+        accel_path = Path(args.accel)
+        gyro_path = Path(args.gyro)
+        pipeline.logger.info("Using provided sensor files: %s | %s", accel_path.name, gyro_path.name)
+    else:
+        raw_dir = base_dir / "data" / "raw"
+        accel_path, gyro_path = find_latest_sensor_pair(raw_dir)
+        pipeline.logger.info("Auto-selected latest raw pair from %s", raw_dir)
+        pipeline.logger.info("  Accelerometer: %s", accel_path.name)
+        pipeline.logger.info("  Gyroscope:     %s", gyro_path.name)
+
     pipeline.process_sensor_files(accel_path, gyro_path)
 
 

@@ -10,8 +10,10 @@ preprocessing:
   # Gravity Removal Toggle
   # Set to true to remove gravity component from accelerometer data
   # This addresses domain shift when training data has gravity removed
-  # Recommendation: Enable if your training data was gravity-filtered
-  enable_gravity_removal: true
+  # NOTE: Keep FALSE here - gravity removal should happen AFTER unit conversion
+  #       (sensor_data_pipeline outputs milliG, preprocess_data.py converts to m/s²)
+  # Recommendation: Apply gravity removal in preprocess_data.py after conversion
+  enable_gravity_removal: false
   
   # Gravity removal filter parameters (Butterworth high-pass)
   gravity_filter:

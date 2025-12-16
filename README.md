@@ -7,8 +7,10 @@
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://docker.com)
 
 **Master's Thesis Project** | October 2025 - April 2026  
-**Last Updated:** December 11, 2025  
+**Last Updated:** December 12, 2025  
 **Progress:** ~50% complete
+
+> **📖 New:** See [PROJECT_GUIDE.md](PROJECT_GUIDE.md) for complete folder/file reference with visual diagrams
 
 ---
 
@@ -18,14 +20,15 @@
 2. [Architecture & Pipeline Flow](#-architecture--pipeline-flow)
 3. [Quick Start](#-quick-start)
 4. [Project Structure](#-project-structure)
-5. [DVC - Data Version Control](#-dvc---data-version-control)
-6. [MLflow - Experiment Tracking](#-mlflow---experiment-tracking)
-7. [Docker - Containerization](#-docker---containerization)
-8. [Pipeline Stages](#-pipeline-stages)
-9. [Adding New Datasets](#-adding-new-datasets)
-10. [API Reference](#-api-reference)
-11. [Configuration](#-configuration)
-12. [Troubleshooting](#-troubleshooting)
+5. [📖 Complete Documentation](#-complete-documentation)
+6. [DVC - Data Version Control](#-dvc---data-version-control)
+7. [MLflow - Experiment Tracking](#-mlflow---experiment-tracking)
+8. [Docker - Containerization](#-docker---containerization)
+9. [Pipeline Stages](#-pipeline-stages)
+10. [Adding New Datasets](#-adding-new-datasets)
+11. [API Reference](#-api-reference)
+12. [Configuration](#-configuration)
+13. [Troubleshooting](#-troubleshooting)
 
 ---
 
@@ -41,6 +44,7 @@ An end-to-end MLOps pipeline for **Human Activity Recognition (HAR)** using wear
 | Experiment Tracking | MLflow | ✅ Complete |
 | Containerization | Docker | ✅ Complete |
 | Model Serving API | FastAPI | ✅ Complete |
+| Domain Calibration | Distribution Alignment | ✅ Complete |
 | Gravity Removal | Butterworth Filter | ✅ Complete |
 | CI/CD Pipeline | GitHub Actions | ⏳ Next |
 | Monitoring | Prometheus/Grafana | ⏳ Planned |
@@ -88,15 +92,15 @@ An end-to-end MLOps pipeline for **Human Activity Recognition (HAR)** using wear
                                      ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                         2. PREPROCESSING                                    │
-│  ┌─────────────┐    ┌──────────────┐    ┌─────────────────┐                │
-│  │ Sensor      │───▶│ Gravity      │───▶│ Windowing       │                │
-│  │ Fusion      │    │ Removal      │    │ (200 samples)   │                │
-│  │ (50Hz)      │    │ (0.3Hz HPF)  │    │                 │                │
-│  └─────────────┘    └──────────────┘    └─────────────────┘                │
-│         │                   │                    │                          │
-│         ▼                   ▼                    ▼                          │
-│  data/processed/     config/pipeline_     data/prepared/                   │
-│  sensor_fused.csv    config.yaml          train_X.npy, etc.                │
+│  ┌─────────────┐    ┌──────────────┐    ┌──────────────┐   ┌──────────┐   │
+│  │ Sensor      │───▶│ Unit         │───▶│ Domain       │──▶│ Windowing│   │
+│  │ Fusion      │    │ Conversion   │    │ Calibration  │   │ (200x6)  │   │
+│  │ (50Hz)      │    │ (milliG→m/s²)│    │ (Align Dist) │   │ 50% Olap │   │
+│  └─────────────┘    └──────────────┘    └──────────────┘   └──────────┘   │
+│         │                   │                    │                │         │
+│         ▼                   ▼                    ▼                ▼         │
+│  sensor_fused.csv    Az: -9.83 m/s²     offset: -6.30      1815 windows   │
+│  (181,699 samples)   (raw gravity)      → -3.53 m/s²       prepared/*.npy │
 └─────────────────────────────────────────────────────────────────────────────┘
                                      │
                                      ▼
@@ -207,7 +211,28 @@ start http://localhost:5000
 
 ---
 
-## 📁 Project Structure
+## � Complete Documentation
+
+### 📚 Main Documentation Files
+
+| Document | Purpose |
+|----------|---------|
+| **[PROJECT_GUIDE.md](PROJECT_GUIDE.md)** | Complete folder/file structure with visuals |
+| **[docs/PIPELINE_RERUN_GUIDE.md](docs/PIPELINE_RERUN_GUIDE.md)** | Step-by-step pipeline execution |
+| **[docs/SRC_FOLDER_ANALYSIS.md](docs/SRC_FOLDER_ANALYSIS.md)** | Detailed source code analysis |
+| **[docs/CONCEPTS_EXPLAINED.md](docs/CONCEPTS_EXPLAINED.md)** | Technical concepts & formulas |
+| **[docs/RESEARCH_PAPERS_ANALYSIS.md](docs/RESEARCH_PAPERS_ANALYSIS.md)** | Reference papers & summaries |
+| **[docs/FILE_ORGANIZATION_SUMMARY.md](docs/FILE_ORGANIZATION_SUMMARY.md)** | Doc organization & archive info |
+
+### 📦 Archived Documentation
+
+Old/outdated docs moved to [docs/archived/](docs/archived/):
+- **DELETE_\*.md** (26 files) - Can be safely deleted
+- **KEEP_LATER_\*.md** (3 files) - Reference for future
+
+---
+
+## �📁 Project Structure
 
 ```
 MasterArbeit_MLops/
@@ -582,8 +607,7 @@ docker-compose --profile preprocessing run preprocessing
 7. Remove duplicate timestamps
 8. Apply temporal sorting
 9. Validate data quality
-10. **Apply gravity removal** (if enabled in config)
-11. Save to `data/processed/`
+10. Save to `data/preprocessed/`
 
 ### Stage 3: Data Preparation
 
@@ -594,10 +618,17 @@ python src/preprocess_data.py
 
 **Steps:**
 1. Load preprocessed data
-2. Create sliding windows (200 samples, 50% overlap)
-3. Split by user (train/val/test)
-4. Apply StandardScaler normalization
-5. Save as .npy arrays
+2. **Domain Calibration** (--calibrate flag)
+   - Align production distribution to training distribution
+   - Offset = production_mean - training_mean
+   - Example: Az offset = -9.83 - (-3.53) = -6.30 m/s²
+3. Apply StandardScaler normalization (with saved scaler from training)
+4. Create sliding windows (200 samples, 50% overlap)
+5. Save as .npy arrays to `data/prepared/`
+
+**Recommended Flags:**
+- `--calibrate`: For production data (domain adaptation)
+- `--gravity-removal`: For research/analysis only (not recommended for production)
 
 ### Stage 4: Training (Optional)
 
