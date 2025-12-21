@@ -66,9 +66,9 @@ htmlcov/
 # DVC cache (local storage - don't commit to git)
 .dvc_storage/
 
-# DVC internal files are tracked by git (don't ignore these!)
-# .dvc/
-# *.dvc
+# DVC internal files ARE tracked by git (keep .dvc/ and *.dvc files!)
+# .dvc/ folder contains config and lock files needed for DVC to work
+# *.dvc files are lightweight pointers to your actual data
 
 # ============================================================================
 # MLflow
@@ -84,6 +84,19 @@ mlruns/
 /data/prepared/
 /data/processed/
 /data/raw/
+
+# ============================================================================
+# Sensitive / local datasets to ignore (added per user request)
+# - Anxiety dataset: large and potentially sensitive raw/labeled data
+# - Users' labeled data: personal/sensitive, don't keep in git
+# These folders and any nested files should be ignored by git.
+/data/anxiety_dataset/
+/data/anxiety_dataset/**
+
+# Users' labeled data (entire users folder or nested labeled folders)
+/data/users/
+/data/users/**/labeled/
+/data/users/**/labeled/**
 
 # ============================================================================
 # Models (tracked by DVC)
@@ -113,3 +126,28 @@ tmp/
 *.key
 secrets/
 credentials/
+
+# ============================================================================
+# Miscellaneous
+# ============================================================================
+
+# ============================================================================
+# Large folders to ignore (papers, research, datasets) - ~350MB+
+# ============================================================================
+# Papers folder (large PDFs)
+papers needs to read/
+
+# Research papers folder (anxiety dataset, datasets, user labeled data)
+research_papers/
+
+# Any anxiety dataset folders
+**/anxiety_dataset/
+**/anxiety*/
+
+# All users data labeled
+**/all_users_data_labeled/
+**/users_data_labeled/
+**/user_data_labeled/
+**/all_user*/
+**/labeled_data/
+
