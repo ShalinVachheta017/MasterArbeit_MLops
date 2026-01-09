@@ -7,10 +7,53 @@
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://docker.com)
 
 **Master's Thesis Project** | October 2025 - April 2026  
-**Last Updated:** December 12, 2025  
-**Progress:** ~50% complete
+**Last Updated:** December 22, 2025  
+**Progress:** ~58% complete
 
 > **📖 New:** See [PROJECT_GUIDE.md](PROJECT_GUIDE.md) for complete folder/file reference with visual diagrams
+
+---
+
+## 📚 Documentation Map (All Markdown Files)
+
+Quick reference to find what you need without opening every file:
+
+### 🏠 Root Level Documents
+
+| File | Purpose | When to Use |
+|------|---------|-------------|
+| [README.md](README.md) | Main project docs with architecture, setup, API reference | **Start here** for project overview |
+| [PROJECT_GUIDE.md](PROJECT_GUIDE.md) | Complete folder/file reference with visual diagrams | Understanding project structure |
+| [Thesis_Plan.md](Thesis_Plan.md) | 6-month thesis timeline (Oct 2025 - Apr 2026) | Check thesis milestones & phases |
+| [MASTER_FILE_ANALYSIS_AND_NEXT_STEPS.md](MASTER_FILE_ANALYSIS_AND_NEXT_STEPS.md) | **What to do next** + file categorization | **Start here for next steps** |
+| [KEEP_Reference_Project_Learnings.md](KEEP_Reference_Project_Learnings.md) | Best practices from reference MLOps project | How to improve our pipeline |
+| [KEEP_Technology_Stack_Analysis.md](KEEP_Technology_Stack_Analysis.md) | Analysis of all technologies, their purpose & importance | Tech decisions & file importance |
+| [KEEP_Production_Robustness_Guide.md](KEEP_Production_Robustness_Guide.md) | Production robustness improvements backed by research | Making pipeline production-ready |
+
+### 📂 docs/ Folder
+
+| File | Purpose | When to Use |
+|------|---------|-------------|
+| [docs/PIPELINE_RERUN_GUIDE.md](docs/PIPELINE_RERUN_GUIDE.md) | End-to-end pipeline commands (raw → inference) | **Running the full pipeline** |
+| [docs/FRESH_START_CLEANUP_GUIDE.md](docs/FRESH_START_CLEANUP_GUIDE.md) | Commands to delete old outputs and start fresh | Cleaning up generated files |
+| [docs/RESEARCH_PAPER_INSIGHTS.md](docs/RESEARCH_PAPER_INSIGHTS.md) | Actionable insights from 76+ research papers | Improvement ideas from literature |
+| [docs/RESEARCH_PAPERS_ANALYSIS.md](docs/RESEARCH_PAPERS_ANALYSIS.md) | Deep analysis of ICTH_16 & EHB_2025_71 papers | Training data source & methodology |
+| [docs/QA_LAB_TO_LIFE_GAP.md](docs/QA_LAB_TO_LIFE_GAP.md) | Q&A about lab-to-life gap and CV | Understanding model limitations |
+| [docs/CONCEPTS_EXPLAINED.md](docs/CONCEPTS_EXPLAINED.md) | MLOps concepts explained | Learning reference |
+
+### 📂 ai helps/ Folder
+
+| File | Purpose | When to Use |
+|------|---------|-------------|
+| [ai helps/FINAL_Thesis_Status_and_Plan_Jan_to_Jun_2026.md](ai%20helps/FINAL_Thesis_Status_and_Plan_Jan_to_Jun_2026.md) | Complete thesis plan Jan-Jun 2026 | **Master roadmap** |
+| [ai helps/LATER_Offline_MLOps_Guide.md](ai%20helps/LATER_Offline_MLOps_Guide.md) | Edge deployment guide | Future reference |
+
+### 📂 src/ & notebooks/
+
+| File | Purpose | When to Use |
+|------|---------|-------------|
+| [src/README.md](src/README.md) | Source code inventory with file purposes & logging info | Understanding Python scripts |
+| [notebooks/README.md](notebooks/README.md) | Notebook overview with data pipeline flow diagram | Understanding Jupyter notebooks |
 
 ---
 

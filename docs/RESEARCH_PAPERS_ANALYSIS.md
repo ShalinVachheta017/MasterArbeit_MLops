@@ -1,9 +1,11 @@
 # Research Papers Analysis: ICTH_16 & EHB_2025_71
 
+> **📝 Summary:** Deep-dive analysis of the two foundational papers for this thesis. Contains: training data source (ADAMSense dataset), 11 activity classes, model architecture details (1D-CNN-BiLSTM), domain adaptation methodology (49% → 87% accuracy), and RAG-enhanced report generation pipeline. Use this to understand the research foundation.
+
 **Date:** December 9, 2025  
 **Papers Analyzed:**
 1. ICTH_16.pdf - "Recognition of Anxiety-Related Activities using 1DCNNBiLSTM on Sensor Data from a Commercial Wearable Device"
-2. EHB_2025_71.pdf - "A Multi-Stage, RAG-Enhanced Pipeline for Generating Longitudinal, Clinically Actionable Mental Health Reports from Wearable Sensor Data"       
+2. EHB_2025_71.pdf - "A Multi-Stage, RAG-Enhanced Pipeline for Generating Longitudinal, Clinically Actionable Mental Health Reports from Wearable Sensor Data"
 
 **Authors:** Ugonna Oleh and Roman Obermaisser (University of Siegen)
 

@@ -1,4 +1,10 @@
-**Thesis Title:** Developing a   MLOps Pipeline for Continuous Mental Health Monitoring using Wearable Sensor Data
+# 📋 Thesis Plan
+
+> **📝 Summary:** This document outlines the complete 6-month thesis timeline (Oct 2025 - Apr 2026) broken down by month and week. It covers: Month 1 (Data Ingestion), Month 2 (Model Training & Versioning), Month 3 (CI/CD & Deployment), Month 4 (Monitoring & Integration), Month 5 (Refinement & Retraining), Month 6 (Thesis Writing). Use this as the master roadmap for thesis milestones.
+
+---
+
+**Thesis Title:** Developing a MLOps Pipeline for Continuous Mental Health Monitoring using Wearable Sensor Data
 
 **Overall Goal for 6 Months:** To establish a foundational MLOps pipeline for anxiety activity recognition and prognosis models, demonstrating automated data handling, model management, and basic monitoring. The emphasis will be on *proof-of-concept* and *scalability principles*, rather than a full production-grade system.
 

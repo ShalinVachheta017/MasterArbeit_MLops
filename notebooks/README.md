@@ -1,5 +1,7 @@
 # 📓 Notebooks Overview
 
+> **📝 Summary:** Guide to all Jupyter notebooks in the project. Contains: data pipeline flow diagram (raw → processed → prepared), notebook purposes (data_preprocessing_step1, data_preprocessing_step2, model exploration, etc.), and execution order. Use this to understand which notebook to use for each pipeline step.
+
 This folder contains all Jupyter notebooks for the MLOps project. Each notebook serves a specific purpose in the data processing, analysis, and model workflow.
 
 ---

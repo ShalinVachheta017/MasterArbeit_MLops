@@ -1,5 +1,7 @@
 # 📚 Research Paper Analysis: HAR MLOps Pipeline Improvements
 
+> **📝 Summary:** Actionable insights extracted from 76+ research papers. Contains: key papers table (EHB_2025_71, ICTH_16, ADAM-sense, etc.), improvement recommendations for model architecture, domain adaptation strategies, and MLOps best practices. Use this to apply research findings to the pipeline.
+
 > **Analysis Date:** December 13, 2025  
 > **Papers Reviewed:** 76+ papers from `research_papers/76 papers/` folder  
 > **Purpose:** Extract actionable improvements for the current HAR MLOps pipeline

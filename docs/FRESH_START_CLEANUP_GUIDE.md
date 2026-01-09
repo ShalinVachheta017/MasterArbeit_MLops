@@ -1,5 +1,7 @@
 # Complete Fresh Start Guide - Clean All Old Records & DVC Cache
 
+> **📝 Summary:** Commands to delete all generated outputs and start fresh. Contains: what gets deleted (evaluation reports, MLflow data, logs, predictions, DVC cache), PowerShell commands, and safety notes. Use this when you want to reset the pipeline to a clean state.
+
 **Date:** December 12, 2025  
 **Purpose:** Delete all old generated files and start the pipeline from scratch (zero)  
 **Safety Level:** SAFE - Only removes outputs, logs, and old DVC cache

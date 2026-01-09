@@ -134,11 +134,16 @@ credentials/
 # ============================================================================
 # Large folders to ignore (papers, research, datasets) - ~350MB+
 # ============================================================================
-# Papers folder (large PDFs)
+# Papers folder (large PDFs - 350MB+)
 papers needs to read/
+papers needs to read/**
 
 # Research papers folder (anxiety dataset, datasets, user labeled data)
 research_papers/
+research_papers/**
+
+# Large data files
+all_users_data_labeled.csv
 
 # Any anxiety dataset folders
 **/anxiety_dataset/
@@ -146,6 +151,7 @@ research_papers/
 
 # All users data labeled
 **/all_users_data_labeled/
+**/all_users_data_labeled.csv
 **/users_data_labeled/
 **/user_data_labeled/
 **/all_user*/

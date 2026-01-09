@@ -1,6 +1,10 @@
 # Pipeline Re-run Guide (Raw ➜ Validation ➜ Preprocessing ➜ Training ➜ Inference ➜ Evaluation)
 
+> **📝 Summary:** Complete step-by-step guide to run the entire pipeline from raw data to evaluation. Contains: fresh start cleanup commands, DVC versioning steps, preprocessing commands, training/inference execution, Docker API usage, and MLflow tracking. **Use this as your main reference for running the pipeline.**
+
 End-to-end checklist to take new raw sensor files through the full pipeline, with DVC versioning, MLflow tracking, and Docker usage.
+
+---
 
 ## ⚡ Quick Fresh Start (Delete All Old Records)
 

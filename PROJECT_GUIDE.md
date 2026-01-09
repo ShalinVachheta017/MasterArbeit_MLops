@@ -1,5 +1,7 @@
 # 📁 MasterArbeit MLOps - Complete Project Guide
 
+> **📝 Summary:** Complete folder and file reference guide for the entire project. Contains: project structure diagram, explanation of every folder (config/, data/, src/, models/, notebooks/, docker/, docs/, etc.), file-by-file descriptions, and visual diagrams. Use this to understand what each folder/file does and where to find things.
+
 > **Human Activity Recognition (HAR) using 1D-CNN-BiLSTM with MLOps Pipeline**  
 > Master Thesis Project - Complete Folder & File Reference
 

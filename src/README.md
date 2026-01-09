@@ -1,5 +1,7 @@
 # 🐍 Source Code (src/) - Python Scripts
 
+> **📝 Summary:** Inventory of all Python scripts in the src/ folder. Contains: file table (config.py, sensor_data_pipeline.py, preprocess_data.py, compare_data.py, run_inference.py, evaluate_predictions.py), each file's purpose, status, and log locations. Use this to understand what each Python script does.
+
 This folder contains Python scripts for the MLOps pipeline. These are **command-line versions** of the Jupyter notebooks, designed for automation and production use.
 
 ---
