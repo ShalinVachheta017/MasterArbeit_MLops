@@ -65,6 +65,7 @@ htmlcov/
 # ============================================================================
 # DVC cache (local storage - don't commit to git)
 .dvc_storage/
+.dvc/cache/
 
 # DVC internal files ARE tracked by git (keep .dvc/ and *.dvc files!)
 # .dvc/ folder contains config and lock files needed for DVC to work
@@ -84,6 +85,8 @@ mlruns/
 /data/prepared/
 /data/processed/
 /data/raw/
+/data/preprocessed/
+/data/samples_2005 dataset/
 
 # ============================================================================
 # Sensitive / local datasets to ignore (added per user request)
@@ -134,13 +137,22 @@ credentials/
 # ============================================================================
 # Large folders to ignore (papers, research, datasets) - ~350MB+
 # ============================================================================
-# Papers folder (large PDFs - 350MB+)
+# Decoded CSV files folder (3.6+ GB - sensor data CSVs)
+decoded_csv_files/
+decoded_csv_files/**
+
+# Papers folders (large PDFs)
+papers/
+papers/**
 papers needs to read/
 papers needs to read/**
 
 # Research papers folder (anxiety dataset, datasets, user labeled data)
 research_papers/
 research_papers/**
+
+# Large PDF files in root
+*.pdf
 
 # Large data files
 all_users_data_labeled.csv

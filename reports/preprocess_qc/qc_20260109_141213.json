@@ -1,0 +1,112 @@
+{
+  "timestamp": "2026-01-09T14:12:13.666205",
+  "input_file": "data\\prepared\\production_X.npy",
+  "input_type": "normalized",
+  "checks_passed": 2,
+  "checks_failed": 3,
+  "critical_failures": 3,
+  "overall_status": "FAIL",
+  "checks": [
+    {
+      "name": "Window size correct",
+      "passed": true,
+      "severity": "CRITICAL",
+      "message": "Expected 200 timesteps, got 200",
+      "details": {
+        "expected": 200,
+        "actual": 200
+      }
+    },
+    {
+      "name": "Channel count correct",
+      "passed": true,
+      "severity": "CRITICAL",
+      "message": "Expected 6 channels, got 6",
+      "details": {
+        "expected": 6,
+        "actual": 6
+      }
+    },
+    {
+      "name": "Normalized mean \u2248 0",
+      "passed": false,
+      "severity": "CRITICAL",
+      "message": "Mean per channel: [-0.5149999856948853, -0.3370000123977661, -1.940999984741211, -0.0020000000949949026, -0.004999999888241291, 0.003000000026077032]",
+      "details": {
+        "mean_per_channel": [
+          -0.5145999789237976,
+          -0.336899995803833,
+          -1.940999984741211,
+          -0.002099999925121665,
+          -0.004999999888241291,
+          0.003000000026077032
+        ]
+      }
+    },
+    {
+      "name": "Normalized std \u2248 1",
+      "passed": false,
+      "severity": "CRITICAL",
+      "message": "Std per channel: [0.017000000923871994, 0.06300000101327896, 0.05700000002980232, 0.10599999874830246, 0.3179999887943268, 0.13099999725818634]",
+      "details": {
+        "std_per_channel": [
+          0.016599999740719795,
+          0.0632999986410141,
+          0.056699998676776886,
+          0.10649999976158142,
+          0.31839999556541443,
+          0.13089999556541443
+        ]
+      }
+    },
+    {
+      "name": "Variance collapse detected",
+      "passed": false,
+      "severity": "CRITICAL",
+      "message": "Production data has MUCH LOWER variance than training. This will cause near-random predictions. Check: (1) unit conversion, (2) scaler mismatch, (3) data source",
+      "details": {
+        "issue": "variance_collapse",
+        "actual_std": [
+          0.016599999740719795,
+          0.0632999986410141,
+          0.056699998676776886,
+          0.10649999976158142,
+          0.31839999556541443,
+          0.13089999556541443
+        ],
+        "expected_std": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "n_windows": 1815,
+    "window_shape": [
+      1815,
+      200,
+      6
+    ],
+    "normalized_mean": [
+      -0.5145999789237976,
+      -0.336899995803833,
+      -1.940999984741211,
+      -0.002099999925121665,
+      -0.004999999888241291,
+      0.003000000026077032
+    ],
+    "normalized_std": [
+      0.016599999740719795,
+      0.0632999986410141,
+      0.056699998676776886,
+      0.10649999976158142,
+      0.31839999556541443,
+      0.13089999556541443
+    ]
+  }
+}
