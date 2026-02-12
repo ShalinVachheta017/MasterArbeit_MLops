@@ -1,0 +1,190 @@
+# HAR Pipeline Alert Rules
+# =========================
+# 
+# Prometheus alert rules for the HAR MLOps pipeline.
+# Triggers alerts when metrics exceed thresholds.
+
+groups:
+  - name: har_model_performance
+    interval: 1m
+    rules:
+      # Low confidence alert
+      - alert: HARLowConfidence
+        expr: har_confidence_mean < 0.75
+        for: 5m
+        labels:
+          severity: warning
+          team: ml-ops
+        annotations:
+          summary: "HAR model confidence is low"
+          description: "Mean prediction confidence {{ $value | printf \"%.2f\" }} is below 0.75 threshold for 5 minutes."
+          runbook: "Check for data drift or model degradation. Consider retraining."
+
+      # High entropy alert
+      - alert: HARHighEntropy
+        expr: har_entropy_mean > 1.5
+        for: 5m
+        labels:
+          severity: warning
+          team: ml-ops
+        annotations:
+          summary: "HAR model entropy is high"
+          description: "Mean prediction entropy {{ $value | printf \"%.2f\" }} exceeds 1.5 threshold."
+
+      # High flip rate alert
+      - alert: HARHighFlipRate
+        expr: har_flip_rate > 0.15
+        for: 10m
+        labels:
+          severity: warning
+          team: ml-ops
+        annotations:
+          summary: "HAR prediction flip rate is high"
+          description: "Prediction flip rate {{ $value | printf \"%.2f\" }} exceeds 15% threshold. Model may be unstable."
+
+  - name: har_drift_detection
+    interval: 1m
+    rules:
+      # Data drift detected
+      - alert: HARDataDriftDetected
+        expr: har_drift_detected{drift_type="overall"} == 1
+        for: 5m
+        labels:
+          severity: critical
+          team: ml-ops
+        annotations:
+          summary: "Data drift detected in HAR pipeline"
+          description: "Significant data drift has been detected. Model performance may degrade."
+          runbook: "1. Check PSI scores 2. Compare feature distributions 3. Consider retraining"
+
+      # High PSI on specific feature
+      - alert: HARFeatureDrift
+        expr: har_drift_psi > 0.25
+        for: 5m
+        labels:
+          severity: warning
+          team: ml-ops
+        annotations:
+          summary: "Feature drift detected: {{ $labels.feature }}"
+          description: "PSI score {{ $value | printf \"%.3f\" }} for feature {{ $labels.feature }} indicates significant drift."
+
+      # High KS statistic
+      - alert: HARDistributionShift
+        expr: har_drift_ks_stat > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          team: ml-ops
+        annotations:
+          summary: "Distribution shift detected: {{ $labels.feature }}"
+          description: "KS statistic {{ $value | printf \"%.3f\" }} indicates distribution shift in {{ $labels.feature }}."
+
+  - name: har_ood_detection
+    interval: 1m
+    rules:
+      # High OOD ratio
+      - alert: HARHighOODRatio
+        expr: har_ood_ratio > 0.2
+        for: 10m
+        labels:
+          severity: warning
+          team: ml-ops
+        annotations:
+          summary: "High out-of-distribution sample ratio"
+          description: "{{ $value | printf \"%.1f\" }}% of samples are detected as OOD. Check for environment changes."
+
+      # Critical OOD situation
+      - alert: HARCriticalOOD
+        expr: har_ood_ratio > 0.4
+        for: 5m
+        labels:
+          severity: critical
+          team: ml-ops
+        annotations:
+          summary: "Critical OOD ratio - model unreliable"
+          description: "Over 40% of samples are OOD. Model predictions may be unreliable."
+
+  - name: har_trigger_policy
+    interval: 30s
+    rules:
+      # Retraining triggered
+      - alert: HARRetrainingTriggered
+        expr: har_trigger_state{trigger_type="overall"} == 2
+        labels:
+          severity: info
+          team: ml-ops
+        annotations:
+          summary: "HAR model retraining has been triggered"
+          description: "Automatic retraining has been initiated based on trigger policy."
+
+      # Multiple consecutive warnings
+      - alert: HARConsecutiveWarnings
+        expr: har_consecutive_warnings >= 3
+        for: 1m
+        labels:
+          severity: warning
+          team: ml-ops
+        annotations:
+          summary: "Multiple consecutive monitoring warnings"
+          description: "{{ $value }} consecutive warning states. Retraining may be imminent."
+
+  - name: har_system_health
+    interval: 30s
+    rules:
+      # High inference latency
+      - alert: HARHighLatency
+        expr: histogram_quantile(0.95, rate(har_inference_latency_seconds_bucket[5m])) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          team: ml-ops
+        annotations:
+          summary: "HAR inference latency is high"
+          description: "95th percentile latency {{ $value | printf \"%.2f\" }}s exceeds 500ms threshold."
+
+      # No predictions (service may be down)
+      - alert: HARNoPredictions
+        expr: rate(har_predictions_total[5m]) == 0
+        for: 10m
+        labels:
+          severity: critical
+          team: ml-ops
+        annotations:
+          summary: "HAR inference service not processing predictions"
+          description: "No predictions processed in the last 10 minutes. Service may be down."
+
+      # High batch processing time
+      - alert: HARSlowBatchProcessing
+        expr: histogram_quantile(0.95, rate(har_batch_processing_seconds_bucket[5m])) > 60
+        for: 5m
+        labels:
+          severity: warning
+          team: ml-ops
+        annotations:
+          summary: "HAR batch processing is slow"
+          description: "95th percentile batch processing time exceeds 60 seconds."
+
+  - name: har_model_quality
+    interval: 5m
+    rules:
+      # F1 score dropped
+      - alert: HARF1ScoreDropped
+        expr: har_model_f1_score < 0.85
+        for: 10m
+        labels:
+          severity: warning
+          team: ml-ops
+        annotations:
+          summary: "HAR model F1 score has dropped"
+          description: "F1 score {{ $value | printf \"%.3f\" }} is below 0.85 threshold. Model may need retraining."
+
+      # Accuracy dropped significantly
+      - alert: HARAccuracyDropped
+        expr: har_model_accuracy < 0.80
+        for: 10m
+        labels:
+          severity: critical
+          team: ml-ops
+        annotations:
+          summary: "HAR model accuracy critically low"
+          description: "Accuracy {{ $value | printf \"%.3f\" }} is below 0.80. Immediate attention required."

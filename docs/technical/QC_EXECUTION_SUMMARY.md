@@ -7,7 +7,13 @@
 
 ## Executive Summary
 
+<<<<<<< HEAD
 Three production-grade QC scripts were executed to validate the preprocessing pipeline and diagnose the low accuracy (~14-15%) in production inference. **All scripts successfully identified the root cause: the production data (`sensor_fused_50Hz.csv`) contains IDLE/STATIONARY data with no activity patterns.**
+=======
++
+
+
+>>>>>>> 8632082 (Complete 10-stage MLOps pipeline with AdaBN domain adaptation)
 
 ### Key Findings
 1. **Preprocessing Pipeline:** ✅ VERIFIED CORRECT  

@@ -245,8 +245,13 @@ def detect_low_observability_pattern(
     
     is_low_obs = score >= 0.5
     explanation = "; ".join(reasons) if reasons else "Normal observability"
+<<<<<<< HEAD
     
     return is_low_obs, score, explanation
+=======
+     
+    return is_low_obs, score, explanation 
+>>>>>>> 8632082 (Complete 10-stage MLOps pipeline with AdaBN domain adaptation)
 
 
 # ============================================================================

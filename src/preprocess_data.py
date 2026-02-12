@@ -316,7 +316,11 @@ class GravityRemover:
 # DOMAIN CALIBRATION (align production distribution to training)
 # ============================================================================
 
+<<<<<<< HEAD
 class DomainCalibrator:
+=======
+class DomainCalibrator: 
+>>>>>>> 8632082 (Complete 10-stage MLOps pipeline with AdaBN domain adaptation)
     """
     Calibrate production data to match training data distribution.
     This addresses domain shift when sensor orientations differ between

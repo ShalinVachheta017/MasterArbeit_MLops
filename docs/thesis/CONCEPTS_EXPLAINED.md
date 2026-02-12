@@ -1,4 +1,8 @@
+<<<<<<< HEAD
   # 📚 Key Concepts Explained
+=======
+   # 📚 Key Concepts Explained
+>>>>>>> 8632082 (Complete 10-stage MLOps pipeline with AdaBN domain adaptation)
 
 ## 1️⃣ Units: milliG vs m/s²
 

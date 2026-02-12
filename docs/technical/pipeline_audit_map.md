@@ -54,7 +54,11 @@
 5. Resample to 50Hz
 6. Output: CSV with columns `[timestamp_ms, timestamp_iso, Ax, Ay, Az, Gx, Gy, Gz]`
 
+<<<<<<< HEAD
 **⚠️ ISSUE FOUND:** Column headers have trailing spaces (` Ax ` not `Ax`) - FIXED by `.str.strip()` in preprocessing
+=======
+**✅ VERIFIED:** Column names are clean (no trailing spaces). The column renaming in `sensor_data_pipeline.py` line 494 explicitly defines column names as `{"x": "Ax", "y": "Ay", "z": "Az"}` with no spaces. CSV output uses `index=False` and standard pandas `.to_csv()` which does not add trailing spaces.
+>>>>>>> 8632082 (Complete 10-stage MLOps pipeline with AdaBN domain adaptation)
 
 ---
 
