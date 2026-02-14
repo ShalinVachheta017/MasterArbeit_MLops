@@ -92,7 +92,7 @@ class DataIngestionConfig:
 class DataValidationConfig:
     """Configuration for data validation."""
     sensor_columns: List[str] = field(
-        default_factory=lambda: ["Ax_w", "Ay_w", "Az_w", "Gx_w", "Gy_w", "Gz_w"]
+        default_factory=lambda: ["Ax", "Ay", "Az", "Gx", "Gy", "Gz"]
     )
     expected_frequency_hz: float = 50.0
     max_acceleration_ms2: float = 50.0
@@ -108,12 +108,13 @@ class DataValidationConfig:
 class DataTransformationConfig:
     """Configuration for preprocessing (CSV → windowed .npy arrays)."""
     input_csv: Optional[Path] = None
-    enable_gravity_removal: bool = False
+    enable_unit_conversion: bool = True    # milliG → m/s² (MUST match training)
+    enable_gravity_removal: bool = False   # Keep False (training had gravity)
     enable_calibration: bool = False
     window_size: int = 200                 # 4 seconds at 50 Hz
     overlap: float = 0.5                   # 50 % overlap
     sensors: List[str] = field(
-        default_factory=lambda: ["Ax_w", "Ay_w", "Az_w", "Gx_w", "Gy_w", "Gz_w"]
+        default_factory=lambda: ["Ax", "Ay", "Az", "Gx", "Gy", "Gz"]
     )
     output_dir: Optional[Path] = None
 
@@ -234,3 +235,110 @@ class BaselineUpdateConfig:
     output_normalized_path: Optional[Path] = None # where to save normalized baseline
     rebuild_embeddings: bool = False
     model_path: Optional[Path] = None             # for embedding baseline
+
+
+# ============================================================================
+# Stage 11 – Calibration & Uncertainty Quantification
+# ============================================================================
+
+@dataclass
+class CalibrationUncertaintyConfig:
+    """Configuration for post-hoc calibration and MC Dropout UQ."""
+    # Temperature scaling
+    initial_temperature: float = 1.5
+    temp_lr: float = 0.01
+    temp_max_iter: int = 100
+
+    # MC Dropout
+    mc_forward_passes: int = 30
+    mc_dropout_rate: float = 0.2
+
+    # Thresholds
+    confidence_warn_threshold: float = 0.65
+    entropy_warn_threshold: float = 1.5
+    ece_warn_threshold: float = 0.10
+
+    # Evaluation bins
+    n_bins: int = 15
+
+    # Output
+    save_reliability_diagram: bool = True
+    temperature_path: Optional[Path] = None
+    output_dir: Optional[Path] = None
+
+
+# ============================================================================
+# Stage 12 – Wasserstein Drift Detection
+# ============================================================================
+
+@dataclass
+class WassersteinDriftConfig:
+    """Configuration for Wasserstein-based distribution drift detection."""
+    warn_threshold: float = 0.3
+    critical_threshold: float = 0.5
+    min_drifted_channels_warn: int = 2
+    min_drifted_channels_critical: int = 4
+
+    # Change-point detection
+    cpd_window_size: int = 50
+    cpd_threshold: float = 2.0
+
+    # Multi-resolution
+    enable_multi_resolution: bool = True
+
+    sensor_columns: List[str] = field(
+        default_factory=lambda: ["Ax", "Ay", "Az", "Gx", "Gy", "Gz"]
+    )
+    baseline_data_path: Optional[Path] = None
+    output_dir: Optional[Path] = None
+
+
+# ============================================================================
+# Stage 13 – Curriculum Pseudo-Labeling
+# ============================================================================
+
+@dataclass
+class CurriculumPseudoLabelingConfig:
+    """Configuration for curriculum-style self-training."""
+    initial_confidence_threshold: float = 0.95
+    final_confidence_threshold: float = 0.80
+    n_iterations: int = 5
+    threshold_decay: str = "linear"        # linear or exponential
+
+    max_samples_per_class: int = 20
+    min_samples_per_class: int = 3
+
+    use_teacher_student: bool = True
+    ema_decay: float = 0.999
+
+    # EWC regularization
+    use_ewc: bool = True
+    ewc_lambda: float = 1000.0
+    ewc_n_samples: int = 200
+
+    epochs_per_iteration: int = 10
+    batch_size: int = 64
+    learning_rate: float = 0.0005
+
+    source_data_path: Optional[Path] = None
+    unlabeled_data_path: Optional[Path] = None
+    output_dir: Optional[Path] = None
+
+
+# ============================================================================
+# Stage 14 – Sensor Placement Robustness
+# ============================================================================
+
+@dataclass
+class SensorPlacementConfig:
+    """Configuration for sensor placement robustness (hand detection, mirroring)."""
+    mirror_axes: List[int] = field(default_factory=lambda: [1, 2, 4, 5])
+    mirror_probability: float = 0.5
+    dominant_accel_threshold: float = 1.2
+
+    sensor_columns: List[str] = field(
+        default_factory=lambda: ["Ax", "Ay", "Az", "Gx", "Gy", "Gz"]
+    )
+    accel_indices: List[int] = field(default_factory=lambda: [0, 1, 2])
+    gyro_indices: List[int] = field(default_factory=lambda: [3, 4, 5])
+    output_dir: Optional[Path] = None

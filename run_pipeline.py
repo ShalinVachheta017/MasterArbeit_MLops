@@ -4,10 +4,11 @@
 HAR MLOps — Production Pipeline  (Single Entry Point)
 =============================================================================
 
-Run the ENTIRE 10-stage production pipeline with one command:
+Run the ENTIRE 14-stage production pipeline with one command:
 
     python run_pipeline.py                             # stages 1-7
     python run_pipeline.py --retrain --adapt adabn     # + AdaBN retraining
+    python run_pipeline.py --advanced                  # + calibration, drift, etc.
     python run_pipeline.py --stages inference evaluation  # specific stages
     python run_pipeline.py --input-csv my_recording.csv   # your own data
 
@@ -23,14 +24,19 @@ Pipeline stages (in order):
      8  retraining        →  standard / AdaBN / pseudo-label
      9  registration      →  version, deploy, rollback
     10  baseline_update   →  rebuild drift baselines
+  ── advanced analytics (--advanced) ──
+    11  calibration       →  temperature scaling, MC Dropout, ECE
+    12  wasserstein_drift →  Wasserstein distance, change-point detection
+    13  curriculum_pseudo_labeling → progressive self-training with EWC
+    14  sensor_placement  →  hand detection, axis mirroring augmentation
 
+Result LOG → logs/pipeline/pipeline_result_<timestamp>.log
 Result JSON → logs/pipeline/pipeline_result_<timestamp>.json
 
 =============================================================================
 """
 
 import sys
-import logging
 import argparse
 from pathlib import Path
 
@@ -38,6 +44,10 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(PROJECT_ROOT))
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
+
+# Import centralized logger
+from src.logger import logging, CURRENT_LOG_FILE
+logger = logging.getLogger(__name__)
 
 from src.pipeline.production_pipeline import ProductionPipeline
 from src.entity.config_entity import (
@@ -80,6 +90,15 @@ Examples:
   # Retrain with pseudo-labeling
   python run_pipeline.py --retrain --adapt pseudo_label
 
+  # Advanced analytics (calibration, Wasserstein drift, etc.)
+  python run_pipeline.py --advanced
+
+  # Curriculum pseudo-labeling only
+  python run_pipeline.py --stages curriculum_pseudo_labeling --curriculum-iterations 10
+
+  # Run specific advanced stages
+  python run_pipeline.py --stages calibration wasserstein_drift sensor_placement
+
   # Continue past errors
   python run_pipeline.py --continue-on-failure
         """,
@@ -92,9 +111,11 @@ Examples:
             "ingestion", "validation", "transformation",
             "inference", "evaluation", "monitoring", "trigger",
             "retraining", "registration", "baseline_update",
+            "calibration", "wasserstein_drift",
+            "curriculum_pseudo_labeling", "sensor_placement",
         ],
         default=None,
-        help="Run only these stages (default: 1-7; use --retrain for 8-10)",
+        help="Run only these stages (default: 1-7; use --retrain for 8-10, --advanced for 11-14)",
     )
     parser.add_argument(
         "--skip-ingestion",
@@ -126,14 +147,27 @@ Examples:
         help="Path to .keras model for inference",
     )
     parser.add_argument(
+        "--config",
+        type=str,
+        default="config/pipeline_config.yaml",
+        help="Path to YAML config file (default: config/pipeline_config.yaml)",
+    )
+    parser.add_argument(
         "--gravity-removal",
         action="store_true",
-        help="Enable gravity removal during preprocessing",
+        default=None,
+        help="Enable gravity removal (overrides config file)",
+    )
+    parser.add_argument(
+        "--no-unit-conversion",
+        action="store_true",
+        help="Disable unit conversion milliG→m/s² (overrides config file)",
     )
     parser.add_argument(
         "--calibrate",
         action="store_true",
-        help="Enable domain calibration during preprocessing",
+        default=None,
+        help="Enable domain calibration (overrides config file)",
     )
 
     # ── Retraining flags ──────────────────────────────────────────────
@@ -167,11 +201,81 @@ Examples:
         help="Automatically deploy retrained model if proxy validation passes",
     )
 
+    # ── Advanced analytics flags ──────────────────────────────────────
+    parser.add_argument(
+        "--advanced",
+        action="store_true",
+        help="Include stages 11-14 (calibration, Wasserstein drift, "
+             "curriculum pseudo-labeling, sensor placement)",
+    )
+    parser.add_argument(
+        "--curriculum-iterations",
+        type=int,
+        default=5,
+        help="Number of curriculum pseudo-labeling iterations (default: 5)",
+    )
+    parser.add_argument(
+        "--ewc-lambda",
+        type=float,
+        default=1000.0,
+        help="EWC regularization strength (default: 1000.0)",
+    )
+    parser.add_argument(
+        "--mc-dropout-passes",
+        type=int,
+        default=30,
+        help="Number of MC Dropout forward passes (default: 30)",
+    )
+
     return parser.parse_args()
 
 
+def load_preprocessing_config(config_path: str) -> dict:
+    """Load preprocessing toggles from YAML config file."""
+    import yaml
+    path = Path(config_path)
+    if not path.exists():
+        print(f"Config file not found: {path}, using defaults")
+        return {}
+    with open(path, 'r', encoding='utf-8') as f:
+        cfg = yaml.safe_load(f) or {}
+    return cfg.get('preprocessing', {})
+
+
 def main():
+    # Display startup banner with log file location
+    print("=" * 80)
+    print("HAR MLOps Production Pipeline")
+    print("=" * 80)
+    print(f"Log file: {CURRENT_LOG_FILE}")
+    print("=" * 80)
+    print()
+    
+    logger.info("Pipeline starting...")
+    
     args = parse_args()
+
+    # ── Load config from YAML ─────────────────────────────────────────
+    yaml_preproc = load_preprocessing_config(args.config)
+
+    # Resolve preprocessing toggles: CLI flags override YAML config
+    enable_unit_conversion = yaml_preproc.get('enable_unit_conversion', True)
+    enable_gravity_removal = yaml_preproc.get('enable_gravity_removal', False)
+    enable_calibration = yaml_preproc.get('enable_calibration', False)
+
+    # CLI overrides
+    if args.no_unit_conversion:
+        enable_unit_conversion = False
+    if args.gravity_removal:
+        enable_gravity_removal = True
+    if args.calibrate:
+        enable_calibration = True
+
+    # Show what's active using logger
+    logger.info("Preprocessing configuration (from %s):", args.config)
+    logger.info("  Unit Conversion (milliG→m/s²): %s", 'ON' if enable_unit_conversion else 'OFF')
+    logger.info("  Gravity Removal:               %s", 'ON' if enable_gravity_removal else 'OFF')
+    logger.info("  Domain Calibration:            %s", 'ON' if enable_calibration else 'OFF')
 
     # ── Build configs ─────────────────────────────────────────────────
     pipeline_cfg = PipelineConfig()
@@ -181,8 +285,9 @@ def main():
     )
 
     transformation_cfg = DataTransformationConfig(
-        enable_gravity_removal=args.gravity_removal,
-        enable_calibration=args.calibrate,
+        enable_unit_conversion=enable_unit_conversion,
+        enable_gravity_removal=enable_gravity_removal,
+        enable_calibration=enable_calibration,
     )
 
     inference_cfg = ModelInferenceConfig(
@@ -201,6 +306,23 @@ def main():
         auto_deploy=args.auto_deploy,
     )
 
+    # Advanced configs
+    from src.entity.config_entity import (
+        CalibrationUncertaintyConfig,
+        WassersteinDriftConfig,
+        CurriculumPseudoLabelingConfig,
+        SensorPlacementConfig,
+    )
+    calibration_cfg = CalibrationUncertaintyConfig(
+        mc_forward_passes=args.mc_dropout_passes,
+    )
+    wasserstein_cfg = WassersteinDriftConfig()
+    curriculum_cfg = CurriculumPseudoLabelingConfig(
+        n_iterations=args.curriculum_iterations,
+        ewc_lambda=args.ewc_lambda,
+    )
+    sensor_cfg = SensorPlacementConfig()
+
     # ── Build and run pipeline ────────────────────────────────────────
     pipeline = ProductionPipeline(
         pipeline_config=pipeline_cfg,
@@ -209,6 +331,10 @@ def main():
         inference_config=inference_cfg,
         retraining_config=retraining_cfg,
         registration_config=registration_cfg,
+        calibration_config=calibration_cfg,
+        wasserstein_config=wasserstein_cfg,
+        curriculum_config=curriculum_cfg,
+        sensor_placement_config=sensor_cfg,
     )
 
     result = pipeline.run(

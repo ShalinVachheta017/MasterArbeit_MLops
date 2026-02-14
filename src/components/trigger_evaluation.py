@@ -62,7 +62,38 @@ class TriggerEvaluation:
             state_file=state_file,
         )
 
-        decision = engine.evaluate(self.monitoring_artifact.monitoring_report)
+        # Transform monitoring report to trigger engine format
+        raw_report = self.monitoring_artifact.monitoring_report
+        layer1 = raw_report.get("layer1_confidence", {})
+        layer2 = raw_report.get("layer2_temporal", {})
+        layer3 = raw_report.get("layer3_drift", {})
+
+        # Map monitoring keys → trigger-policy expected structure
+        trigger_report = {
+            "confidence_report": {
+                "metrics": {
+                    "mean_confidence": layer1.get("mean_confidence", 0.0),
+                    "mean_entropy": 0.0,  # not computed by layer1
+                    "uncertain_ratio": layer1.get("uncertain_percentage", 0.0) / 100.0,
+                    "std_confidence": layer1.get("std_confidence", 0.0),
+                }
+            },
+            "temporal_report": {
+                "metrics": {
+                    "flip_rate": layer2.get("transition_rate", 0.0) / 100.0,
+                    "mean_dwell_time_seconds": 0.0,
+                    "short_dwell_ratio": 0.0,
+                }
+            },
+            "drift_report": {
+                "per_channel_metrics": {},
+                "n_drifted_channels": 0,
+                "aggregate_drift_score": layer3.get("max_drift", 0.0),
+                "overall_status": layer3.get("status", "UNKNOWN"),
+            },
+        }
+
+        decision = engine.evaluate(trigger_report)
 
         logger.info(
             "Trigger decision: action=%s  should_retrain=%s  alert=%s",

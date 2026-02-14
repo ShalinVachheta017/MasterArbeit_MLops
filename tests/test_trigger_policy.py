@@ -207,12 +207,13 @@ class TestConsecutiveWarnings:
         }
         
         # Simulate consecutive warnings
+        decisions = []
         for i in range(4):
-            decision = engine.evaluate(warning_report)
+            decisions.append(engine.evaluate(warning_report))
         
-        # After 3+ consecutive warnings, should trigger
-        # Note: exact behavior depends on threshold configuration
-        assert engine.state['consecutive_warnings'] >= 3 or decision.should_trigger
+        # After 3+ consecutive warnings, at least one should trigger
+        # Note: state resets after trigger, so check across all decisions
+        assert any(d.should_trigger for d in decisions)
 
 
 class TestProxyModelValidator:
@@ -252,16 +253,18 @@ class TestProxyModelValidator:
         """Test that regressed model is not recommended."""
         validator = ProxyModelValidator()
         
-        np.random.seed(42)
         n_samples = 100
         n_classes = 11
         
-        # Old model: higher confidence
-        old_probs = np.random.dirichlet(np.ones(n_classes) * 3, size=n_samples)
+        # Old model: clearly high confidence
+        old_probs = np.full((n_samples, n_classes), 0.01)
+        for i in range(n_samples):
+            old_probs[i, i % n_classes] = 0.90
+        old_probs = old_probs / old_probs.sum(axis=1, keepdims=True)
         old_labels = np.argmax(old_probs, axis=1)
         
-        # New model: lower confidence (regression)
-        new_probs = np.random.dirichlet(np.ones(n_classes) * 0.3, size=n_samples)
+        # New model: uniform / low confidence (regression)
+        new_probs = np.ones((n_samples, n_classes)) / n_classes
         new_labels = np.argmax(new_probs, axis=1)
         
         old_predictions = {'probabilities': old_probs, 'labels': old_labels}

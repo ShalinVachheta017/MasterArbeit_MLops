@@ -54,6 +54,8 @@ class DataTransformationArtifact:
     window_size: int
     unit_conversion_applied: bool
     preprocessing_timestamp: str
+    gravity_removal_applied: bool = False
+    calibration_applied: bool = False
 
 
 # ============================================================================
@@ -69,6 +71,8 @@ class ModelInferenceArtifact:
     n_predictions: int = 0
     inference_time_seconds: float = 0.0
     model_version: str = ""
+    activity_distribution: Dict = field(default_factory=dict)
+    confidence_stats: Dict = field(default_factory=dict)
 
 
 # ============================================================================
@@ -162,6 +166,79 @@ class BaselineUpdateArtifact:
 
 
 # ============================================================================
+# Stage 11 – Calibration & Uncertainty Quantification
+# ============================================================================
+
+@dataclass
+class CalibrationUncertaintyArtifact:
+    """Output of calibration and uncertainty quantification."""
+    temperature: float = 1.0
+    temperature_path: Optional[Path] = None
+    ece: float = 0.0
+    mce: float = 0.0
+    brier_score: float = 0.0
+    overconfidence_gap: float = 0.0
+    reliability_diagram_path: Optional[Path] = None
+    mc_dropout_run: bool = False
+    mean_predictive_entropy: float = 0.0
+    mean_mutual_information: float = 0.0
+    calibration_report: Dict = field(default_factory=dict)
+    calibration_warnings: List[str] = field(default_factory=list)
+
+
+# ============================================================================
+# Stage 12 – Wasserstein Drift Detection
+# ============================================================================
+
+@dataclass
+class WassersteinDriftArtifact:
+    """Output of Wasserstein-based drift detection."""
+    overall_status: str = "UNKNOWN"
+    mean_wasserstein: float = 0.0
+    max_wasserstein: float = 0.0
+    n_channels_warn: int = 0
+    n_channels_critical: int = 0
+    per_channel: Dict = field(default_factory=dict)
+    change_points: List[int] = field(default_factory=list)
+    drift_trend: str = "UNKNOWN"
+    integrated_report: Dict = field(default_factory=dict)
+    report_path: Optional[Path] = None
+
+
+# ============================================================================
+# Stage 13 – Curriculum Pseudo-Labeling
+# ============================================================================
+
+@dataclass
+class CurriculumPseudoLabelingArtifact:
+    """Output of curriculum pseudo-labeling training."""
+    retrained_model_path: Optional[Path] = None
+    iterations_completed: int = 0
+    total_pseudo_labeled: int = 0
+    best_val_accuracy: float = 0.0
+    final_mean_confidence: float = 0.0
+    iteration_logs: List[Dict] = field(default_factory=list)
+    ewc_used: bool = False
+    training_report: Dict = field(default_factory=dict)
+
+
+# ============================================================================
+# Stage 14 – Sensor Placement Robustness
+# ============================================================================
+
+@dataclass
+class SensorPlacementArtifact:
+    """Output of sensor placement analysis."""
+    detected_hand: str = "UNKNOWN"
+    detection_confidence: float = 0.0
+    augmented_data_path: Optional[Path] = None
+    n_original_samples: int = 0
+    n_augmented_samples: int = 0
+    per_hand_report: Dict = field(default_factory=dict)
+    hand_features: Dict = field(default_factory=dict)
+
+
+# ============================================================================
 # Pipeline Result (aggregated)
 # ============================================================================
 
@@ -187,3 +264,7 @@ class PipelineResult:
     retraining: Optional[ModelRetrainingArtifact] = None
     registration: Optional[ModelRegistrationArtifact] = None
     baseline_update: Optional[BaselineUpdateArtifact] = None
+    calibration: Optional["CalibrationUncertaintyArtifact"] = None
+    wasserstein_drift: Optional["WassersteinDriftArtifact"] = None
+    curriculum_pseudo_labeling: Optional["CurriculumPseudoLabelingArtifact"] = None
+    sensor_placement: Optional["SensorPlacementArtifact"] = None

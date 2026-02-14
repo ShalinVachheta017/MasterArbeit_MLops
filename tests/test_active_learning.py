@@ -43,7 +43,7 @@ class TestUncertaintySampler:
         sampler = UncertaintySampler()
         
         # Low entropy (one class dominates)
-        low_entropy = np.array([[0.99, 0.01/10] * 10 + [0.99]][:, :11])
+        low_entropy = np.array([[0.99] + [0.01/10]*10])[:, :11]
         # High entropy (uniform)
         high_entropy = np.ones((1, 11)) / 11
         
@@ -60,9 +60,9 @@ class TestUncertaintySampler:
         sampler = UncertaintySampler()
         
         # Large margin
-        large_margin = np.array([[0.9, 0.05, 0.05/9] * 9][:, :11])
+        large_margin = np.array([[0.9] + [0.05/10]*10])[:, :11]
         # Small margin (close decision)
-        small_margin = np.array([[0.35, 0.33, 0.32/9] * 9][:, :11])
+        small_margin = np.array([[0.35, 0.33] + [0.32/9]*9])[:, :11]
         
         lm_score = sampler.margin_sampling(large_margin)
         sm_score = sampler.margin_sampling(small_margin)

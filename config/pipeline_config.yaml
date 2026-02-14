@@ -1,28 +1,54 @@
 # ============================================================================
 # Pipeline Configuration
 # ============================================================================
-# This file controls the preprocessing pipeline behavior.
-# Toggle features on/off with true/false values.
+# This file controls the production pipeline behavior.
+# Toggle preprocessing steps on/off with true/false values.
+#
+# RESEARCH PAPER REFERENCE (ICTH_16, Oleh & Obermaisser 2025):
+#   Training pipeline was: milliG -> m/s2 -> StandardScaler -> Window(200,50%)
+#   NO gravity removal was applied during training.
+#   NO filtering was applied during training.
+#
+# RULE: Production preprocessing MUST match training preprocessing.
+#       Mismatch = domain shift = wrong predictions.
 # ============================================================================
 
-# Preprocessing Settings
+# --------------------------------------------------------------------------
+# PREPROCESSING TOGGLES  (edit these to control what preprocessing runs)
+# --------------------------------------------------------------------------
 preprocessing:
-  # Gravity Removal Toggle
-  # Set to true to remove gravity component from accelerometer data
-  # This addresses domain shift when training data has gravity removed
-  # NOTE: Keep FALSE here - gravity removal should happen AFTER unit conversion
-  #       (sensor_data_pipeline outputs milliG, preprocess_data.py converts to m/s²)
-  # Recommendation: Apply gravity removal in preprocess_data.py after conversion
+
+  # Unit Conversion  (milliG -> m/s2)
+  # RECOMMENDED: true
+  # WHY: Production data from Garmin is in milliG.
+  #      Training data (all_users_data_labeled) is in m/s2.
+  #      The StandardScaler expects m/s2 input.
+  #      Paper: "Accelerometer data was converted from milli-g to m/s2"
+  enable_unit_conversion: true
+
+  # Gravity Removal  (Butterworth high-pass filter)
+  # RECOMMENDED: false
+  # WHY: Training data has gravity INCLUDED:
+  #      - all_users_data_labeled accel magnitude = 9.83 m/s2 (=1g)
+  #      - ADAMSense wrist magnitude = 0.995 (approx 1g in g-units)
+  #      - Paper says "NO gravity removal mentioned"
+  # RISK: Setting true creates domain shift -> hand_tapping dominance
   enable_gravity_removal: false
-  
-  # Gravity removal filter parameters (Butterworth high-pass)
+
+  # Domain Calibration  (experimental)
+  # RECOMMENDED: false
+  # WHY: Not part of original training pipeline.
+  #      Only enable for domain adaptation experiments.
+  enable_calibration: false
+
+  # Gravity removal filter parameters (only used if enable_gravity_removal: true)
   gravity_filter:
     cutoff_hz: 0.3       # Cutoff frequency (0.3 Hz is standard from UCI HAR)
-    order: 3             # Filter order (3 is typical)
-  
+    order: 3              # Filter order (3 is typical)
+
   # Sampling frequency of the data
   sampling_frequency_hz: 50
-  
+
   # Resampling settings
   resampling:
     enabled: true
@@ -31,13 +57,10 @@ preprocessing:
 
 # Data Validation Settings
 validation:
-  # Enable/disable input data validation
   enabled: true
-  
-  # Validation thresholds
   thresholds:
     max_missing_ratio: 0.05        # Max 5% missing values allowed
-    max_acceleration_ms2: 50.0     # Max reasonable acceleration (m/s²)
+    max_acceleration_ms2: 50.0     # Max reasonable acceleration (m/s2)
     max_gyroscope_dps: 500.0       # Max reasonable gyroscope (deg/s)
     sampling_rate_tolerance: 0.1   # 10% tolerance for sampling rate check
 
@@ -51,19 +74,11 @@ logging:
 
 # Output Settings
 output:
-  # Whether to save intermediate outputs
   save_intermediate: false
-  
-  # Output file naming
   suffix_gravity_removed: "_gravity_removed"
-  
+
 # Model Inference Settings
 inference:
-  # Window size for activity recognition (samples)
-  window_size: 200
-  
-  # Overlap between windows (0.5 = 50% overlap)
-  window_overlap: 0.5
-  
-  # Batch size for inference
+  window_size: 200       # samples (4 seconds at 50 Hz)
+  window_overlap: 0.5    # 50% overlap
   batch_size: 32

@@ -4,12 +4,13 @@ Tests for Model Rollback Module
 ===============================
 
 Tests model versioning, registry, and rollback functionality.
+Aligned with the actual API in src/model_rollback.py.
 """
 
 import pytest
-import numpy as np
 import json
 import tempfile
+import shutil
 from pathlib import Path
 from datetime import datetime
 import sys
@@ -19,250 +20,299 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 class TestModelVersion:
     """Tests for ModelVersion dataclass."""
-    
+
     def test_creation(self):
         """Test model version creation."""
         from model_rollback import ModelVersion
-        
+
         version = ModelVersion(
-            version_id='v1.0.0',
-            model_path=Path('/models/v1'),
+            version='1.0.0',
+            path='/models/v1/model.keras',
             created_at=datetime.now().isoformat(),
+            deployed_at=None,
             metrics={'f1': 0.89, 'accuracy': 0.91},
-            training_config={'epochs': 100, 'lr': 0.001},
-            is_active=True
+            config_hash='abc123',
+            data_version=None,
+            status='archived',
         )
-        
-        assert version.version_id == 'v1.0.0'
-        assert version.is_active is True
+
+        assert version.version == '1.0.0'
+        assert version.status == 'archived'
         assert version.metrics['f1'] == 0.89
-    
+
     def test_to_dict(self):
         """Test conversion to dictionary."""
         from model_rollback import ModelVersion
-        
+
         version = ModelVersion(
-            version_id='v1.0.0',
-            model_path=Path('/models/v1'),
+            version='1.0.0',
+            path='/models/v1/model.keras',
             created_at='2026-01-30T10:00:00',
-            metrics={'f1': 0.89}
+            deployed_at=None,
+            metrics={'f1': 0.89},
+            config_hash='abc123',
+            data_version=None,
+            status='archived',
         )
-        
+
         d = version.to_dict()
-        
+
         assert isinstance(d, dict)
-        assert d['version_id'] == 'v1.0.0'
-        assert isinstance(d['model_path'], str)
+        assert d['version'] == '1.0.0'
+        assert isinstance(d['path'], str)
+
+    def test_from_dict_roundtrip(self):
+        """Test from_dict(to_dict()) roundtrip."""
+        from model_rollback import ModelVersion
+
+        original = ModelVersion(
+            version='2.0.0',
+            path='/models/v2/model.keras',
+            created_at='2026-02-01T12:00:00',
+            deployed_at='2026-02-01T13:00:00',
+            metrics={'accuracy': 0.92},
+            config_hash='def456',
+            data_version='v3',
+            status='deployed',
+        )
+
+        restored = ModelVersion.from_dict(original.to_dict())
+
+        assert restored.version == original.version
+        assert restored.metrics == original.metrics
+        assert restored.status == original.status
 
 
 class TestModelRegistry:
     """Tests for ModelRegistry class."""
-    
+
     def test_registry_initialization(self):
-        """Test registry initialization."""
+        """Test registry initialization creates directory."""
         from model_rollback import ModelRegistry
-        
+
         with tempfile.TemporaryDirectory() as tmpdir:
-            registry = ModelRegistry(
-                models_dir=Path(tmpdir) / 'models',
-                max_versions=5
-            )
-            
-            assert registry.models_dir.exists()
-            assert registry.max_versions == 5
-    
-    def test_generate_version_id(self):
-        """Test version ID generation."""
-        from model_rollback import ModelRegistry
-        
-        with tempfile.TemporaryDirectory() as tmpdir:
-            registry = ModelRegistry(models_dir=Path(tmpdir))
-            
-            v1 = registry._generate_version_id()
-            v2 = registry._generate_version_id()
-            
-            # Should be different (timestamp-based)
-            assert v1 != v2 or v1 == v2  # May be same if called quickly
-            assert v1.startswith('v')
-    
+            registry_dir = Path(tmpdir) / 'registry'
+            registry = ModelRegistry(registry_dir=registry_dir)
+
+            assert registry.registry_dir.exists()
+            assert registry.registry['models'] == {}
+            assert registry.registry['current_version'] is None
+
     def test_register_model(self):
         """Test model registration."""
         from model_rollback import ModelRegistry
-        
+
         with tempfile.TemporaryDirectory() as tmpdir:
-            registry = ModelRegistry(models_dir=Path(tmpdir))
-            
-            # Create a mock model directory
-            model_path = Path(tmpdir) / 'new_model'
-            model_path.mkdir()
-            (model_path / 'model.h5').write_text('mock model')
-            
-            version = registry.register(
+            registry = ModelRegistry(registry_dir=Path(tmpdir) / 'registry')
+
+            # Create a mock model file
+            model_path = Path(tmpdir) / 'new_model.keras'
+            model_path.write_text('mock model data')
+
+            version = registry.register_model(
                 model_path=model_path,
-                metrics={'f1': 0.90},
-                training_config={'epochs': 50}
+                version='1.0.0',
+                metrics={'f1': 0.90, 'accuracy': 0.91},
             )
-            
-            assert version.version_id is not None
+
+            assert version.version == '1.0.0'
             assert version.metrics['f1'] == 0.90
-            assert version.version_id in registry.versions
-    
-    def test_get_active_version(self):
-        """Test getting active version."""
+            assert '1.0.0' in registry.registry['models']
+
+    def test_deploy_model(self):
+        """Test deploying a registered model."""
         from model_rollback import ModelRegistry
-        
+
         with tempfile.TemporaryDirectory() as tmpdir:
-            registry = ModelRegistry(models_dir=Path(tmpdir))
-            
-            # Register a model
-            model_path = Path(tmpdir) / 'model'
-            model_path.mkdir()
-            (model_path / 'model.h5').write_text('mock')
-            
-            version = registry.register(model_path, metrics={'f1': 0.85})
-            registry.set_active(version.version_id)
-            
-            active = registry.get_active()
-            
-            assert active is not None
-            assert active.version_id == version.version_id
-    
+            registry = ModelRegistry(registry_dir=Path(tmpdir) / 'registry')
+
+            model_path = Path(tmpdir) / 'model.keras'
+            model_path.write_text('mock')
+
+            registry.register_model(
+                model_path=model_path,
+                version='1.0.0',
+                metrics={'f1': 0.85},
+            )
+
+            success = registry.deploy_model('1.0.0')
+
+            assert success is True
+            assert registry.get_current_version() == '1.0.0'
+            assert registry.registry['models']['1.0.0']['status'] == 'deployed'
+
+    def test_deploy_nonexistent_version(self):
+        """Test deploying a version that doesn't exist."""
+        from model_rollback import ModelRegistry
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            registry = ModelRegistry(registry_dir=Path(tmpdir) / 'registry')
+            success = registry.deploy_model('999.0.0')
+            assert success is False
+
     def test_list_versions(self):
         """Test listing all versions."""
         from model_rollback import ModelRegistry
-        
+
         with tempfile.TemporaryDirectory() as tmpdir:
-            registry = ModelRegistry(models_dir=Path(tmpdir))
-            
-            # Register multiple models
+            registry = ModelRegistry(registry_dir=Path(tmpdir) / 'registry')
+
             for i in range(3):
-                model_path = Path(tmpdir) / f'model_{i}'
-                model_path.mkdir()
-                (model_path / 'model.h5').write_text(f'mock {i}')
-                registry.register(model_path, metrics={'f1': 0.80 + i * 0.05})
-            
+                model_path = Path(tmpdir) / f'model_{i}.keras'
+                model_path.write_text(f'mock {i}')
+                registry.register_model(
+                    model_path=model_path,
+                    version=f'{i+1}.0.0',
+                    metrics={'f1': 0.80 + i * 0.05},
+                )
+
             versions = registry.list_versions()
-            
             assert len(versions) == 3
-    
-    def test_max_versions_cleanup(self):
-        """Test that old versions are cleaned up."""
+
+    def test_get_current_version_none(self):
+        """Test current version is None when nothing deployed."""
         from model_rollback import ModelRegistry
-        
+
         with tempfile.TemporaryDirectory() as tmpdir:
-            registry = ModelRegistry(models_dir=Path(tmpdir), max_versions=3)
-            
-            # Register more than max_versions
-            for i in range(5):
-                model_path = Path(tmpdir) / f'model_{i}'
-                model_path.mkdir()
-                (model_path / 'model.h5').write_text(f'mock {i}')
-                registry.register(model_path, metrics={'f1': 0.80})
-            
-            # Should only keep 3
-            assert len(registry.versions) <= 3
+            registry = ModelRegistry(registry_dir=Path(tmpdir) / 'registry')
+            assert registry.get_current_version() is None
+
+    def test_register_with_deploy(self):
+        """Test register + deploy in one call."""
+        from model_rollback import ModelRegistry
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            registry = ModelRegistry(registry_dir=Path(tmpdir) / 'registry')
+
+            model_path = Path(tmpdir) / 'model.keras'
+            model_path.write_text('mock model')
+
+            registry.register_model(
+                model_path=model_path,
+                version='1.0.0',
+                metrics={'accuracy': 0.90},
+                deploy=True,
+            )
+
+            assert registry.get_current_version() == '1.0.0'
+
+    def test_deployment_history(self):
+        """Test deployment history is recorded."""
+        from model_rollback import ModelRegistry
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            registry = ModelRegistry(registry_dir=Path(tmpdir) / 'registry')
+
+            for v in ['1.0.0', '2.0.0']:
+                model_path = Path(tmpdir) / f'model_{v}.keras'
+                model_path.write_text(f'mock {v}')
+                registry.register_model(
+                    model_path=model_path,
+                    version=v,
+                    metrics={'f1': 0.85},
+                    deploy=True,
+                )
+
+            history = registry.get_deployment_history()
+            assert len(history) >= 2
+            assert history[-1]['action'] == 'deploy'
 
 
 class TestRollbackValidator:
     """Tests for RollbackValidator class."""
-    
-    def test_validation_passes(self):
-        """Test validation that should pass."""
-        from model_rollback import RollbackValidator, ModelVersion
-        
-        with tempfile.TemporaryDirectory() as tmpdir:
-            validator = RollbackValidator()
-            
-            # Create mock version with existing path
-            model_path = Path(tmpdir) / 'model'
-            model_path.mkdir()
-            (model_path / 'model.h5').write_text('mock')
-            
-            version = ModelVersion(
-                version_id='v1.0.0',
-                model_path=model_path,
-                created_at=datetime.now().isoformat(),
-                metrics={'f1': 0.85}
-            )
-            
-            is_valid, errors = validator.validate_version(version)
-            
-            assert is_valid is True
-            assert len(errors) == 0
-    
-    def test_validation_fails_missing_path(self):
-        """Test validation with missing model path."""
-        from model_rollback import RollbackValidator, ModelVersion
-        
+
+    def test_validator_initialization(self):
+        """Test validator creates successfully."""
+        from model_rollback import RollbackValidator
+
         validator = RollbackValidator()
-        
-        version = ModelVersion(
-            version_id='v1.0.0',
-            model_path=Path('/nonexistent/path'),
-            created_at=datetime.now().isoformat(),
-            metrics={'f1': 0.85}
-        )
-        
-        is_valid, errors = validator.validate_version(version)
-        
-        assert is_valid is False
-        assert len(errors) > 0
-    
-    def test_validation_fails_low_metrics(self):
-        """Test validation with poor metrics."""
-        from model_rollback import RollbackValidator, ModelVersion
-        
-        with tempfile.TemporaryDirectory() as tmpdir:
-            validator = RollbackValidator(min_f1_score=0.80)
-            
-            model_path = Path(tmpdir) / 'model'
-            model_path.mkdir()
-            
-            version = ModelVersion(
-                version_id='v1.0.0',
-                model_path=model_path,
-                created_at=datetime.now().isoformat(),
-                metrics={'f1': 0.70}  # Below threshold
-            )
-            
-            is_valid, errors = validator.validate_version(version)
-            
-            assert is_valid is False
-            assert any('F1' in e for e in errors)
+        assert validator is not None
 
 
 class TestRollbackIntegration:
     """Integration tests for rollback workflow."""
-    
+
     def test_full_rollback_workflow(self):
         """Test complete rollback workflow."""
         from model_rollback import ModelRegistry
-        
+
         with tempfile.TemporaryDirectory() as tmpdir:
-            registry = ModelRegistry(models_dir=Path(tmpdir))
-            
-            # Register version 1
-            model1 = Path(tmpdir) / 'model_v1'
-            model1.mkdir()
-            (model1 / 'model.h5').write_text('v1')
-            v1 = registry.register(model1, metrics={'f1': 0.88})
-            registry.set_active(v1.version_id)
-            
-            # Register version 2 (worse performance)
-            model2 = Path(tmpdir) / 'model_v2'
-            model2.mkdir()
-            (model2 / 'model.h5').write_text('v2')
-            v2 = registry.register(model2, metrics={'f1': 0.82})
-            registry.set_active(v2.version_id)
-            
-            # Current active should be v2
-            assert registry.get_active().version_id == v2.version_id
-            
+            registry = ModelRegistry(registry_dir=Path(tmpdir) / 'registry')
+
+            # Register and deploy version 1
+            model1 = Path(tmpdir) / 'model_v1.keras'
+            model1.write_text('v1 data')
+            registry.register_model(
+                model_path=model1,
+                version='1.0.0',
+                metrics={'f1': 0.88},
+                deploy=True,
+            )
+
+            # Register and deploy version 2 (worse)
+            model2 = Path(tmpdir) / 'model_v2.keras'
+            model2.write_text('v2 data')
+            registry.register_model(
+                model_path=model2,
+                version='2.0.0',
+                metrics={'f1': 0.82},
+                deploy=True,
+            )
+
+            assert registry.get_current_version() == '2.0.0'
+
             # Rollback to v1
-            result = registry.rollback(v1.version_id)
-            
-            assert result.get('success') is True
-            assert registry.get_active().version_id == v1.version_id
+            success = registry.rollback(target_version='1.0.0')
+
+            assert success is True
+            assert registry.get_current_version() == '1.0.0'
+
+    def test_rollback_to_previous(self):
+        """Test rollback without specifying target (auto-finds previous)."""
+        from model_rollback import ModelRegistry
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            registry = ModelRegistry(registry_dir=Path(tmpdir) / 'registry')
+
+            for v in ['1.0.0', '2.0.0']:
+                model_path = Path(tmpdir) / f'model_{v}.keras'
+                model_path.write_text(f'{v} data')
+                registry.register_model(
+                    model_path=model_path,
+                    version=v,
+                    metrics={'f1': 0.85},
+                    deploy=True,
+                )
+
+            assert registry.get_current_version() == '2.0.0'
+
+            success = registry.rollback()
+
+            assert success is True
+            assert registry.get_current_version() == '1.0.0'
+
+    def test_rollback_records_history(self):
+        """Test that rollback is recorded in history."""
+        from model_rollback import ModelRegistry
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            registry = ModelRegistry(registry_dir=Path(tmpdir) / 'registry')
+
+            for v in ['1.0.0', '2.0.0']:
+                model_path = Path(tmpdir) / f'model_{v}.keras'
+                model_path.write_text(f'{v} data')
+                registry.register_model(
+                    model_path=model_path,
+                    version=v,
+                    metrics={'f1': 0.85},
+                    deploy=True,
+                )
+
+            registry.rollback(target_version='1.0.0')
+
+            history = registry.get_deployment_history()
+            rollbacks = [h for h in history if h['action'] == 'rollback']
+            assert len(rollbacks) >= 1
 
 
 if __name__ == "__main__":

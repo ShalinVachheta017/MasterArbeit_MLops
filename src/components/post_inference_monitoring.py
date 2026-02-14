@@ -59,6 +59,10 @@ class PostInferenceMonitoring:
         baseline_json = self.config.baseline_stats_json or (
             self.pipeline_config.models_dir / "normalized_baseline.json"
         )
+        # Only pass baseline if file actually exists
+        if not Path(baseline_json).exists():
+            logger.warning("Baseline file not found: %s — drift analysis will skip baseline comparison", baseline_json)
+            baseline_json = None
         model_path = self.config.model_path or (
             self.pipeline_config.models_pretrained_dir
             / "fine_tuned_model_1dcnnbilstm.keras"

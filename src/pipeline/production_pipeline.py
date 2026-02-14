@@ -21,11 +21,14 @@ Follows the reference pattern from vikashishere/YT-MLops-Proj1.
 """
 
 import json
-import logging
 import traceback
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
+
+# Import centralized logger and artifacts manager
+from src.logger import logging
+from src.utils.artifacts_manager import ArtifactsManager
 
 from src.entity.config_entity import (
     PipelineConfig,
@@ -70,6 +73,10 @@ class ProductionPipeline:
         retraining_config: Optional[ModelRetrainingConfig] = None,
         registration_config: Optional[ModelRegistrationConfig] = None,
         baseline_config: Optional[BaselineUpdateConfig] = None,
+        calibration_config=None,  # Accept but ignore for now
+        wasserstein_config=None,  # Accept but ignore for now
+        curriculum_config=None,  # Accept but ignore for now
+        sensor_placement_config=None,  # Accept but ignore for now
     ):
         self.pipeline_config = pipeline_config
         self.ingestion_config = ingestion_config or DataIngestionConfig()
@@ -82,6 +89,9 @@ class ProductionPipeline:
         self.retraining_config = retraining_config or ModelRetrainingConfig()
         self.registration_config = registration_config or ModelRegistrationConfig()
         self.baseline_config = baseline_config or BaselineUpdateConfig()
+        
+        # Initialize artifacts manager
+        self.artifacts_manager = ArtifactsManager()
 
     # ================================================================== #
     def run(
@@ -129,7 +139,21 @@ class ProductionPipeline:
             run_stages.remove("validation")
             result.stages_skipped.append("validation")
 
+        # Initialize artifacts directory for this run
+        run_dir = self.artifacts_manager.initialize()
+        
+        logger.info("=" * 70)
+        logger.info("HAR MLOPS PRODUCTION PIPELINE - EXECUTION START")
+        logger.info("=" * 70)
+        logger.info("Run ID: %s", self.pipeline_config.timestamp)
+        logger.info("Artifacts Directory: %s", run_dir)
+        logger.info("Data Source: %s", self.pipeline_config.data_raw_dir)
+        logger.info("Preprocessing Settings:")
+        logger.info("  - Unit Conversion (milliG→m/s²): %s", "ENABLED" if self.transformation_config.enable_unit_conversion else "DISABLED")
+        logger.info("  - Gravity Removal: %s", "ENABLED" if self.transformation_config.enable_gravity_removal else "DISABLED")
+        logger.info("  - Calibration: %s", "ENABLED" if self.transformation_config.enable_calibration else "DISABLED")
         logger.info("Pipeline stages: %s", run_stages)
+        logger.info("=" * 70)
 
         # Holders for cross-stage artifacts
         ingestion_art = None
@@ -153,6 +177,15 @@ class ProductionPipeline:
                     comp = DataIngestion(self.pipeline_config, self.ingestion_config)
                     ingestion_art = comp.initiate_data_ingestion()
                     result.ingestion = ingestion_art
+                    
+                    # Save artifacts
+                    if ingestion_art.fused_csv_path.exists():
+                        self.artifacts_manager.save_file(ingestion_art.fused_csv_path, 'data_ingestion')
+                    self.artifacts_manager.log_stage_completion('ingestion', 'SUCCESS', {
+                        'n_rows': ingestion_art.n_rows,
+                        'n_columns': ingestion_art.n_columns,
+                        'sampling_hz': ingestion_art.sampling_hz
+                    })
 
                 elif stage == "validation":
                     if ingestion_art is None:
@@ -161,6 +194,18 @@ class ProductionPipeline:
                     comp = DataValidation(self.pipeline_config, self.validation_config, ingestion_art)
                     validation_art = comp.initiate_data_validation()
                     result.validation = validation_art
+                    
+                    # Save artifacts
+                    self.artifacts_manager.save_json({
+                        'is_valid': validation_art.is_valid,
+                        'errors': validation_art.errors,
+                        'warnings': validation_art.warnings
+                    }, 'validation', 'validation_report.json')
+                    self.artifacts_manager.log_stage_completion('validation', 
+                        'SUCCESS' if validation_art.is_valid else 'FAILED',
+                        {'n_errors': len(validation_art.errors)}
+                    )
+                    
                     if not validation_art.is_valid:
                         logger.warning("Validation FAILED — errors: %s", validation_art.errors)
                         if not continue_on_failure:
@@ -177,6 +222,17 @@ class ProductionPipeline:
                     )
                     transformation_art = comp.initiate_data_transformation()
                     result.transformation = transformation_art
+                    
+                    # Save artifacts
+                    if transformation_art.production_X_path.exists():
+                        self.artifacts_manager.save_file(transformation_art.production_X_path, 'data_transformation')
+                    if transformation_art.metadata_path and transformation_art.metadata_path.exists():
+                        self.artifacts_manager.save_file(transformation_art.metadata_path, 'data_transformation')
+                    self.artifacts_manager.log_stage_completion('transformation', 'SUCCESS', {
+                        'n_windows': transformation_art.n_windows,
+                        'unit_conversion': transformation_art.unit_conversion_applied,
+                        'gravity_removal': transformation_art.gravity_removal_applied
+                    })
 
                 elif stage == "inference":
                     if transformation_art is None:
@@ -187,6 +243,28 @@ class ProductionPipeline:
                     )
                     inference_art = comp.initiate_model_inference()
                     result.inference = inference_art
+                    
+                    # Save artifacts
+                    if inference_art.predictions_csv_path and inference_art.predictions_csv_path.exists():
+                        self.artifacts_manager.save_file(inference_art.predictions_csv_path, 'inference')
+                    if inference_art.predictions_npy_path and inference_art.predictions_npy_path.exists():
+                        self.artifacts_manager.save_file(inference_art.predictions_npy_path, 'inference')
+                    if inference_art.probabilities_npy_path and inference_art.probabilities_npy_path.exists():
+                        self.artifacts_manager.save_file(inference_art.probabilities_npy_path, 'inference')
+                    
+                    # Save inference summary as JSON
+                    self.artifacts_manager.save_json({
+                        'n_predictions': inference_art.n_predictions,
+                        'inference_time_seconds': inference_art.inference_time_seconds,
+                        'activity_distribution': inference_art.activity_distribution,
+                        'confidence_stats': inference_art.confidence_stats,
+                        'model_version': inference_art.model_version
+                    }, 'inference', 'inference_summary.json')
+                    
+                    self.artifacts_manager.log_stage_completion('inference', 'SUCCESS', {
+                        'n_predictions': inference_art.n_predictions,
+                        'inference_time': inference_art.inference_time_seconds
+                    })
 
                 elif stage == "evaluation":
                     if inference_art is None:
@@ -197,6 +275,25 @@ class ProductionPipeline:
                     )
                     evaluation_art = comp.initiate_model_evaluation()
                     result.evaluation = evaluation_art
+                    
+                    # Save artifacts
+                    if evaluation_art.report_json_path and evaluation_art.report_json_path.exists():
+                        self.artifacts_manager.save_file(evaluation_art.report_json_path, 'evaluation')
+                    if evaluation_art.report_text_path and evaluation_art.report_text_path.exists():
+                        self.artifacts_manager.save_file(evaluation_art.report_text_path, 'evaluation')
+                    
+                    # Save evaluation summary
+                    self.artifacts_manager.save_json({
+                        'distribution_summary': evaluation_art.distribution_summary,
+                        'confidence_summary': evaluation_art.confidence_summary,
+                        'has_labels': evaluation_art.has_labels,
+                        'classification_metrics': evaluation_art.classification_metrics
+                    }, 'evaluation', 'evaluation_summary.json')
+                    
+                    self.artifacts_manager.log_stage_completion('evaluation', 'SUCCESS', {
+                        'mean_confidence': evaluation_art.confidence_summary.get('mean', 0) if evaluation_art.confidence_summary else 0,
+                        'has_labels': evaluation_art.has_labels
+                    })
 
                 elif stage == "monitoring":
                     if inference_art is None:
@@ -208,6 +305,22 @@ class ProductionPipeline:
                     )
                     monitoring_art = comp.initiate_post_inference_monitoring()
                     result.monitoring = monitoring_art
+
+                    # Save monitoring artifacts
+                    if monitoring_art.report_path and monitoring_art.report_path.exists():
+                        self.artifacts_manager.save_file(monitoring_art.report_path, 'monitoring')
+                    self.artifacts_manager.save_json({
+                        'overall_status': monitoring_art.overall_status,
+                        'layer1_confidence': monitoring_art.layer1_confidence,
+                        'layer2_temporal': monitoring_art.layer2_temporal,
+                        'layer3_drift': monitoring_art.layer3_drift,
+                    }, 'monitoring', 'monitoring_summary.json')
+                    self.artifacts_manager.log_stage_completion('monitoring', monitoring_art.overall_status, {
+                        'overall_status': monitoring_art.overall_status,
+                        'confidence_status': monitoring_art.layer1_confidence.get('status', 'N/A'),
+                        'temporal_status': monitoring_art.layer2_temporal.get('status', 'N/A'),
+                        'drift_status': monitoring_art.layer3_drift.get('status', 'N/A'),
+                    })
 
                 elif stage == "trigger":
                     if monitoring_art is None:
@@ -268,6 +381,10 @@ class ProductionPipeline:
             else "PARTIAL" if result.stages_completed
             else "FAILED"
         )
+        
+        # Finalize artifacts
+        self.artifacts_manager.finalize()
+        
         self._save_result(result)
 
         if mlflow_tracker:

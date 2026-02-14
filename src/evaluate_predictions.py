@@ -148,14 +148,8 @@ class EvaluationLogger:
         self.logger.setLevel(logging.DEBUG)
         self.logger.handlers.clear()
         
-        # File handler
-        file_handler = logging.FileHandler(self.log_file, encoding='utf-8')
-        file_handler.setLevel(logging.DEBUG)
-        file_format = logging.Formatter(
-            '%(asctime)s | %(levelname)-8s | %(funcName)s:%(lineno)d | %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S'
-        )
-        file_handler.setFormatter(file_format)
+        # File handler DISABLED - using main pipeline log instead
+        # All output goes to console, captured by production_pipeline.py
         
         # Console handler
         console_handler = logging.StreamHandler(sys.stdout)
@@ -166,10 +160,9 @@ class EvaluationLogger:
         )
         console_handler.setFormatter(console_format)
         
-        self.logger.addHandler(file_handler)
         self.logger.addHandler(console_handler)
         
-        self.logger.info(f"📝 Log file: {self.log_file}")
+        self.logger.info("📝 Evaluation pipeline logging to main pipeline log")
     
     def get_logger(self) -> logging.Logger:
         return self.logger

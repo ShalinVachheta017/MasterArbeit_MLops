@@ -59,7 +59,7 @@ class DataTransformation:
 
         # Setup preprocessor
         prep_logger = PreprocessLogger(
-            self.pipeline_config.logs_dir / "preprocessing"
+            "preprocessing"
         ).get_logger()
         preprocessor = UnifiedPreprocessor(
             logger=prep_logger,
@@ -71,25 +71,32 @@ class DataTransformation:
         data_format, sensor_cols = preprocessor.detect_data_format(df)
         logger.info("Data format: %s  |  sensors: %s", data_format, sensor_cols)
 
-        # Optional unit conversion
+        # Track which preprocessing steps were applied
         unit_conversion = False
-        if self.config.enable_gravity_removal or self.config.enable_calibration:
-            from src.preprocess_data import UnitDetector, GravityFilter, SensorCalibrator
+        gravity_removal_applied = False
+        calibration_applied = False
+
+        # Step 1: Unit conversion (milliG → m/s²) — independent of gravity removal
+        if self.config.enable_unit_conversion or self.config.enable_gravity_removal or self.config.enable_calibration:
+            from src.preprocess_data import UnitDetector
 
             detector = UnitDetector(prep_logger)
-            unit_info = detector.detect(df, sensor_cols)
-            if unit_info.get("needs_conversion"):
-                df = detector.convert(df, sensor_cols)
-                unit_conversion = True
+            accel_cols = [c for c in sensor_cols if c.startswith(("Ax", "Ay", "Az"))]
+            df, unit_conversion = detector.process_units(df, accel_cols)
 
-            if self.config.enable_gravity_removal:
-                gravity = GravityFilter(prep_logger)
-                accel_cols = [c for c in sensor_cols if c.startswith(("Ax", "Ay", "Az"))]
-                df = gravity.remove(df, accel_cols)
+        # Step 2: Gravity removal (only if explicitly enabled)
+        if self.config.enable_gravity_removal:
+            from src.preprocess_data import GravityRemover
+            gravity = GravityRemover(prep_logger)
+            df = gravity.remove_gravity(df, enable=True)
+            gravity_removal_applied = True
 
-            if self.config.enable_calibration:
-                calibrator = SensorCalibrator(prep_logger)
-                df = calibrator.calibrate(df, sensor_cols)
+        # Step 3: Domain calibration (only if explicitly enabled)
+        if self.config.enable_calibration:
+            from src.preprocess_data import DomainCalibrator
+            calibrator = DomainCalibrator(prep_logger)
+            df = calibrator.calibrate(df, enable=True)
+            calibration_applied = True
 
         # Normalize
         df = preprocessor.normalize_data(df, sensor_cols, mode="transform")
@@ -126,5 +133,7 @@ class DataTransformation:
             n_windows=X.shape[0],
             window_size=X.shape[1],
             unit_conversion_applied=unit_conversion,
+            gravity_removal_applied=gravity_removal_applied,
+            calibration_applied=calibration_applied,
             preprocessing_timestamp=datetime.now().isoformat(),
         )

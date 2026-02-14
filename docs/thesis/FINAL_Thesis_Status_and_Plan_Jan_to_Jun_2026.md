@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-# 📊 FINAL Thesis Status and Production Upgrade Plan
-=======
  # 📊 FINAL Thesis Status and Production Upgrade Plan
->>>>>>> 8632082 (Complete 10-stage MLOps pipeline with AdaBN domain adaptation)
 ## January 2026 → June 2026
 
 **Thesis Title:** Developing a MLOps Pipeline for Continuous Mental Health Monitoring using Wearable Sensor Data

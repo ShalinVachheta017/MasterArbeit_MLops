@@ -162,14 +162,8 @@ class InferenceLogger:
         # Clear existing handlers
         self.logger.handlers.clear()
         
-        # File handler (DEBUG level - capture everything)
-        file_handler = logging.FileHandler(self.log_file, encoding='utf-8')
-        file_handler.setLevel(logging.DEBUG)
-        file_format = logging.Formatter(
-            '%(asctime)s | %(levelname)-8s | %(funcName)s:%(lineno)d | %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S'
-        )
-        file_handler.setFormatter(file_format)
+        # File handler DISABLED - using main pipeline log instead
+        # All output goes to console, captured by production_pipeline.py
         
         # Console handler (INFO level - important info only)
         console_handler = logging.StreamHandler(sys.stdout)
@@ -180,10 +174,9 @@ class InferenceLogger:
         )
         console_handler.setFormatter(console_format)
         
-        self.logger.addHandler(file_handler)
         self.logger.addHandler(console_handler)
         
-        self.logger.info(f"📝 Log file: {self.log_file}")
+        self.logger.info("📝 Inference pipeline logging to main pipeline log")
     
     def get_logger(self) -> logging.Logger:
         """Return the configured logger."""
@@ -490,7 +483,7 @@ class InferenceEngine:
         
         return prediction, probabilities, confidence
     
-    def predict_with_details(self, data: np.ndarray) -> pd.DataFrame:
+    def predict_with_details(self, data: np.ndarray) -> Tuple[pd.DataFrame, np.ndarray]:
         """
         Perform inference and return detailed results as DataFrame.
         
@@ -500,14 +493,16 @@ class InferenceEngine:
             data: Array of shape (n_windows, 200, 6)
             
         Returns:
-            DataFrame with columns:
-            - window_id: Window index
-            - predicted_class: Class index (0-10)
-            - predicted_activity: Activity name
-            - confidence: Confidence score (0-1)
-            - confidence_level: HIGH/MODERATE/LOW/UNCERTAIN
-            - is_uncertain: Boolean flag
-            - [prob_0 ... prob_10]: Per-class probabilities
+            Tuple of:
+            - DataFrame with columns:
+                - window_id: Window index
+                - predicted_class: Class index (0-10)
+                - predicted_activity: Activity name
+                - confidence: Confidence score (0-1)
+                - confidence_level: HIGH/MODERATE/LOW/UNCERTAIN
+                - is_uncertain: Boolean flag
+                - [prob_0 ... prob_10]: Per-class probabilities
+            - probabilities: Raw probability array (n_windows, 11)
         """
         predictions, probabilities = self.predict_batch(data)
         
@@ -546,7 +541,7 @@ class InferenceEngine:
             
             results.append(row)
         
-        return pd.DataFrame(results)
+        return pd.DataFrame(results), probabilities
 
 
 # ============================================================================
@@ -709,7 +704,7 @@ class InferencePipeline:
             # Initialize MLflow experiment
             mlflow.set_experiment("inference-production")
             
-            with mlflow.start_run(run_name=f"inference_{datetime.now().strftime('%Y%m%d_%H%M%S')}"):
+            with mlflow.start_run(run_name=f"inference_{datetime.now().strftime('%Y%m%d_%H%M%S')}", nested=True):
                 # Log configuration
                 mlflow.log_params({
                     "mode": self.config.mode,
@@ -733,10 +728,7 @@ class InferencePipeline:
                 
                 # 3. Run inference
                 engine = InferenceEngine(model, self.config, self.logger)
-                results_df = engine.predict_with_details(data)
-                
-                # Get raw probabilities for export
-                _, probabilities = engine.predict_batch(data)
+                results_df, probabilities = engine.predict_with_details(data)
                 
                 # Log inference metrics
                 mlflow.log_metrics({
@@ -785,7 +777,10 @@ class InferencePipeline:
             
         except Exception as e:
             self.logger.error(f"❌ Pipeline failed: {str(e)}", exc_info=True)
-            mlflow.log_param("error", str(e))
+            try:
+                mlflow.log_param("error", str(e))
+            except Exception:
+                pass  # No active run to log to
             return {
                 "success": False,
                 "error": str(e),

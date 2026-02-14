@@ -72,20 +72,11 @@ class PreprocessLogger:
         console.setFormatter(formatter)
         self.logger.addHandler(console)
         
-        # File handler with rotation (2MB per file, keep 5 backups)
-        log_file = self.log_dir / f"{log_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
-        file_handler = RotatingFileHandler(
-            log_file,
-            maxBytes=2_000_000,
-            backupCount=5,
-            encoding='utf-8'
-        )
-        file_handler.setLevel(logging.DEBUG)
-        file_handler.setFormatter(formatter)
-        self.logger.addHandler(file_handler)
+        # File handler DISABLED - using main pipeline log instead
+        # All output goes to console, captured by production_pipeline.py
         
         self.logger.info("="*80)
-        self.logger.info(f"Preprocessing Pipeline Started - Log: {log_file.name}")
+        self.logger.info(f"Preprocessing Pipeline Started")
         self.logger.info("="*80)
     
     def get_logger(self) -> logging.Logger:
@@ -316,11 +307,7 @@ class GravityRemover:
 # DOMAIN CALIBRATION (align production distribution to training)
 # ============================================================================
 
-<<<<<<< HEAD
 class DomainCalibrator:
-=======
-class DomainCalibrator: 
->>>>>>> 8632082 (Complete 10-stage MLOps pipeline with AdaBN domain adaptation)
     """
     Calibrate production data to match training data distribution.
     This addresses domain shift when sensor orientations differ between
@@ -559,57 +546,62 @@ class UnifiedPreprocessor:
         self.logger.info(f"  Step size: {self.step_size}")
         self.logger.info(f"  Maximum possible windows: {n_possible_windows:,}")
         
-        X = []
+        # ── Vectorized windowing (10-50x faster than Python loop) ──
+        sensor_values = df[sensor_cols].values.astype(np.float32)  # (N, C)
+        
+        # Build index arrays for all windows at once
+        start_indices = np.arange(n_possible_windows) * self.step_size
+        valid_mask = (start_indices + self.window_size) <= n_samples
+        start_indices = start_indices[valid_mask]
+        
+        # Use stride_tricks for zero-copy sliding window view
+        from numpy.lib.stride_tricks import as_strided
+        n_sensors = sensor_values.shape[1]
+        stride_samples, stride_channels = sensor_values.strides
+        all_windows = as_strided(
+            sensor_values,
+            shape=(len(start_indices), self.window_size, n_sensors),
+            strides=(self.step_size * stride_samples, stride_samples, stride_channels),
+        )
+        # Copy to own memory (strided view is read-only)
+        all_windows = np.array(all_windows)
+        
+        # Filter out windows containing NaN
+        has_nan = np.isnan(all_windows).any(axis=(1, 2))
+        good_idx = np.where(~has_nan)[0]
+        
+        X = all_windows[good_idx]
+        
+        # Build labels if labeled
         y = []
+        if data_format == 'labeled' and 'activity' in df.columns:
+            activities = df['activity'].values
+            for idx in good_idx:
+                s = start_indices[idx]
+                window_acts = activities[s:s + self.window_size]
+                vals, counts = np.unique(window_acts, return_counts=True)
+                majority = vals[counts.argmax()]
+                y.append(self.activity_to_label[majority])
+            y = np.array(y, dtype=np.int32)
+        else:
+            y = None
+        
+        # Build metadata
         metadata = []
-        
-        for i in range(n_possible_windows):
-            start_idx = i * self.step_size
-            end_idx = start_idx + self.window_size
-            
-            if end_idx > n_samples:
-                break
-            
-            # Extract window
-            window_data = df.iloc[start_idx:end_idx][sensor_cols].values
-            
-            # Validate shape
-            if window_data.shape[0] != self.window_size:
-                continue
-            
-            # Skip windows with NaN values
-            if np.isnan(window_data).any():
-                continue
-            
-            X.append(window_data)
-            
-            # Add label if available (majority vote)
-            if data_format == 'labeled':
-                window_activities = df.iloc[start_idx:end_idx]['activity']
-                majority_activity = window_activities.mode()[0]
-                label = self.activity_to_label[majority_activity]
-                y.append(label)
-            
-            # Metadata
+        for j, idx in enumerate(good_idx):
+            s = int(start_indices[idx])
+            e = s + self.window_size
             meta = {
-                'window_id': len(X) - 1,
-                'start_idx': int(start_idx),
-                'end_idx': int(end_idx),
+                'window_id': j,
+                'start_idx': s,
+                'end_idx': e,
             }
-            
-            # Add timestamps if available
             if 'timestamp_iso' in df.columns:
-                meta['timestamp_start'] = str(df.iloc[start_idx]['timestamp_iso'])
-                meta['timestamp_end'] = str(df.iloc[end_idx - 1]['timestamp_iso'])
-            
-            # Add user if available
+                meta['timestamp_start'] = str(df.iloc[s]['timestamp_iso'])
+                meta['timestamp_end'] = str(df.iloc[e - 1]['timestamp_iso'])
             if 'User' in df.columns:
-                meta['user'] = str(df.iloc[start_idx]['User'])
-            
+                meta['user'] = str(df.iloc[s]['User'])
             metadata.append(meta)
-        
-        X = np.array(X, dtype=np.float32)
-        y = np.array(y, dtype=np.int32) if len(y) > 0 else None
         
         self.logger.info(f"  ✓ Created {len(X):,} windows")
         self.logger.info(f"  Shape: {X.shape}")
