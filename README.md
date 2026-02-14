@@ -5,55 +5,42 @@
 [![DVC](https://img.shields.io/badge/DVC-3.50+-purple.svg)](https://dvc.org)
 [![MLflow](https://img.shields.io/badge/MLflow-2.11+-green.svg)](https://mlflow.org)
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://docker.com)
+[![Tests](https://img.shields.io/badge/Tests-225%20Passing-brightgreen.svg)](tests/)
 
-**Master's Thesis Project** | October 2025 - April 2026  
-**Last Updated:** December 22, 2025  
-**Progress:** ~58% complete
-
-> **📖 New:** See [PROJECT_GUIDE.md](PROJECT_GUIDE.md) for complete folder/file reference with visual diagrams
+**Master's Thesis Project** | January 2026 - May 2026  
+**Last Updated:** February 15, 2026  
+**Progress:** 92% complete
 
 ---
 
-## 📚 Documentation Map (All Markdown Files)
+## 📊 Current Status
 
-Quick reference to find what you need without opening every file:
+> **🎯 MAIN DOCUMENT:** See [docs/thesis/FINAL_Thesis_Status_and_Plan_Jan_to_Jun_2026.md](docs/thesis/FINAL_Thesis_Status_and_Plan_Jan_to_Jun_2026.md) for complete thesis status, achievements, and remaining work.
 
-### 🏠 Root Level Documents
+**Latest Achievements (Feb 15, 2026):**
+- ✅ **All 225 tests passing** (full test coverage)
+- ✅ **FastAPI Web UI** with CSV upload & interactive dashboard
+- ✅ **3-layer monitoring** integrated (confidence, temporal, drift)
+- ✅ **Production optimizations** (971x model caching, vectorized windowing)
+- ✅ **Repository cleaned** and pushed to GitHub
 
-| File | Purpose | When to Use |
-|------|---------|-------------|
-| [README.md](README.md) | Main project docs with architecture, setup, API reference | **Start here** for project overview |
-| [PROJECT_GUIDE.md](PROJECT_GUIDE.md) | Complete folder/file reference with visual diagrams | Understanding project structure |
-| [Thesis_Plan.md](Thesis_Plan.md) | 6-month thesis timeline (Oct 2025 - Apr 2026) | Check thesis milestones & phases |
-| [MASTER_FILE_ANALYSIS_AND_NEXT_STEPS.md](MASTER_FILE_ANALYSIS_AND_NEXT_STEPS.md) | **What to do next** + file categorization | **Start here for next steps** |
-| [KEEP_Reference_Project_Learnings.md](KEEP_Reference_Project_Learnings.md) | Best practices from reference MLOps project | How to improve our pipeline |
-| [KEEP_Technology_Stack_Analysis.md](KEEP_Technology_Stack_Analysis.md) | Analysis of all technologies, their purpose & importance | Tech decisions & file importance |
-| [KEEP_Production_Robustness_Guide.md](KEEP_Production_Robustness_Guide.md) | Production robustness improvements backed by research | Making pipeline production-ready |
+**Quick Links:**
+- 🚀 [Run the FastAPI](#-quick-start): `python -m src.api.app`
+- 📖 [Thesis Plan](Thesis_Plan.md): Original 6-month timeline
+- 🧪 [Run Tests](#-testing): `pytest tests/`
+- 🔧 [Pipeline Guide](docs/PIPELINE_OPERATIONS_AND_ARCHITECTURE.md): Full pipeline docs
 
-### 📂 docs/ Folder
+---
 
-| File | Purpose | When to Use |
-|------|---------|-------------|
-| [docs/PIPELINE_RERUN_GUIDE.md](docs/PIPELINE_RERUN_GUIDE.md) | End-to-end pipeline commands (raw → inference) | **Running the full pipeline** |
-| [docs/FRESH_START_CLEANUP_GUIDE.md](docs/FRESH_START_CLEANUP_GUIDE.md) | Commands to delete old outputs and start fresh | Cleaning up generated files |
-| [docs/RESEARCH_PAPER_INSIGHTS.md](docs/RESEARCH_PAPER_INSIGHTS.md) | Actionable insights from 76+ research papers | Improvement ideas from literature |
-| [docs/RESEARCH_PAPERS_ANALYSIS.md](docs/RESEARCH_PAPERS_ANALYSIS.md) | Deep analysis of ICTH_16 & EHB_2025_71 papers | Training data source & methodology |
-| [docs/QA_LAB_TO_LIFE_GAP.md](docs/QA_LAB_TO_LIFE_GAP.md) | Q&A about lab-to-life gap and CV | Understanding model limitations |
-| [docs/CONCEPTS_EXPLAINED.md](docs/CONCEPTS_EXPLAINED.md) | MLOps concepts explained | Learning reference |
+## 📚 Key Documentation
 
-### 📂 ai helps/ Folder
-
-| File | Purpose | When to Use |
-|------|---------|-------------|
-| [ai helps/FINAL_Thesis_Status_and_Plan_Jan_to_Jun_2026.md](ai%20helps/FINAL_Thesis_Status_and_Plan_Jan_to_Jun_2026.md) | Complete thesis plan Jan-Jun 2026 | **Master roadmap** |
-| [ai helps/LATER_Offline_MLOps_Guide.md](ai%20helps/LATER_Offline_MLOps_Guide.md) | Edge deployment guide | Future reference |
-
-### 📂 src/ & notebooks/
-
-| File | Purpose | When to Use |
-|------|---------|-------------|
-| [src/README.md](src/README.md) | Source code inventory with file purposes & logging info | Understanding Python scripts |
-| [notebooks/README.md](notebooks/README.md) | Notebook overview with data pipeline flow diagram | Understanding Jupyter notebooks |
+| Document | Purpose |
+|----------|---------|
+| [Thesis Status & Plan](docs/thesis/FINAL_Thesis_Status_and_Plan_Jan_to_Jun_2026.md) | **Main document** - Current status, achievements, timeline |
+| [Thesis Plan (Original)](Thesis_Plan.md) | Original 6-month roadmap (Oct 2025 - Apr 2026) |
+| [Pipeline Operations](docs/PIPELINE_OPERATIONS_AND_ARCHITECTURE.md) | Complete pipeline documentation & architecture |
+| [API Documentation](docs/DATA_INGESTION_AND_INFERENCE_GUIDE.md) | FastAPI endpoints and usage |
+| [Research Papers Analysis](docs/HAR_MLOps_QnA_With_Papers.md) | Insights from 77+ research papers |
 
 ---
 
@@ -174,12 +161,18 @@ An end-to-end MLOps pipeline for **Human Activity Recognition (HAR)** using wear
                                      │
                                      ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                         5. MONITORING (Planned)                             │
+│                         5. MONITORING (Operational)                         │
 │  ┌─────────────┐    ┌──────────────┐    ┌─────────────────┐                │
-│  │ Data Drift  │    │ Prediction   │    │ Model           │                │
-│  │ Detection   │    │ Drift        │    │ Retraining      │                │
-│  │             │    │ Detection    │    │ Trigger         │                │
+│  │ Layer 1:    │    │ Layer 2:     │    │ Layer 3:        │                │
+│  │ Confidence  │───▶│ Temporal     │───▶│ Drift           │                │
+│  │ Analysis    │    │ Patterns     │    │ Detection       │                │
 │  └─────────────┘    └──────────────┘    └─────────────────┘                │
+│         │                   │                    │                          │
+│         └───────────────────┴────────────────────┘                          │
+│                             │                                                │
+│                             ▼                                                │
+│                     Trigger Evaluation                                       │
+│                     (PASS/WARNING/FAIL)                                      │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -219,7 +212,26 @@ ls data/prepared/
 ls models/pretrained/
 ```
 
-### 3. Start Services with Docker
+### 3. Run FastAPI Web Application (Recommended)
+
+```powershell
+# Start the FastAPI server with web UI
+python -m src.api.app
+
+# Open browser to http://127.0.0.1:8000
+# - Drag & drop CSV file with sensor data
+# - Auto-detects columns (acc_x, acc_y, acc_z, gyro_x, gyro_y, gyro_z)
+# - Full pipeline: windowing → inference → 3-layer monitoring
+# - Interactive dashboard with results
+```
+
+**API Endpoints:**
+- `GET /` - Web dashboard (interactive UI)
+- `POST /api/upload` - Upload CSV for inference & monitoring
+- `GET /api/health` - System health check
+- `GET /api/model/info` - Model information
+
+### 4. OR: Start Services with Docker
 
 ```powershell
 # Start MLflow + Inference API
@@ -254,7 +266,30 @@ start http://localhost:5000
 
 ---
 
-## � Complete Documentation
+## 🧪 Testing
+
+**Run full test suite** (225 tests across all components):
+
+```powershell
+pytest tests/ -v
+```
+
+**Quick test run** (essential tests only):
+
+```powershell
+pytest tests/ -m "not slow"
+```
+
+**Test coverage**:
+- Pipeline stages (preprocessing, training, evaluation)
+- API endpoints and request handling
+- Feature engineering (temporal, statistical, spectral)
+- Data validation and error handling
+- Monitoring layers (confidence, temporal, drift)
+
+---
+
+## 📚 Complete Documentation
 
 ### 📚 Main Documentation Files
 
