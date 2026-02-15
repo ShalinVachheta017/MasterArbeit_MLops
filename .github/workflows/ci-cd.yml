@@ -29,7 +29,8 @@ on:
 env:
   PYTHON_VERSION: '3.11'
   DOCKER_REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}/har-inference
+  # Docker requires lowercase repository names
+  IMAGE_NAME: shalinvachheta017/masterarbeit_mlops/har-inference
 
 jobs:
   # ============================================================================
