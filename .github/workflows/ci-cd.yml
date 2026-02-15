@@ -9,7 +9,6 @@
 # 4. (Optional) Deploys to registry on main branch
 #
 # Author: HAR MLOps Pipeline
-# Date: January 30, 2026
 
 name: HAR MLOps CI/CD
 
