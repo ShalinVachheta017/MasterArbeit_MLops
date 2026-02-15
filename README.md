@@ -6,10 +6,11 @@
 [![MLflow](https://img.shields.io/badge/MLflow-2.11+-green.svg)](https://mlflow.org)
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://docker.com)
 [![Tests](https://img.shields.io/badge/Tests-225%20Passing-brightgreen.svg)](tests/)
+[![CI/CD](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-success.svg)](.github/workflows/ci-cd.yml)
 
 **Master's Thesis Project** | January 2026 - May 2026  
 **Last Updated:** February 15, 2026  
-**Progress:** 92% complete
+**Progress:** 95% complete
 
 ---
 
@@ -18,11 +19,12 @@
 > **🎯 MAIN DOCUMENT:** See [docs/thesis/FINAL_Thesis_Status_and_Plan_Jan_to_Jun_2026.md](docs/thesis/FINAL_Thesis_Status_and_Plan_Jan_to_Jun_2026.md) for complete thesis status, achievements, and remaining work.
 
 **Latest Achievements (Feb 15, 2026):**
+- ✅ **CI/CD Pipeline** fully operational with GitHub Actions
 - ✅ **All 225 tests passing** (full test coverage)
 - ✅ **FastAPI Web UI** with CSV upload & interactive dashboard
 - ✅ **3-layer monitoring** integrated (confidence, temporal, drift)
 - ✅ **Production optimizations** (971x model caching, vectorized windowing)
-- ✅ **Repository cleaned** and pushed to GitHub
+- ✅ **Docker images** automatically built and pushed to ghcr.io
 
 **Quick Links:**
 - 🚀 [Run the FastAPI](#-quick-start): `python -m src.api.app`
@@ -37,6 +39,8 @@
 | Document | Purpose |
 |----------|---------|
 | [Thesis Status & Plan](docs/thesis/FINAL_Thesis_Status_and_Plan_Jan_to_Jun_2026.md) | **Main document** - Current status, achievements, timeline |
+| [What's Remaining](docs/WHATS_REMAINING.md) | **Quick view** - What's left to complete (5% remaining) |
+| [CI/CD Beginner's Guide](docs/GITHUB_ACTIONS_CICD_BEGINNER_GUIDE.md) | Complete GitHub Actions tutorial from scratch |
 | [Thesis Plan (Original)](Thesis_Plan.md) | Original 6-month roadmap (Oct 2025 - Apr 2026) |
 | [Pipeline Operations](docs/PIPELINE_OPERATIONS_AND_ARCHITECTURE.md) | Complete pipeline documentation & architecture |
 | [API Documentation](docs/DATA_INGESTION_AND_INFERENCE_GUIDE.md) | FastAPI endpoints and usage |
@@ -76,7 +80,7 @@ An end-to-end MLOps pipeline for **Human Activity Recognition (HAR)** using wear
 | Model Serving API | FastAPI | ✅ Complete |
 | Domain Calibration | Distribution Alignment | ✅ Complete |
 | Gravity Removal | Butterworth Filter | ✅ Complete |
-| CI/CD Pipeline | GitHub Actions | ⏳ Next |
+| CI/CD Pipeline | GitHub Actions | ✅ Complete |
 | Monitoring | Prometheus/Grafana | ⏳ Planned |
 
 ### Model Details
