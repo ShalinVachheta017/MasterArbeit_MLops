@@ -53,7 +53,8 @@ def get_logger():
     
     # Only configure if not already configured (prevent duplicate handlers)
     if not logger.handlers:
-        logger.setLevel(logging.DEBUG)
+        # Set root logger to INFO (not DEBUG) to avoid third-party noise
+        logger.setLevel(logging.INFO)
         
         # Define formatter for consistent log message format
         formatter = logging.Formatter(
@@ -61,7 +62,7 @@ def get_logger():
             datefmt="%Y-%m-%d %H:%M:%S"
         )
         
-        # File handler with rotation
+        # File handler with rotation - detailed logging
         file_handler = RotatingFileHandler(
             log_file_path,
             maxBytes=MAX_LOG_SIZE,
@@ -69,9 +70,9 @@ def get_logger():
             encoding='utf-8'
         )
         file_handler.setFormatter(formatter)
-        file_handler.setLevel(logging.DEBUG)
+        file_handler.setLevel(logging.DEBUG)  # File gets DEBUG for our code
         
-        # Console handler
+        # Console handler - cleaner output
         console_handler = logging.StreamHandler()
         console_handler.setFormatter(formatter)
         console_handler.setLevel(logging.INFO)
@@ -79,6 +80,15 @@ def get_logger():
         # Add handlers
         logger.addHandler(file_handler)
         logger.addHandler(console_handler)
+        
+        # Silence noisy third-party loggers
+        logging.getLogger('git').setLevel(logging.WARNING)
+        logging.getLogger('urllib3').setLevel(logging.WARNING)
+        logging.getLogger('matplotlib').setLevel(logging.WARNING)
+        logging.getLogger('h5py').setLevel(logging.WARNING)
+        logging.getLogger('tensorflow').setLevel(logging.WARNING)
+        logging.getLogger('pydot').setLevel(logging.WARNING)
+        logging.getLogger('numexpr').setLevel(logging.WARNING)
     
     return logger
 

@@ -102,8 +102,8 @@ class TriggerThresholds:
     
     # Layer 3: Drift thresholds (per channel)
     ks_pvalue_threshold: float = 0.01   # Below this = significant drift
-    psi_warn: float = 0.10              # Above this triggers WARNING
-    psi_critical: float = 0.25          # Above this triggers CRITICAL
+    psi_warn: float = 0.75             # Above this triggers WARNING (data-driven, N=24)
+    psi_critical: float = 1.50         # Above this triggers CRITICAL
     wasserstein_warn: float = 0.3       # Above this triggers WARNING
     wasserstein_critical: float = 0.5   # Above this triggers CRITICAL
     
@@ -379,6 +379,7 @@ class TriggerPolicyEngine:
         
         n_drifted = metrics.get('n_drifted_channels', 0)
         channel_metrics = metrics.get('channel_metrics', {})
+        aggregate_drift = metrics.get('aggregate_drift_score', 0.0)
         
         # Count channels with significant PSI
         psi_warn_count = 0
@@ -399,6 +400,14 @@ class TriggerPolicyEngine:
             level = max(level, AlertLevel.WARNING, key=lambda x: x.value)
             issues.append(f"{psi_warn_count} channels with elevated PSI")
         
+        # Check aggregate drift score (z-score based)
+        if aggregate_drift > self.thresholds.psi_critical:
+            level = AlertLevel.CRITICAL
+            issues.append(f"Aggregate drift {aggregate_drift:.3f} exceeds critical threshold {self.thresholds.psi_critical}")
+        elif aggregate_drift > self.thresholds.psi_warn:
+            level = max(level, AlertLevel.WARNING, key=lambda x: x.value)
+            issues.append(f"Aggregate drift {aggregate_drift:.3f} exceeds warning threshold {self.thresholds.psi_warn}")
+        
         # Also check overall drift score
         if n_drifted >= self.thresholds.min_drifted_channels_critical:
             level = AlertLevel.CRITICAL
@@ -411,7 +420,8 @@ class TriggerPolicyEngine:
             'metrics': {
                 'n_drifted_channels': n_drifted,
                 'psi_warn_count': psi_warn_count,
-                'psi_critical_count': psi_critical_count
+                'psi_critical_count': psi_critical_count,
+                'aggregate_drift_score': aggregate_drift,
             }
         }
     

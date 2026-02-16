@@ -1,0 +1,16 @@
+{
+  "models": {
+    "auto": {
+      "version": "auto",
+      "path": "D:\\study apply\\ML Ops\\MasterArbeit_MLops\\models\\registry\\har_model_vauto.keras",
+      "created_at": "2026-02-16T22:11:03.787925",
+      "deployed_at": null,
+      "metrics": {},
+      "config_hash": "9de083ad0df3",
+      "data_version": null,
+      "status": "archived"
+    }
+  },
+  "current_version": null,
+  "history": []
+}

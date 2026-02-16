@@ -144,23 +144,11 @@ class EvaluationLogger:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         self.log_file = self.log_dir / f"evaluation_{timestamp}.log"
         
+        # Configure logger — no own handlers, propagates to root logger
+        # which already has console + file handlers (configured in src.logger)
         self.logger = logging.getLogger("evaluation")
         self.logger.setLevel(logging.DEBUG)
         self.logger.handlers.clear()
-        
-        # File handler DISABLED - using main pipeline log instead
-        # All output goes to console, captured by production_pipeline.py
-        
-        # Console handler
-        console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setLevel(logging.INFO)
-        console_format = logging.Formatter(
-            '%(asctime)s | %(levelname)-8s | %(message)s',
-            datefmt='%H:%M:%S'
-        )
-        console_handler.setFormatter(console_format)
-        
-        self.logger.addHandler(console_handler)
         
         self.logger.info("📝 Evaluation pipeline logging to main pipeline log")
     

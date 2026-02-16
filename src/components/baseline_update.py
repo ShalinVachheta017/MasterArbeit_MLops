@@ -48,7 +48,7 @@ class BaselineUpdate:
 
         # Determine data source for baseline
         data_path = self.config.training_data_path or (
-            self.pipeline_config.data_raw_dir / "all_users_data_labeled.csv"
+            self.pipeline_config.data_raw_dir.parent / "all_users_data_labeled.csv"
         )
         logger.info("Building baseline from: %s", data_path)
 

@@ -457,40 +457,209 @@ class ProductionPipeline:
         try:
             from src.mlflow_tracking import MLflowTracker
             tracker = MLflowTracker(experiment_name="har-production-pipeline")
-            tracker.__enter_run = tracker.start_run(
+            # Properly use context manager with explicit tracking
+            tracker._run_context = tracker.start_run(
                 run_name=f"pipeline_{self.pipeline_config.timestamp}",
                 tags={"pipeline": "production", "version": "2.0"},
             )
-            tracker._ctx = tracker.__enter_run.__enter__()
+            # Enter the context
+            tracker._active_run = tracker._run_context.__enter__()
             return tracker
         except Exception as e:
-            logger.debug("MLflow not available, skipping: %s", e)
+            logger.warning("MLflow initialization failed (continuing without tracking): %s", e)
             return None
 
     def _log_stage_to_mlflow(self, tracker, stage, result):
         try:
             metrics = {}
-            if stage == "inference" and result.inference:
+            
+            # Ingestion metrics
+            if stage == "ingestion" and result.ingestion:
+                metrics["ingestion_n_rows"] = result.ingestion.n_rows
+                metrics["ingestion_n_columns"] = result.ingestion.n_columns
+                metrics["ingestion_sampling_hz"] = result.ingestion.sampling_hz
+            
+            # Validation metrics
+            elif stage == "validation" and result.validation:
+                metrics["validation_is_valid"] = 1.0 if result.validation.is_valid else 0.0
+                metrics["validation_n_errors"] = len(result.validation.errors)
+                metrics["validation_n_warnings"] = len(result.validation.warnings)
+            
+            # Transformation metrics
+            elif stage == "transformation" and result.transformation:
+                metrics["transformation_n_windows"] = result.transformation.n_windows
+                metrics["transformation_window_size"] = result.transformation.window_size
+                metrics["transformation_unit_conversion"] = 1.0 if result.transformation.unit_conversion_applied else 0.0
+                metrics["transformation_gravity_removal"] = 1.0 if result.transformation.gravity_removal_applied else 0.0
+            
+            # Inference metrics - comprehensive
+            elif stage == "inference" and result.inference:
                 metrics["inference_n_predictions"] = result.inference.n_predictions
                 metrics["inference_time_seconds"] = result.inference.inference_time_seconds
+                metrics["inference_speed_windows_per_sec"] = result.inference.n_predictions / max(result.inference.inference_time_seconds, 0.001)
+                
+                # Confidence statistics
+                conf_stats = result.inference.confidence_stats or {}
+                metrics["inference_mean_confidence"] = conf_stats.get('mean', 0.0)
+                metrics["inference_std_confidence"] = conf_stats.get('std', 0.0)
+                metrics["inference_min_confidence"] = conf_stats.get('min', 0.0)
+                metrics["inference_max_confidence"] = conf_stats.get('max', 0.0)
+                metrics["inference_median_confidence"] = conf_stats.get('median', 0.0)
+                metrics["inference_uncertain_count"] = conf_stats.get('n_uncertain', 0)
+                metrics["inference_uncertain_pct"] = conf_stats.get('n_uncertain', 0) / max(result.inference.n_predictions, 1) * 100
+                
+                # Activity distribution - count of unique activities
+                if result.inference.activity_distribution:
+                    metrics["inference_n_activities_detected"] = len(result.inference.activity_distribution)
+                    # Log dominant activity percentage
+                    total = sum(result.inference.activity_distribution.values())
+                    max_count = max(result.inference.activity_distribution.values()) if result.inference.activity_distribution else 0
+                    metrics["inference_dominant_activity_pct"] = (max_count / max(total, 1)) * 100
+                
+                # Upload inference summary as artifact
+                if hasattr(result.inference, 'predictions_csv_path'):
+                    summary_path = self.artifacts_manager.run_dir / 'inference' / 'inference_summary.json'
+                    if summary_path.exists():
+                        tracker.log_artifact(summary_path, "inference")
+            
+            # Evaluation metrics
+            elif stage == "evaluation" and result.evaluation:
+                conf_summary = result.evaluation.confidence_summary or {}
+                metrics["eval_mean_confidence"] = conf_summary.get('mean', 0.0)
+                metrics["eval_median_confidence"] = conf_summary.get('median', 0.0)
+                metrics["eval_std_confidence"] = conf_summary.get('std', 0.0)
+                
+                dist_summary = result.evaluation.distribution_summary or {}
+                if 'n_activities' in dist_summary:
+                    metrics["eval_n_activities_detected"] = dist_summary['n_activities']
+                if 'dominant_activity_pct' in dist_summary:
+                    metrics["eval_dominant_activity_pct"] = dist_summary['dominant_activity_pct']
+                
+                metrics["eval_has_labels"] = 1.0 if result.evaluation.has_labels else 0.0
+                
+                # Upload evaluation report
+                if result.evaluation.report_json_path and result.evaluation.report_json_path.exists():
+                    tracker.log_artifact(result.evaluation.report_json_path, "evaluation")
+            
+            # Monitoring metrics - comprehensive 3-layer tracking
             elif stage == "monitoring" and result.monitoring:
-                metrics["monitoring_status"] = 1.0 if result.monitoring.overall_status == "HEALTHY" else 0.0
+                # Overall status
+                metrics["monitoring_overall_healthy"] = 1.0 if result.monitoring.overall_status == "HEALTHY" else 0.0
+                
+                # Layer 1: Confidence
+                layer1 = result.monitoring.layer1_confidence or {}
+                metrics["monitoring_confidence_mean"] = layer1.get('mean_confidence', 0.0)
+                metrics["monitoring_uncertain_pct"] = layer1.get('uncertain_percentage', 0.0)
+                metrics["monitoring_std_confidence"] = layer1.get('std_confidence', 0.0)
+                
+                # Layer 2: Temporal
+                layer2 = result.monitoring.layer2_temporal or {}
+                metrics["monitoring_transition_rate"] = layer2.get('transition_rate', 0.0)
+                
+                # Layer 3: Drift - KEY metric for retraining decisions
+                layer3 = result.monitoring.layer3_drift or {}
+                metrics["monitoring_drift_score"] = layer3.get('max_drift', 0.0)
+                metrics["monitoring_drift_status"] = 1.0 if layer3.get('status') == 'PASS' else 0.0
+                
+                # Upload monitoring report
+                if result.monitoring.report_path and result.monitoring.report_path.exists():
+                    tracker.log_artifact(result.monitoring.report_path, "monitoring")
+            
+            # Trigger evaluation - critical for retraining decisions
+            elif stage == "trigger" and result.trigger:
+                metrics["trigger_should_retrain"] = 1.0 if result.trigger.should_retrain else 0.0
+                metrics["trigger_cooldown_active"] = 1.0 if result.trigger.cooldown_active else 0.0
+                
+                # Map alert levels to numeric values
+                alert_map = {'INFO': 0, 'WARNING': 1, 'ALERT': 2, 'CRITICAL': 3}
+                metrics["trigger_alert_level"] = alert_map.get(result.trigger.alert_level, 0)
+                metrics["trigger_n_reasons"] = len(result.trigger.reasons) if result.trigger.reasons else 0
+            
+            # Retraining metrics
             elif stage == "retraining" and result.retraining:
                 for k, v in result.retraining.metrics.items():
                     if isinstance(v, (int, float)):
                         metrics[f"retrain_{k}"] = v
+                metrics["retrain_n_source_samples"] = result.retraining.n_source_samples
+                metrics["retrain_n_target_samples"] = result.retraining.n_target_samples
+            
+            # Log all metrics
             if metrics:
                 tracker.log_metrics(metrics)
-        except Exception:
-            pass
+                logger.debug(f"Logged {len(metrics)} metrics to MLflow for stage: {stage}")
+        
+        except Exception as e:
+            logger.warning(f"Failed to log stage '{stage}' to MLflow: {e}")
 
     def _end_mlflow(self, tracker, result):
         try:
+            # Log pipeline-level parameters
             tracker.log_params({
                 "stages_completed": ",".join(result.stages_completed),
                 "stages_failed": ",".join(result.stages_failed),
                 "overall_status": result.overall_status,
+                "n_stages_completed": len(result.stages_completed),
+                "n_stages_failed": len(result.stages_failed),
             })
-            tracker.__enter_run.__exit__(None, None, None)
-        except Exception:
-            pass
+            
+            # Upload run_info.json as artifact
+            run_info_path = self.artifacts_manager.run_dir / 'run_info.json'
+            if run_info_path.exists():
+                tracker.log_artifact(run_info_path, "pipeline")
+            
+            # ── Model Registry ──────────────────────────────────────
+            # Register the current model if the pipeline completed
+            # successfully (at least inference ran).  This logs the
+            # Keras model to the artifact store AND registers it in
+            # the MLflow Model Registry under "har-1dcnn-bilstm".
+            if result.overall_status == "SUCCESS" and "inference" in result.stages_completed:
+                self._register_model_to_mlflow(tracker, result)
+            
+            # Properly exit the context manager
+            if hasattr(tracker, '_run_context'):
+                tracker._run_context.__exit__(None, None, None)
+        except Exception as e:
+            logger.warning(f"Failed to finalize MLflow run: {e}")
+        finally:
+            # Ensure run is always closed
+            try:
+                if hasattr(tracker, '_run_context'):
+                    tracker._run_context.__exit__(None, None, None)
+            except Exception:
+                pass
+
+    def _register_model_to_mlflow(self, tracker, result):
+        """Register the production model in MLflow Model Registry."""
+        try:
+            model_path = (
+                self.pipeline_config.models_pretrained_dir
+                / "fine_tuned_model_1dcnnbilstm.keras"
+            )
+            if not model_path.exists():
+                logger.warning("Model file not found at %s — skipping registration.", model_path)
+                return
+
+            tracker.log_keras_model(
+                model=self._load_keras_model(model_path),
+                artifact_path="model",
+                input_example=None,  # skip input_example to avoid temp file issues
+                registered_model_name="har-1dcnn-bilstm",
+            )
+
+            # Log registration metadata
+            conf_mean = 0.0
+            if result.inference and result.inference.confidence_stats:
+                conf_mean = result.inference.confidence_stats.get('mean', 0.0)
+            tracker.log_metrics({
+                "registered_model_confidence": conf_mean,
+            })
+            logger.info("Model registered in MLflow Model Registry as 'har-1dcnn-bilstm'")
+
+        except Exception as e:
+            logger.warning("Model registration failed (non-fatal): %s", e)
+
+    @staticmethod
+    def _load_keras_model(path):
+        """Load a Keras model (lazy import to avoid TF startup cost)."""
+        from tensorflow import keras
+        return keras.models.load_model(path)

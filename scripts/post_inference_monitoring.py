@@ -48,13 +48,14 @@ class PostInferenceMonitor:
         self,
         confidence_threshold: float = 0.5,
         uncertain_threshold_pct: float = 10.0,
-        drift_threshold: float = 0.15,
+        drift_threshold: float = 0.75,
     ):
         """
         Args:
             confidence_threshold: Minimum confidence for valid predictions
             uncertain_threshold_pct: Max % of uncertain predictions allowed
-            drift_threshold: Max KL divergence allowed for drift detection
+            drift_threshold: Max z-score drift allowed (data-driven, N=24 sessions,
+                           median=0.748; see docs/MONITORING_AND_RETRAINING_GUIDE.md §1)
         """
         self.confidence_threshold = confidence_threshold
         self.uncertain_threshold_pct = uncertain_threshold_pct

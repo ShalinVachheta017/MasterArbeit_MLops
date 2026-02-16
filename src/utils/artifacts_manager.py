@@ -104,8 +104,18 @@ class ArtifactsManager:
         stage_dir = self.get_stage_dir(stage_name)
         filepath = stage_dir / filename
         
+        def json_serializer(obj):
+            """Handle non-serializable types."""
+            if isinstance(obj, Path):
+                return str(obj)
+            if hasattr(obj, 'item'):  # numpy types
+                return obj.item()
+            if hasattr(obj, '__dict__'):
+                return str(obj)
+            return str(obj)
+        
         with open(filepath, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2)
+            json.dump(data, f, indent=2, default=json_serializer)
         
         logger.debug(f"Saved JSON to {stage_name}/{filename}")
     

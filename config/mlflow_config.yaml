@@ -20,8 +20,8 @@ mlflow:
     # Where to register production models
     model_name: "har-1dcnn-bilstm"
     
-  # Artifact storage location
-  artifact_location: "mlruns/artifacts"
+  # Artifact storage location (None = use default under each experiment)
+  # artifact_location: null
 
 # Default run parameters
 run_defaults:

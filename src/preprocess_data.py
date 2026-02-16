@@ -60,20 +60,9 @@ class PreprocessLogger:
         for handler in list(self.logger.handlers):
             self.logger.removeHandler(handler)
         
-        # Format: timestamp | level | message
-        formatter = logging.Formatter(
-            "%(asctime)s | %(levelname)s | %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S"
-        )
-        
-        # Console handler (INFO and above)
-        console = logging.StreamHandler()
-        console.setLevel(logging.INFO)
-        console.setFormatter(formatter)
-        self.logger.addHandler(console)
-        
-        # File handler DISABLED - using main pipeline log instead
-        # All output goes to console, captured by production_pipeline.py
+        # No need for own handlers — messages propagate to root logger
+        # which already has console + file handlers configured in src.logger
+        # This prevents duplicate log lines
         
         self.logger.info("="*80)
         self.logger.info(f"Preprocessing Pipeline Started")

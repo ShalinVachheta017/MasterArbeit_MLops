@@ -170,8 +170,8 @@ class TriggerEvaluationConfig:
     """Configuration for retraining-trigger evaluation."""
     confidence_warn: float = 0.65
     confidence_critical: float = 0.50
-    drift_psi_warn: float = 0.1
-    drift_psi_critical: float = 0.2
+    drift_psi_warn: float = 0.75
+    drift_psi_critical: float = 1.50
     temporal_flip_warn: float = 0.35
     temporal_flip_critical: float = 0.50
     cooldown_hours: int = 24

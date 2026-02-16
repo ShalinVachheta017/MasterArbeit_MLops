@@ -58,12 +58,7 @@ from src.entity.config_entity import (
     ModelRetrainingConfig,
 )
 
-# ── Logging setup ──────────────────────────────────────────────────────
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s  %(levelname)-8s  %(name)s  %(message)s",
-    datefmt="%H:%M:%S",
-)
+# Logging is already configured in src.logger module - no need for basicConfig here
 
 
 def parse_args():
@@ -345,11 +340,87 @@ def main():
         enable_retrain=args.retrain,
     )
 
+    # ── Print Summary ─────────────────────────────────────────────────
+    _print_pipeline_summary(result)
+
     # ── Exit code ─────────────────────────────────────────────────────
     if result.overall_status == "SUCCESS":
         sys.exit(0)
     else:
         sys.exit(1)
+
+
+def _print_pipeline_summary(result):
+    """Print a clean summary of key pipeline metrics."""
+    print("\n" + "="*70)
+    print("  PIPELINE SUMMARY")
+    print("="*70)
+    
+    # Overall status
+    status_emoji = "✅" if result.overall_status == "SUCCESS" else "⚠️" if result.overall_status == "PARTIAL" else "❌"
+    print(f"\n{status_emoji} Overall Status: {result.overall_status}")
+    print(f"   Completed: {len(result.stages_completed)} stages")
+    print(f"   Failed: {len(result.stages_failed)} stages")
+    
+    # Key metrics
+    print("\n📊 KEY METRICS")
+    print("-" * 70)
+    
+    # Inference metrics
+    if result.inference:
+        print(f"\n  Inference:")
+        print(f"    • Predictions: {result.inference.n_predictions:,}")
+        print(f"    • Duration: {result.inference.inference_time_seconds:.2f}s")
+        if result.inference.confidence_stats:
+            conf = result.inference.confidence_stats
+            print(f"    • Mean Confidence: {conf.get('mean', 0)*100:.1f}%")
+            print(f"    • Uncertain: {conf.get('n_uncertain', 0)} ({conf.get('n_uncertain', 0)/max(result.inference.n_predictions, 1)*100:.1f}%)")
+    
+    # Monitoring metrics
+    if result.monitoring:
+        print(f"\n  Monitoring:")
+        print(f"    • Overall: {result.monitoring.overall_status}")
+        
+        if result.monitoring.layer3_drift:
+            drift = result.monitoring.layer3_drift
+            drift_score = drift.get('max_drift', 0)
+            print(f"    • Drift Score: {drift_score:.4f}")
+            
+            # Drift interpretation (thresholds: 0.75 warn, 1.50 alert)
+            if drift_score > 1.50:
+                print(f"      ⚠️ HIGH DRIFT ({drift_score:.3f}) - Retraining recommended")
+            elif drift_score > 0.75:
+                print(f"      ⚠ Moderate drift ({drift_score:.3f}) - Monitor closely")
+            else:
+                print(f"      ✓ Drift within acceptable range")
+    
+    # Trigger decision
+    if result.trigger:
+        print(f"\n  Retraining Decision:")
+        retrain_emoji = "🔄" if result.trigger.should_retrain else "✓"
+        print(f"    {retrain_emoji} Should Retrain: {'YES' if result.trigger.should_retrain else 'NO'}")
+        print(f"    • Alert Level: {result.trigger.alert_level}")
+        if result.trigger.reasons:
+            print(f"    • Reasons:")
+            for reason in result.trigger.reasons[:3]:  # Show first 3
+                print(f"      - {reason}")
+    
+    # Activity distribution
+    if result.inference and result.inference.activity_distribution:
+        print(f"\n  Top 3 Activities Detected:")
+        sorted_activities = sorted(
+            result.inference.activity_distribution.items(),
+            key=lambda x: x[1],
+            reverse=True
+        )[:3]
+        for activity, count in sorted_activities:
+            pct = count / max(result.inference.n_predictions, 1) * 100
+            print(f"    • {activity}: {count} ({pct:.1f}%)")
+    
+    print("\n" + "="*70)
+    print(f"📁 Artifacts saved to: artifacts/{result.run_id}")
+    print(f"📄 Log file: {CURRENT_LOG_FILE}")
+    print("="*70 + "\n")
 
 
 if __name__ == "__main__":

@@ -152,11 +152,14 @@ class ModelRetraining:
 
         # Source data
         source_path = self.config.source_data_path or (
-            self.pipeline_config.data_raw_dir / "all_users_data_labeled.csv"
+            self.pipeline_config.data_raw_dir.parent / "all_users_data_labeled.csv"
         )
         from src.train import DataLoader as _DataLoader
         data_loader = _DataLoader(train_cfg, logger)
-        source_X, source_y, _ = data_loader.prepare_data(str(source_path))
+        
+        # Load and prepare labeled data
+        df_source = data_loader.load_training_data(Path(source_path))
+        source_X, source_y = data_loader.prepare_data(df_source)
 
         # Target data
         target_npy = self.config.target_data_npy
@@ -205,12 +208,15 @@ class ModelRetraining:
         trainer = HARTrainer(train_cfg)
 
         source_path = self.config.source_data_path or (
-            self.pipeline_config.data_raw_dir / "all_users_data_labeled.csv"
+            self.pipeline_config.data_raw_dir.parent / "all_users_data_labeled.csv"
         )
 
         from src.train import DataLoader as _DataLoader
         data_loader = _DataLoader(train_cfg, logger)
-        X, y, _ = data_loader.prepare_data(str(source_path))
+        
+        # Load and prepare labeled data
+        df_source = data_loader.load_training_data(Path(source_path))
+        X, y = data_loader.prepare_data(df_source)
 
         # Cross-validation (optional)
         if not self.config.skip_cv:
