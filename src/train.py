@@ -702,71 +702,243 @@ class DomainAdaptationTrainer(HARTrainer):
         base_model: Optional[keras.Model] = None
     ) -> Tuple[keras.Model, Dict[str, Any]]:
         """
-        Retrain using pseudo-labeling (self-training).
-        
-        Strategy:
-        1. Use current model to predict labels on target data
-        2. Select high-confidence predictions as pseudo-labels
-        3. Retrain on combined source + pseudo-labeled target data
+        Robust pseudo-labeling with calibration, entropy gating, and class-balanced top-k.
+
+        Improvements over naive single-threshold self-training:
+        1. Temperature scaling on the base model predictions to reduce overconfidence.
+        2. Combined gate: confidence AND low predictive entropy (per sample).
+        3. Class-balanced selection (per-class top-k quota) to prevent label collapse.
+        4. Fine-tune from pretrained weights (freeze early layers) instead of random init.
+        5. Soft targets (label-smoothed) for the pseudo-labeled portion.
+        6. Validation split tracks val_accuracy / val_loss properly.
+
+        References:
+            - Temperature scaling: Guo et al. (2017) arXiv:1706.04599
+            - Mean-Teacher / entropy gate: Tarvainen & Valpola (2017)
+            - Class-balanced pseudo-labels: standard practice reviewed in UDA literature
         """
-        self.logger.info("Using pseudo-labeling strategy")
-        
-        # Get or create base model
+        self.logger.info("Pseudo-labeling with calibration + entropy gate + class-balanced top-k")
+
+        # ------------------------------------------------------------------
+        # 1. Get or create base model
+        # ------------------------------------------------------------------
         if base_model is None:
             base_model = self.model_builder.create_1dcnn_bilstm()
-            # Train on source first
-            self.logger.info("Training base model on source data...")
-            base_model.fit(source_X, source_y, epochs=50, batch_size=64, verbose=1)
-        
-        # Get pseudo-labels for target data
-        self.logger.info("Generating pseudo-labels for target data...")
-        target_probs = base_model.predict(target_X, verbose=0)
-        target_confidence = np.max(target_probs, axis=1)
-        target_pseudo_y = np.argmax(target_probs, axis=1)
-        
-        # Filter high-confidence samples (threshold: 0.8)
-        confidence_threshold = 0.8
-        high_conf_mask = target_confidence >= confidence_threshold
-        n_high_conf = np.sum(high_conf_mask)
-        
-        self.logger.info(f"  High-confidence samples: {n_high_conf}/{len(target_X)} ({100*n_high_conf/len(target_X):.1f}%)")
-        
-        if n_high_conf < 100:
-            self.logger.warning("Too few high-confidence samples, using lower threshold")
-            confidence_threshold = 0.6
-            high_conf_mask = target_confidence >= confidence_threshold
-            n_high_conf = np.sum(high_conf_mask)
-        
-        # Combine source and pseudo-labeled target
-        X_combined = np.concatenate([source_X, target_X[high_conf_mask]])
-        y_combined = np.concatenate([source_y, target_pseudo_y[high_conf_mask]])
-        
+            self.logger.info("No pretrained base — training on source data first...")
+            base_model.fit(source_X, source_y, epochs=50, batch_size=64, verbose=0)
+
+        # ------------------------------------------------------------------
+        # 2. Temperature scaling calibration (offline, on a small source holdout)
+        #    Temperature T > 1 softens overconfident predictions.
+        # ------------------------------------------------------------------
+        temperature = self._estimate_temperature(base_model, source_X, source_y)
+        self.logger.info(f"  Calibration temperature T={temperature:.3f}")
+
+        # ------------------------------------------------------------------
+        # 3. Predict on target with temperature scaling
+        # ------------------------------------------------------------------
+        raw_logits = self._get_logits(base_model, target_X)   # (N, C) or None
+        if raw_logits is not None:
+            scaled = raw_logits / temperature
+            # softmax
+            exp_s = np.exp(scaled - scaled.max(axis=1, keepdims=True))
+            target_probs = exp_s / exp_s.sum(axis=1, keepdims=True)
+        else:
+            # Fallback: use softmax output directly (still apply T via re-normalisation)
+            p = base_model.predict(target_X, verbose=0)
+            log_p = np.log(np.clip(p, 1e-9, 1.0)) / temperature
+            exp_lp = np.exp(log_p - log_p.max(axis=1, keepdims=True))
+            target_probs = exp_lp / exp_lp.sum(axis=1, keepdims=True)
+
+        target_confidence = target_probs.max(axis=1)
+        target_pseudo_y   = target_probs.argmax(axis=1)
+
+        # ------------------------------------------------------------------
+        # 4. Entropy gate: H(p) = -sum(p * log p), filter low-entropy (certain) samples
+        # ------------------------------------------------------------------
+        eps = 1e-9
+        entropy = -(target_probs * np.log(target_probs + eps)).sum(axis=1)
+        n_classes = target_probs.shape[1]
+        max_entropy = np.log(n_classes)
+        norm_entropy = entropy / max_entropy           # [0, 1] — lower is more certain
+
+        conf_threshold    = 0.70   # minimum confidence
+        entropy_threshold = 0.40   # maximum normalised entropy
+
+        gate_mask = (target_confidence >= conf_threshold) & (norm_entropy <= entropy_threshold)
+        self.logger.info(
+            f"  Gate (conf>={conf_threshold}, H_norm<={entropy_threshold}): "
+            f"{gate_mask.sum()}/{len(target_X)} ({100*gate_mask.mean():.1f}%)"
+        )
+
+        # ------------------------------------------------------------------
+        # 5. Class-balanced top-k selection
+        #    For each class, keep at most `quota` samples with highest confidence.
+        # ------------------------------------------------------------------
+        quota_per_class   = max(30, int(0.10 * len(source_X) / n_classes))
+        selected_indices  = []
+        for cls in range(n_classes):
+            cls_mask   = gate_mask & (target_pseudo_y == cls)
+            cls_idx    = np.where(cls_mask)[0]
+            if len(cls_idx) == 0:
+                continue
+            top_k = cls_idx[np.argsort(-target_confidence[cls_idx])[:quota_per_class]]
+            selected_indices.extend(top_k.tolist())
+
+        selected_indices = np.array(selected_indices)
+        n_selected       = len(selected_indices)
+        self.logger.info(f"  Class-balanced selection: {n_selected} samples across {n_classes} classes")
+
+        if n_selected < 20:
+            self.logger.warning(
+                "Very few pseudo-labeled samples selected (%d). "
+                "Falling back to confidence-only top-500 selection.", n_selected
+            )
+            fallback_pool = np.argsort(-target_confidence)[:500]
+            selected_indices = fallback_pool
+            n_selected       = len(selected_indices)
+
+        # ------------------------------------------------------------------
+        # 6. Build combined dataset with label smoothing for pseudo portion
+        # ------------------------------------------------------------------
+        pseudo_X    = target_X[selected_indices]
+        pseudo_hard = target_pseudo_y[selected_indices]
+        smoothing   = 0.10
+        # One-hot + smooth
+        pseudo_soft = np.full((n_selected, n_classes), smoothing / (n_classes - 1))
+        pseudo_soft[np.arange(n_selected), pseudo_hard] = 1.0 - smoothing
+
+        # Source labels: one-hot (no smoothing on ground truth)
+        if source_y.ndim == 1:
+            source_onehot = np.eye(n_classes)[source_y.astype(int)]
+        else:
+            source_onehot = source_y
+
+        X_combined = np.concatenate([source_X, pseudo_X])
+        y_combined = np.concatenate([source_onehot, pseudo_soft])
         self.logger.info(f"  Combined training set: {len(X_combined)} samples")
-        
-        # Retrain model
-        model = self.model_builder.create_1dcnn_bilstm()
-        callbacks = self.model_builder.get_callbacks()
-        
+
+        # ------------------------------------------------------------------
+        # 7. Fine-tune from pretrained base — freeze early layers
+        # ------------------------------------------------------------------
+        import copy
+        model = copy.deepcopy(base_model)
+
+        # Freeze all but last 3 layers (feature extractor frozen; classifier fine-tuned)
+        for layer in model.layers[:-3]:
+            layer.trainable = False
+        for layer in model.layers[-3:]:
+            layer.trainable = True
+
+        model.compile(
+            optimizer=keras.optimizers.Adam(
+                learning_rate=self.config.learning_rate * 0.10  # small LR for fine-tuning
+            ),
+            loss="categorical_crossentropy",
+            metrics=["accuracy"],
+        )
+
+        callbacks = [
+            keras.callbacks.EarlyStopping(
+                monitor="val_loss", patience=5, restore_best_weights=True, verbose=0
+            ),
+            keras.callbacks.ReduceLROnPlateau(
+                monitor="val_loss", factor=0.5, patience=3, min_lr=1e-6, verbose=0
+            ),
+        ]
+
         history = model.fit(
             X_combined, y_combined,
             epochs=self.config.epochs,
             batch_size=self.config.batch_size,
-            validation_split=0.1,
+            validation_split=0.10,
             callbacks=callbacks,
-            verbose=1
+            verbose=1,
         )
-        
+
+        # ------------------------------------------------------------------
+        # 8. Collect metrics
+        # ------------------------------------------------------------------
         metrics = {
-            'method': 'pseudo_labeling',
-            'source_samples': len(source_X),
-            'target_samples': len(target_X),
-            'pseudo_labeled_samples': n_high_conf,
-            'confidence_threshold': confidence_threshold,
-            'final_loss': float(history.history['loss'][-1]),
-            'final_accuracy': float(history.history['accuracy'][-1])
+            "method":                 "pseudo_labeling_calibrated",
+            "source_samples":         int(len(source_X)),
+            "target_samples":         int(len(target_X)),
+            "pseudo_labeled_samples": int(n_selected),
+            "confidence_threshold":   conf_threshold,
+            "entropy_threshold":      entropy_threshold,
+            "calibration_temperature": float(temperature),
+            "final_loss":     float(history.history["loss"][-1]),
+            "final_accuracy": float(history.history["accuracy"][-1]),
+            "val_loss":     float(history.history.get("val_loss", [0.0])[-1]),
+            "val_accuracy": float(history.history.get("val_accuracy", [0.0])[-1]),
         }
-        
+        self.logger.info(
+            "Pseudo-label fine-tuning done — val_acc=%.4f  val_loss=%.4f",
+            metrics["val_accuracy"], metrics["val_loss"],
+        )
         return model, metrics
+
+    # ------------------------------------------------------------------
+    # Helpers for calibration
+    # ------------------------------------------------------------------
+
+    def _estimate_temperature(
+        self,
+        model: keras.Model,
+        X_val: np.ndarray,
+        y_val: np.ndarray,
+        n_val_samples: int = 500,
+    ) -> float:
+        """
+        Simple temperature scaling via grid search on a source holdout.
+        Picks T in [0.5, 3.0] that minimises NLL on the validation split.
+        Returns T=1.0 (no scaling) as a safe default if optimisation fails.
+        """
+        try:
+            idx = np.random.choice(len(X_val), min(n_val_samples, len(X_val)), replace=False)
+            x_h, y_h = X_val[idx], y_val[idx].astype(int)
+            raw = self._get_logits(model, x_h)
+            if raw is None:
+                return 1.0
+            best_t, best_nll = 1.0, np.inf
+            for T in np.linspace(0.5, 3.0, 26):
+                scaled = raw / T
+                exp_s  = np.exp(scaled - scaled.max(axis=1, keepdims=True))
+                p      = exp_s / exp_s.sum(axis=1, keepdims=True)
+                nll    = -np.log(np.clip(p[np.arange(len(y_h)), y_h], 1e-9, 1.0)).mean()
+                if nll < best_nll:
+                    best_nll, best_t = nll, T
+            return float(best_t)
+        except Exception as exc:  # noqa: BLE001
+            self.logger.warning("Temperature estimation failed (%s); using T=1.0", exc)
+            return 1.0
+
+    def _get_logits(
+        self, model: keras.Model, X: np.ndarray
+    ) -> Optional[np.ndarray]:
+        """
+        Return pre-softmax logits by building a logit-output sub-model.
+        Falls back to None if the architecture does not end with a softmax layer.
+        """
+        try:
+            last = model.layers[-1]
+            if not (hasattr(last, "activation") and
+                    getattr(last.activation, "__name__", "") == "softmax"):
+                return None
+            # Build model that stops just before the final activation
+            logit_model = keras.Model(
+                inputs=model.input, outputs=last.output
+            )
+            # Override activation to linear for this forward pass
+            # Simpler: use the layer before the final activation
+            if len(model.layers) >= 2:
+                pre_softmax = keras.Model(
+                    inputs=model.input, outputs=model.layers[-2].output
+                )
+                return pre_softmax.predict(X, verbose=0)
+            return logit_model.predict(X, verbose=0)
+        except Exception:
+            return None
     
     def _retrain_mmd(
         self,

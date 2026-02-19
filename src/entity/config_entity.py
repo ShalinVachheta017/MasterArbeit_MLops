@@ -199,8 +199,8 @@ class ModelRetrainingConfig:
 
     # Domain adaptation
     enable_adaptation: bool = False
-    adaptation_method: str = "adabn"               # adabn, pseudo_label, mmd, dann
-    adabn_n_batches: int = 10                      # how many batches for AdaBN stat update
+    adaptation_method: str = "adabn"               # adabn | tent | adabn_tent | pseudo_label | mmd | dann
+    adabn_n_batches: int = 10                      # batches for AdaBN / TENT steps
 
     # Output
     output_dir: Optional[Path] = None

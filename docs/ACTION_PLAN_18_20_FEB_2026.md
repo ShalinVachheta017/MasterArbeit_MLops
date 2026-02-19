@@ -807,7 +807,82 @@ Good luck with your job tomorrow! 🎉
 
 ---
 
-**Document Status:** Ready for Implementation  
-**Next Review:** Feb 21, 2026 (Post-Implementation)  
-**Owner:** Thesis Student  
-**Last Updated:** Feb 16, 2026 21:56
+---
+
+## ✅ IMPLEMENTED: Feb 19, 2026 — Pseudo-label & Adaptation Pipeline Upgrades
+
+### Bug Fixes Applied
+
+#### Fix 1 — Stage 10 Baseline Update Path (`src/components/baseline_update.py`)
+- **Was:** `data_raw_dir.parent / "all_users_data_labeled.csv"` → resolved to `data/all_users...` (wrong)
+- **Now:** `data_raw_dir / "all_users_data_labeled.csv"` → resolves to `data/raw/all_users...` (correct)
+- Same fix applied to `_run_standard` and `_run_pseudo_label` fallback paths in `model_retraining.py`.
+
+#### Fix 2 — Stage 8 Pseudo-label Artifact Metrics (`src/components/model_retraining.py`)
+- **Was:** `metrics.get("final_metrics", {})` → always empty because `DomainAdaptationTrainer` returns flat dict
+- **Now:** extracts `final_accuracy`, `final_loss`, `val_accuracy`, `val_loss`, `pseudo_labeled_samples`, `confidence_threshold`, `entropy_threshold` directly from the returned metrics dict
+
+---
+
+### Pseudo-label Loop Hardening (`src/train.py` — `_retrain_pseudo_labeling`)
+
+The naive single-threshold self-training loop was replaced with a calibrated, gated, class-balanced pipeline:
+
+| Step | What changed | Why |
+|------|-------------|-----|
+| Temperature scaling | `_estimate_temperature()` grid-searches T∈[0.5,3] on source holdout to minimise NLL | Deep nets are miscalibrated; high softmax confidence ≠ correct prediction (Guo et al. 2017) |
+| Entropy gate | Samples filtered by `confidence ≥ 0.70 AND norm_entropy ≤ 0.40` | Dual gate rejects samples that are "confidently uncertain" after calibration |
+| Class-balanced top-k | Per-class quota (10% of source / n_classes, min 30) prevents label collapse | Without balancing, dominant classes consume the pseudo-label budget |
+| Freeze early layers | Only last 3 layers trained; LR scaled to 0.1× | Fine-tune from pretrained weights — avoids overfitting pseudo-label noise |
+| Soft targets | Label-smoothed one-hot (ε=0.1) for pseudo portion | Prevents model from becoming overconfident on noisy pseudo targets |
+| Fallback | If <20 samples pass gate, fall back to confidence-only top-500 | Pipeline never silently gets zero pseudo-labels |
+
+Helper methods added to `DomainAdaptationTrainer`:
+- `_estimate_temperature(model, X_val, y_val)` — calibration via NLL grid search
+- `_get_logits(model, X)` — extracts pre-softmax layer output for temperature rescaling
+
+---
+
+### New Test-Time Adaptation: TENT (`src/domain_adaptation/tent.py`)
+
+TENT adapts only BN affine parameters (gamma/beta) by minimising prediction entropy — no labels needed, much faster than retraining.
+
+Key safety features:
+- **OOD guard:** if initial mean normalised entropy > 0.85, adaptation is skipped (target quarantined)
+- `copy_model=True` default — original weights never modified in-place
+- `tent_score()` utility returns `mean_normalised_entropy`, `mean_confidence`, `low_confidence_ratio` for MLflow logging
+
+Reference: Wang et al. (2021) "Tent: Fully Test-time Adaptation by Entropy Minimization." ICLR 2021. arXiv:2006.10726
+
+---
+
+### New Adaptation Methods Registered
+
+`src/entity/config_entity.py` — `adaptation_method` now accepts:
+
+| Value | Description |
+|-------|-------------|
+| `adabn` | Existing: update BN running stats (no labels, fast) |
+| `tent` | New: entropy-min BN affine fine-tuning (no labels) |
+| `adabn_tent` | New: two-stage — AdaBN then TENT (strongest unsupervised) |
+| `pseudo_label` | Upgraded: calibrated + entropy-gated + class-balanced |
+| `mmd` / `dann` | Existing stubs (fall through to pseudo_label) |
+
+`src/domain_adaptation/__init__.py` now exports all four public symbols for clean imports.
+
+---
+
+### Recommended Adaptation Strategy for Your Drift Profile
+
+Given DRIFT_WARN with aggregate score ~1.16 (moderate shift, not extreme OOD):
+
+1. **Fast/safe default:** use `adabn_tent` — no labels, ~seconds, OOD-guarded
+2. **If labeled validation exists:** run pseudo_label on top to fine-tune classification head
+3. **If drift score > 2.0:** quarantine, do not adapt — flag for manual labeling
+
+---
+
+**Document Status:** Updated Post-Implementation  
+**Next Review:** Feb 21, 2026  
+**Last Updated:** Feb 19, 2026
+

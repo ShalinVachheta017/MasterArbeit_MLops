@@ -54,6 +54,11 @@ class ModelRetraining:
 
         if method == "adabn":
             return self._run_adabn(output_dir)
+        elif method == "tent":
+            return self._run_tent(output_dir)
+        elif method == "adabn_tent":
+            # Two-stage: AdaBN first, then TENT fine-tunes BN affine params
+            return self._run_adabn_then_tent(output_dir)
         elif method == "pseudo_label":
             return self._run_pseudo_label(output_dir)
         else:
@@ -128,6 +133,135 @@ class ModelRetraining:
         )
 
     # ------------------------------------------------------------------ #
+    def _run_tent(self, output_dir: Path) -> ModelRetrainingArtifact:
+        """Test-time adaptation via TENT (entropy minimisation on BN affine params)."""
+        from src.domain_adaptation.tent import tent_adapt, tent_score
+
+        try:
+            from tensorflow import keras
+        except ImportError:
+            raise ImportError("TensorFlow is required for TENT.")
+
+        base_model_path = (
+            self.pipeline_config.models_pretrained_dir
+            / "fine_tuned_model_1dcnnbilstm.keras"
+        )
+        logger.info("Loading base model: %s", base_model_path)
+        model = keras.models.load_model(base_model_path)
+
+        target_npy = self.config.target_data_npy
+        if target_npy is None and self.transformation_artifact:
+            target_npy = self.transformation_artifact.production_X_path
+        if target_npy is None:
+            raise ValueError("TENT requires target_data_npy (production data).")
+
+        target_X = np.load(target_npy)
+        logger.info("Target data: %s", target_X.shape)
+
+        before = tent_score(model, target_X)
+        logger.info("Before TENT — mean confidence: %.4f  norm_entropy: %.4f",
+                    before["mean_confidence"], before["mean_normalised_entropy"])
+
+        model = tent_adapt(
+            model, target_X,
+            n_steps=self.config.adabn_n_batches or 10,
+            learning_rate=self.config.learning_rate or 1e-4,
+            batch_size=self.config.batch_size,
+        )
+
+        after = tent_score(model, target_X)
+        logger.info("After TENT  — mean confidence: %.4f  norm_entropy: %.4f",
+                    after["mean_confidence"], after["mean_normalised_entropy"])
+
+        save_path = output_dir / "tent_adapted_model.keras"
+        model.save(save_path)
+        logger.info("TENT model saved: %s", save_path)
+
+        metrics = {
+            "before_mean_confidence":   before["mean_confidence"],
+            "after_mean_confidence":    after["mean_confidence"],
+            "confidence_improvement":   after["mean_confidence"] - before["mean_confidence"],
+            "before_norm_entropy":      before["mean_normalised_entropy"],
+            "after_norm_entropy":       after["mean_normalised_entropy"],
+            "entropy_reduction":        before["mean_normalised_entropy"] - after["mean_normalised_entropy"],
+        }
+
+        return ModelRetrainingArtifact(
+            retrained_model_path=save_path,
+            training_report={"before": before, "after": after},
+            adaptation_method="tent",
+            metrics=metrics,
+            n_target_samples=int(target_X.shape[0]),
+            retraining_timestamp=datetime.now().isoformat(),
+        )
+
+    # ------------------------------------------------------------------ #
+    def _run_adabn_then_tent(self, output_dir: Path) -> ModelRetrainingArtifact:
+        """Two-stage: AdaBN (running stats) → TENT (affine fine-tuning)."""
+        from src.domain_adaptation.adabn import adapt_bn_statistics, adabn_score_confidence
+        from src.domain_adaptation.tent import tent_adapt, tent_score
+
+        try:
+            from tensorflow import keras
+        except ImportError:
+            raise ImportError("TensorFlow is required.")
+
+        base_model_path = (
+            self.pipeline_config.models_pretrained_dir
+            / "fine_tuned_model_1dcnnbilstm.keras"
+        )
+        model = keras.models.load_model(base_model_path)
+
+        target_npy = self.config.target_data_npy
+        if target_npy is None and self.transformation_artifact:
+            target_npy = self.transformation_artifact.production_X_path
+        if target_npy is None:
+            raise ValueError("adabn_tent requires target_data_npy.")
+
+        target_X = np.load(target_npy)
+
+        before = adabn_score_confidence(model, target_X)
+        logger.info("Before AdaBN+TENT — mean confidence: %.4f", before["mean_confidence"])
+
+        # Stage 1: AdaBN
+        model = adapt_bn_statistics(
+            model, target_X,
+            n_batches=self.config.adabn_n_batches,
+            batch_size=self.config.batch_size,
+        )
+
+        # Stage 2: TENT
+        model = tent_adapt(
+            model, target_X,
+            n_steps=10,
+            learning_rate=self.config.learning_rate or 1e-4,
+            batch_size=self.config.batch_size,
+        )
+
+        after = tent_score(model, target_X)
+        logger.info("After AdaBN+TENT — mean confidence: %.4f  norm_entropy: %.4f",
+                    after["mean_confidence"], after["mean_normalised_entropy"])
+
+        save_path = output_dir / "adabn_tent_adapted_model.keras"
+        model.save(save_path)
+
+        metrics = {
+            "before_mean_confidence": before["mean_confidence"],
+            "after_mean_confidence":  after["mean_confidence"],
+            "confidence_improvement": after["mean_confidence"] - before["mean_confidence"],
+            "after_norm_entropy":     after["mean_normalised_entropy"],
+        }
+
+        return ModelRetrainingArtifact(
+            retrained_model_path=save_path,
+            training_report={"before": before, "after": after},
+            adaptation_method="adabn_tent",
+            metrics=metrics,
+            n_target_samples=int(target_X.shape[0]),
+            retraining_timestamp=datetime.now().isoformat(),
+        )
+
+    # ------------------------------------------------------------------ #
     def _run_pseudo_label(self, output_dir: Path) -> ModelRetrainingArtifact:
         """Semi-supervised: pseudo-label + fine-tune."""
         from src.train import DomainAdaptationTrainer, TrainingConfig
@@ -152,7 +286,7 @@ class ModelRetraining:
 
         # Source data
         source_path = self.config.source_data_path or (
-            self.pipeline_config.data_raw_dir.parent / "all_users_data_labeled.csv"
+            self.pipeline_config.data_raw_dir / "all_users_data_labeled.csv"
         )
         from src.train import DataLoader as _DataLoader
         data_loader = _DataLoader(train_cfg, logger)
@@ -181,11 +315,18 @@ class ModelRetraining:
         save_path = output_dir / "pseudo_label_model.keras"
         model.save(save_path)
 
+        # DomainAdaptationTrainer returns final_accuracy / final_loss at top level
+        artifact_metrics = {
+            k: metrics[k]
+            for k in ("final_accuracy", "final_loss", "val_accuracy", "val_loss",
+                      "pseudo_labeled_samples", "confidence_threshold", "entropy_threshold")
+            if k in metrics
+        }
         return ModelRetrainingArtifact(
             retrained_model_path=save_path,
             training_report=metrics,
             adaptation_method="pseudo_label",
-            metrics=metrics.get("final_metrics", {}),
+            metrics=artifact_metrics,
             n_source_samples=int(source_X.shape[0]),
             n_target_samples=int(target_X.shape[0]) if target_X is not None else 0,
             retraining_timestamp=datetime.now().isoformat(),
@@ -208,7 +349,7 @@ class ModelRetraining:
         trainer = HARTrainer(train_cfg)
 
         source_path = self.config.source_data_path or (
-            self.pipeline_config.data_raw_dir.parent / "all_users_data_labeled.csv"
+            self.pipeline_config.data_raw_dir / "all_users_data_labeled.csv"
         )
 
         from src.train import DataLoader as _DataLoader
