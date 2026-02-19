@@ -66,6 +66,9 @@ class BaselineUpdate:
         builder.save(output_baseline)
         logger.info("Baseline saved: %s", output_baseline)
 
+        builder.save_normalized(output_normalized)
+        logger.info("Normalized baseline saved: %s", output_normalized)
+
         # Stats summary
         stats = {
             "n_channels": baseline.get("n_channels", 6),

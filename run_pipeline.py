@@ -6,8 +6,11 @@ HAR MLOps — Production Pipeline  (Single Entry Point)
 
 Run the ENTIRE 14-stage production pipeline with one command:
 
-    python run_pipeline.py                             # stages 1-7
-    python run_pipeline.py --retrain --adapt adabn     # + AdaBN retraining
+    python run_pipeline.py                                      # stages 1-7
+    python run_pipeline.py --retrain --adapt adabn_tent         # + two-stage TTA (recommended)
+    python run_pipeline.py --retrain --adapt adabn              # + AdaBN only
+    python run_pipeline.py --retrain --adapt tent               # + TENT entropy-min
+    python run_pipeline.py --retrain --adapt pseudo_label       # + calibrated pseudo-labels
     python run_pipeline.py --advanced                  # + calibration, drift, etc.
     python run_pipeline.py --stages inference evaluation  # specific stages
     python run_pipeline.py --input-csv my_recording.csv   # your own data
@@ -79,10 +82,16 @@ Examples:
   # Your own recording — CSV input
   python run_pipeline.py --input-csv data/raw/my_recording.csv
 
-  # Full cycle + AdaBN domain adaptation
+  # Full cycle + two-stage TTA (recommended for moderate drift)
+  python run_pipeline.py --retrain --adapt adabn_tent
+
+  # Full cycle + AdaBN only (fastest)
   python run_pipeline.py --retrain --adapt adabn
 
-  # Retrain with pseudo-labeling
+  # Full cycle + TENT entropy minimisation
+  python run_pipeline.py --retrain --adapt tent
+
+  # Retrain with calibrated pseudo-labeling
   python run_pipeline.py --retrain --adapt pseudo_label
 
   # Advanced analytics (calibration, Wasserstein drift, etc.)
@@ -174,7 +183,7 @@ Examples:
     parser.add_argument(
         "--adapt",
         type=str,
-        choices=["adabn", "pseudo_label", "none"],
+        choices=["adabn", "tent", "adabn_tent", "pseudo_label", "none"],
         default="none",
         help="Domain adaptation method for retraining (default: none)",
     )
