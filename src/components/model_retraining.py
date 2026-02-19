@@ -162,7 +162,7 @@ class ModelRetraining:
         logger.info("Before TENT — mean confidence: %.4f  norm_entropy: %.4f",
                     before["mean_confidence"], before["mean_normalised_entropy"])
 
-        model = tent_adapt(
+        model, tent_meta = tent_adapt(
             model, target_X,
             n_steps=self.config.adabn_n_batches or 10,
             learning_rate=self.config.learning_rate or 1e-4,
@@ -172,6 +172,9 @@ class ModelRetraining:
         after = tent_score(model, target_X)
         logger.info("After TENT  — mean confidence: %.4f  norm_entropy: %.4f",
                     after["mean_confidence"], after["mean_normalised_entropy"])
+        if tent_meta["tent_rollback"]:
+            logger.warning("TENT rollback applied — affine weights reverted (entropy increased %.3f)",
+                           tent_meta["tent_entropy_delta"])
 
         save_path = output_dir / "tent_adapted_model.keras"
         model.save(save_path)
@@ -184,6 +187,8 @@ class ModelRetraining:
             "before_norm_entropy":      before["mean_normalised_entropy"],
             "after_norm_entropy":       after["mean_normalised_entropy"],
             "entropy_reduction":        before["mean_normalised_entropy"] - after["mean_normalised_entropy"],
+            "tent_rollback":            int(tent_meta["tent_rollback"]),
+            "tent_entropy_delta":       tent_meta["tent_entropy_delta"],
         }
 
         return ModelRetrainingArtifact(
@@ -230,8 +235,8 @@ class ModelRetraining:
             batch_size=self.config.batch_size,
         )
 
-        # Stage 2: TENT
-        model = tent_adapt(
+        # Stage 2: TENT — freeze BN running stats so AdaBN calibration is preserved
+        model, tent_meta = tent_adapt(
             model, target_X,
             n_steps=10,
             learning_rate=self.config.learning_rate or 1e-4,
@@ -241,6 +246,9 @@ class ModelRetraining:
         after = tent_score(model, target_X)
         logger.info("After AdaBN+TENT — mean confidence: %.4f  norm_entropy: %.4f",
                     after["mean_confidence"], after["mean_normalised_entropy"])
+        if tent_meta["tent_rollback"]:
+            logger.warning("TENT rollback applied — affine weights reverted (entropy increased %.3f)",
+                           tent_meta["tent_entropy_delta"])
 
         save_path = output_dir / "adabn_tent_adapted_model.keras"
         model.save(save_path)
@@ -250,6 +258,8 @@ class ModelRetraining:
             "after_mean_confidence":  after["mean_confidence"],
             "confidence_improvement": after["mean_confidence"] - before["mean_confidence"],
             "after_norm_entropy":     after["mean_normalised_entropy"],
+            "tent_rollback":          int(tent_meta["tent_rollback"]),
+            "tent_entropy_delta":     tent_meta["tent_entropy_delta"],
         }
 
         return ModelRetrainingArtifact(

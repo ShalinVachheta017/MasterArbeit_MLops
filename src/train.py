@@ -857,6 +857,18 @@ class DomainAdaptationTrainer(HARTrainer):
         self.logger.info(f"  Combined training set: {len(X_combined)} samples")
 
         # ------------------------------------------------------------------
+        # 6c. Source-holdout baseline — evaluate base_model BEFORE fine-tuning
+        #     so we can detect regressions and roll back if needed.
+        # ------------------------------------------------------------------
+        _rollback_threshold = 0.10  # allow up to 10 pp drop before rollback
+        _n_holdout = max(50, int(0.20 * len(source_X_scaled)))
+        _holdout_idx = np.random.choice(len(source_X_scaled), _n_holdout, replace=False)
+        _holdout_X   = source_X_scaled[_holdout_idx]
+        _holdout_y   = source_onehot[_holdout_idx]
+        _, _pre_val_acc = base_model.evaluate(_holdout_X, _holdout_y, verbose=0)
+        self.logger.info(f"  Pre-fine-tune source holdout accuracy: {_pre_val_acc:.4f}")
+
+        # ------------------------------------------------------------------
         # 7. Fine-tune from pretrained base — freeze early layers
         # ------------------------------------------------------------------
         # NOTE: keras.models.clone_model + set_weights can lose non-trainable
@@ -935,6 +947,35 @@ class DomainAdaptationTrainer(HARTrainer):
             "Pseudo-label fine-tuning done — val_acc=%.4f  val_loss=%.4f",
             metrics["val_accuracy"], metrics["val_loss"],
         )
+
+        # ------------------------------------------------------------------
+        # 9. Rollback safety — revert to base_model if source holdout degrades
+        # ------------------------------------------------------------------
+        _, _post_val_acc = model.evaluate(_holdout_X, _holdout_y, verbose=0)
+        _acc_delta = _post_val_acc - _pre_val_acc
+        metrics["pseudo_pre_val_acc"]   = float(_pre_val_acc)
+        metrics["pseudo_post_val_acc"]  = float(_post_val_acc)
+        metrics["pseudo_val_acc_delta"] = float(_acc_delta)
+
+        if _post_val_acc < _pre_val_acc - _rollback_threshold:
+            self.logger.warning(
+                "Pseudo-label rollback triggered: holdout acc %.4f → %.4f "
+                "(Δ=%.4f, threshold=−%.2f). Reverting to base_model.",
+                _pre_val_acc, _post_val_acc, _acc_delta, _rollback_threshold,
+            )
+            metrics["pseudo_label_rollback"]        = True
+            metrics["pseudo_label_rollback_reason"] = (
+                f"source_holdout_acc dropped {_pre_val_acc:.4f}→{_post_val_acc:.4f} "
+                f"(Δ={_acc_delta:.4f}, threshold=−{_rollback_threshold:.2f})"
+            )
+            return base_model, metrics
+        else:
+            metrics["pseudo_label_rollback"] = False
+            self.logger.info(
+                "  Rollback not needed: holdout acc %.4f → %.4f (Δ=%.4f)",
+                _pre_val_acc, _post_val_acc, _acc_delta,
+            )
+
         return model, metrics
 
     # ------------------------------------------------------------------

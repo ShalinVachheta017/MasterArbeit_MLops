@@ -209,6 +209,16 @@ Examples:
         action="store_true",
         help="Automatically deploy retrained model if proxy validation passes",
     )
+    parser.add_argument(
+        "--update-baseline",
+        action="store_true",
+        default=False,
+        help=(
+            "Promote rebuilt baseline to the shared models/ path that monitoring reads. "
+            "Default: False — baseline is saved only as an MLflow artifact (safe). "
+            "Only set this when you are confident the new baseline reflects production reality."
+        ),
+    )
 
     # ── Advanced analytics flags ──────────────────────────────────────
     parser.add_argument(
@@ -239,6 +249,31 @@ Examples:
     return parser.parse_args()
 
 
+def _detect_gpu() -> str:
+    """Detect GPU availability, enable memory growth, and return 'gpu' or 'cpu'."""
+    try:
+        import tensorflow as tf
+        gpus = tf.config.list_physical_devices("GPU")
+        if gpus:
+            for gpu in gpus:
+                try:
+                    tf.config.experimental.set_memory_growth(gpu, True)
+                except RuntimeError:
+                    pass  # memory growth must be set before GPUs are initialized
+            names = ", ".join(g.name for g in gpus)
+            print(f"  Device : GPU ({names}) — memory growth enabled")
+            logger.info("Device: GPU available — %s (memory growth enabled)", names)
+            return "gpu"
+        else:
+            print("  Device : CPU (no GPU detected)")
+            logger.info("Device: CPU — no GPU detected")
+            return "cpu"
+    except Exception as exc:
+        print(f"  Device : CPU (GPU detection failed: {exc})")
+        logger.warning("GPU detection failed: %s", exc)
+        return "cpu"
+
+
 def load_preprocessing_config(config_path: str) -> dict:
     """Load preprocessing toggles from YAML config file."""
     import yaml
@@ -256,11 +291,11 @@ def main():
     print("=" * 80)
     print("HAR MLOps Production Pipeline")
     print("=" * 80)
-    print(f"Log file: {CURRENT_LOG_FILE}")
+    print(f"  Log file: {CURRENT_LOG_FILE}")
+    device = _detect_gpu()
     print("=" * 80)
     print()
-    
-    logger.info("Pipeline starting...")
+    logger.info("Pipeline starting... (device=%s)", device)
     
     args = parse_args()
 
@@ -353,6 +388,7 @@ def main():
         skip_validation=args.skip_validation,
         continue_on_failure=args.continue_on_failure,
         enable_retrain=args.retrain,
+        update_baseline=args.update_baseline,
     )
 
     # ── Print Summary ─────────────────────────────────────────────────

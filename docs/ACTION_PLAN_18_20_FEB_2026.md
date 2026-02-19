@@ -886,3 +886,404 @@ Given DRIFT_WARN with aggregate score ~1.16 (moderate shift, not extreme OOD):
 **Next Review:** Feb 21, 2026  
 **Last Updated:** Feb 19, 2026
 
+---
+
+## PHASE 3: Pipeline 0→100% Thesis Audit (Feb 19+)
+
+**Goal:** Run controlled audit scenarios, collect artifacts, map each result to a thesis objective. Confirm every stage produces the expected output and fails loudly when it should.
+
+### CI/CD Status
+
+| Commit | Run | Status |
+|--------|-----|--------|
+| `1ae27cc` — ci: split unit/slow tests | #9 | ✅ GREEN |
+| `bd8dc1e` — hardening: PSI test + schema guard | #8 | ❌ (expected — had unguarded `shutil.copy2`) |
+| `700381a` — add build_training_baseline.py | #7 | ❌ (expected — ran all 225 tests including TF-slow) |
+| `34f80df` — bug fixed baseline + metric loss | #6 | ❌ (expected — same reason) |
+
+### 3.1 Audit Runs (A1–A5)
+
+Run these 5 scenarios and save the `logs/pipeline/pipeline_result_*.json` + `artifacts/<run_id>/` for each:
+
+| Run | Command | Tests |
+|-----|---------|-------|
+| A1 | `python run_pipeline.py` | Full inference cycle, stages 1–7. Drift detection, trigger decision. |
+| A2 | `python run_pipeline.py --input-csv data/anxiety_dataset.csv` | Alternate CSV input (NOT the training file). Confirms ingestion generality. |
+| A3 | `python run_pipeline.py --retrain --adapt none` | Standard supervised retrain (stages 1–10). Baseline update writes both JSONs. |
+| A4 | `python run_pipeline.py --retrain --adapt adabn_tent` | Recommended unsupervised adaptation. Check confidence improves, entropy drops. TENT OOD guard should NOT skip (drift ~1.16 is moderate). |
+| A5 | `python run_pipeline.py --retrain --adapt pseudo_label` | Calibrated pseudo-labeling. Check: pseudo_labeled_samples count, class balance, val_accuracy, and that <90% of target is selected (vs old ~90% problem). |
+
+**Per-run evidence to collect for thesis:**
+
+- PIPELINE SUMMARY block (printed at end)
+- Drift score + trigger decision
+- For A4: before/after mean_confidence, norm_entropy, confidence_improvement
+- For A5: pseudo_labeled_samples, confidence_threshold, entropy_threshold, val_accuracy, calibration_temperature
+- Artifact dir listing (proof of file outputs per stage)
+
+### 3.2 Pass/Fail Criteria Per Stage
+
+| Stage | Pass condition |
+|-------|---------------|
+| 1 Ingestion | `sensor_fused_50Hz.csv` written, >0 rows |
+| 2 Validation | Schema + value-range checks logged, exit 0 |
+| 3 Transformation | `production_X.npy` written, shape = (N, 200, 6) |
+| 4 Inference | `predictions.csv` + `predictions.npy` written |
+| 5 Evaluation | confidence/entropy/ECE stats in report JSON |
+| 6 Monitoring | `monitoring_report.json` with layer1/2/3 results; baseline schema guard fires loudly if JSON invalid |
+| 7 Trigger | `TriggerDecision` logged with `action`, `reasons`, `drift_score` |
+| 8 Retraining | Model .keras saved + `ModelRetrainingArtifact` has explicit `final_accuracy`/`val_accuracy` (not empty dict) |
+| 9 Registration | Model version logged (MLflow or local registry) |
+| 10 Baseline Update | BOTH `training_baseline.json` AND `normalized_baseline.json` written to `models/` AND copied to `artifacts/<run_id>/models/` |
+
+### 3.3 Baseline Governance Rules
+
+**DO NOT** overwrite the frozen training baseline after pseudo-label retraining. Noisy baselines mask real drift.
+
+Two baselines exist in the pipeline:
+
+| Baseline | Purpose | When to update |
+|----------|---------|----------------|
+| **Frozen training baseline** (`models/training_baseline.json`) | Measures distance from original labeled distribution | Never update after pseudo-label/adaptation — only after new supervised training on verified labeled data |
+| **Operational baseline** (`models/normalized_baseline.json`) | Measures drift relative to currently-deployed model | Update ONLY when deploying a new model version AND proxy checks (confidence, entropy, class-balance) have passed |
+
+Current `artifacts/<run_id>/models/` copy provides traceability without needing a separate `models/baselines/<version>/` directory structure — sufficient for thesis scope.
+
+### 3.4 Ablation Table Structure (for Thesis Results Chapter)
+
+| Metric | No retrain (A1) | AdaBN+TENT (A4) | Pseudo-label (A5) |
+|--------|-----------------|------------------|--------------------|
+| Mean confidence (post-adaptation) | — | | |
+| Mean normalised entropy | — | | |
+| OOD guard triggered? | — | | |
+| Pseudo-labeled samples | — | — | |
+| Class balance (min/max class %) | — | — | |
+| Val accuracy | — | — | |
+| Drift score (post-adaptation) | | | |
+
+Fill this after running A1, A4, A5. This is the core evidence table for the thesis.
+
+### 3.5 Remaining Items (Priority-Sorted)
+
+| Priority | Item | Status |
+|----------|------|--------|
+| ~~BLOCKER~~ | Stage 10 `build_training_baseline.py` missing | ✅ Fixed (commit `700381a`) |
+| ~~BLOCKER~~ | Stage 8 metrics lost via `final_metrics` | ✅ Fixed (commit `34f80df`) |
+| ~~BLOCKER~~ | Stage 10 path `.parent` bug | ✅ Fixed (commit `34f80df`) |
+| ~~BLOCKER~~ | CI fails — all tests run including TF-slow | ✅ Fixed (commit `1ae27cc`) |
+| ~~HIGH~~ | CLI doesn't expose `tent`/`adabn_tent` | ✅ Fixed (commit `700381a`) |
+| ~~HIGH~~ | PSI test expects wrong defaults | ✅ Fixed (commit `bd8dc1e`) |
+| ~~HIGH~~ | Schema guard for baseline JSON | ✅ Fixed (commit `bd8dc1e`) |
+| SHOULD | Run A1–A5 audit and fill ablation table | NOT STARTED |
+| SHOULD | `scripts/audit_artifacts.py` — verify all outputs exist per run_id | NOT STARTED |
+| SHOULD | Thesis traceability doc: objective → stage → code → evidence | NOT STARTED |
+| NICE | EATA (anti-forgetting TTA) as adaptation method | FUTURE WORK |
+| NICE | CoTTA (continual/non-stationary drift) | FUTURE WORK |
+| NICE | FixMatch / Mean-Teacher consistency training | FUTURE WORK |
+
+### 3.6 Notes on the Copilot Prompt
+
+The suggested "big Copilot prompt" tries to do 7 things in one shot. Recommend splitting into focused passes:
+
+1. **Pass 1 — Traceability doc:** Generate `docs/THESIS_OBJECTIVES_TRACEABILITY.md` mapping objectives → stages → evidence
+2. **Pass 2 — Audit script:** Create `scripts/audit_artifacts.py` (simple: check file existence + non-zero size per stage, exit non-zero if missing)
+3. **Pass 3 — Stage 8 adaptation review:** Already done — OOD guard, calibration, dual gate, class-balanced selection all implemented and verified
+4. **Pass 4 — Final TODO consolidation** after audit runs complete
+
+Do NOT try to implement baseline versioning directories (`models/baselines/<version>/`) — the current `models/` + `artifacts/<run_id>/models/` copy approach is sufficient for thesis scope and already provides per-run traceability.
+
+---
+
+---
+
+## PHASE 4: Thesis Closure Deliverables — Design & Thoughts (Feb 19+)
+
+**Context:** All pipeline code is implemented and CI is green. What remains is evidence collection, thesis packaging, and one lightweight audit script. This section lays out the design for the 5 deliverables requested — **none will be executed until green light**.
+
+---
+
+### 4.1 Deliverable 1 — `docs/THESIS_OBJECTIVES_TRACEABILITY.md`
+
+**Purpose:** One-page matrix that lets a thesis examiner verify: *"For every claim, show me the stage, the code, the command, and the artifact."*
+
+**Structure plan:**
+
+The doc will have one table per thesis research question (RQ1–RQ4 from `docs/thesis/THESIS_STRUCTURE_OUTLINE.md`), plus a master "pipeline objective → stage" table.
+
+#### Master Pipeline Objectives Table
+
+| Objective | Pipeline Stage(s) | Code Entrypoint(s) | Validation Command | Expected Artifact |
+|-----------|-------------------|---------------------|--------------------|-------------------|
+| Data ingestion (Garmin raw → fused CSV) | 1 Ingestion | `src/components/data_ingestion.py` | `python run_pipeline.py` | `data/processed/sensor_fused_50Hz.csv` |
+| Schema + value-range validation | 2 Validation | `src/components/data_validation.py` | (same) | Validation report in logs |
+| Windowed .npy from CSV | 3 Transformation | `src/components/data_transformation.py` | (same) | `data/prepared/production_X.npy` shape (N,200,6) |
+| Inference with pretrained model | 4 Inference | `src/components/model_inference.py` | (same) | `data/prepared/predictions/predictions_*.csv` + `.npy` |
+| Confidence/entropy/ECE analysis | 5 Evaluation | `src/components/model_evaluation.py` | (same) | `reports/evaluation_report.json` |
+| 3-layer monitoring (confidence, temporal, drift) | 6 Monitoring | `scripts/post_inference_monitoring.py` | (same) | `reports/monitoring_report.json` with layer1/2/3 |
+| Automated trigger decision | 7 Trigger | `src/components/trigger_evaluation.py` + `src/trigger_policy.py` | (same) | `TriggerDecision` in pipeline result JSON |
+| Domain adaptation retraining | 8 Retraining | `src/components/model_retraining.py` → `src/train.py` | `python run_pipeline.py --retrain --adapt adabn_tent` | `models/retrained/*.keras` + metrics in result JSON |
+| Model versioning + registry | 9 Registration | `src/components/model_registration.py` | (same with `--retrain`) | `models/registry/` version entry + MLflow model version |
+| Baseline rebuild + traceability | 10 Baseline Update | `src/components/baseline_update.py` + `scripts/build_training_baseline.py` | (same with `--retrain`) | `models/training_baseline.json` + `normalized_baseline.json` + copy in `artifacts/<run_id>/models/` |
+| CI/CD automation | GitHub Actions | `.github/workflows/ci-cd.yml` | Push to main | Green badge (206 unit tests, slow tests non-blocking) |
+| Experiment tracking | MLflow | `src/mlflow_tracking.py` | `mlflow ui` | `mlruns/` experiment + run artifacts |
+| Reproducibility | DVC + Docker | `data/*.dvc`, `docker/Dockerfile.*` | `dvc pull` / `docker-compose up` | Data versioned, environment containerised |
+
+#### RQ-to-Evidence Mapping
+
+| RQ | Question | Answering Stage(s) | Key Evidence |
+|----|----------|---------------------|--------------|
+| RQ1 | Detect degradation without labels? | 6 Monitoring | `monitoring_report.json` layer3 drift scores, PSI per channel |
+| RQ2 | Proxy metrics correlating with accuracy? | 5 Evaluation + 6 Monitoring | Confidence mean, entropy, ECE, uncertain % — all logged per run |
+| RQ3 | When to trigger adaptation? | 7 Trigger | `TriggerDecision` with action/reasons/drift_score, PSI thresholds (0.75/1.50 aggregated) |
+| RQ4 | How effective is pseudo-labeling? | 8 Retraining (A5 run) | `pseudo_labeled_samples`, `confidence_threshold`, `entropy_threshold`, `val_accuracy`, `calibration_temperature` from pipeline result JSON |
+
+**My thoughts:**
+- This is straightforward — it's a doc that references existing code, no code changes needed.
+- I'll add a short "how to reproduce" section with exact commands for A1/A4/A5.
+- I won't duplicate what's already in `PIPELINE_OPERATIONS_AND_ARCHITECTURE.md` — just reference it.
+
+---
+
+### 4.2 Deliverable 2 — `scripts/audit_artifacts.py`
+
+**Purpose:** Lightweight script to verify that all expected outputs exist (per stage, per run_id). Exits non-zero if anything is missing — can be dropped into CI later.
+
+**Design:**
+
+```python
+# scripts/audit_artifacts.py
+# Usage:
+#   python scripts/audit_artifacts.py --run-id 20260219_104537
+#   python scripts/audit_artifacts.py              # auto-pick latest
+
+# Stage → required file patterns (relative to artifacts/<run_id>/)
+STAGE_CHECKS = {
+    "1_ingestion": [
+        ("data/processed/sensor_fused_50Hz.csv", "Fused CSV"),
+    ],
+    "3_transformation": [
+        ("data/prepared/production_X.npy", "Windowed numpy array"),
+    ],
+    "4_inference": [
+        ("data/prepared/predictions/predictions_*.csv", "Predictions CSV (glob)"),
+    ],
+    "5_evaluation": [
+        ("reports/evaluation_report*.json", "Evaluation report (glob)"),
+    ],
+    "6_monitoring": [
+        ("reports/monitoring_report*.json", "Monitoring report (glob)"),
+    ],
+    "7_trigger": [
+        ("logs/pipeline/pipeline_result_*.json", "Pipeline result JSON"),
+    ],
+    "8_retraining": [          # only if --retrain was used
+        ("models/retrained/*.keras", "Retrained model"),
+    ],
+    "10_baseline": [           # only if --retrain was used
+        ("models/training_baseline.json", "Training baseline"),
+        ("models/normalized_baseline.json", "Normalized baseline"),
+    ],
+}
+```
+
+**Key design decisions:**
+
+1. **Auto-latest:** If no `--run-id`, pick the newest folder in `artifacts/` by name (they're already timestamp-sorted).
+2. **Glob support:** Some files have timestamps in their names (`predictions_20260219_*.csv`). Use `glob.glob()` and require ≥1 match.
+3. **File-size guard:** Check `os.path.getsize() > 0` — a zero-byte file is still a failure.
+4. **Retrain-aware:** Accept `--retrain` flag to enable checks for stages 8–10. Default checks only stages 1–7.
+5. **Exit code:** `sys.exit(n_failures)` — 0 = all pass, >0 = number of failures.
+6. **Output format:** Clean table:
+   ```
+   Stage              Check                    Status
+   ─────────────────────────────────────────────────────
+   1_ingestion        Fused CSV                ✅ PASS (385327 bytes)
+   3_transformation   Windowed numpy array     ✅ PASS (46MB)
+   4_inference        Predictions CSV          ✅ PASS (2 matches)
+   ...
+   10_baseline        Training baseline        ❌ FAIL (not found)
+   ─────────────────────────────────────────────────────
+   Result: 9/10 PASS, 1 FAIL
+   ```
+
+**My thoughts:**
+- ~100 lines of Python, no dependencies beyond stdlib + pathlib/glob.
+- The tricky part: some artifacts live in the project root (`models/`, `data/`, `reports/`) rather than inside `artifacts/<run_id>/`. The script should check both:  
+  (a) project-root paths (definitive), and  
+  (b) `artifacts/<run_id>/` copies if they exist (bonus traceability check).
+- Stage 2 (validation) and stage 9 (registration) don't produce standalone files — they log to the pipeline result JSON. The script should parse the result JSON and check `stages_completed` contains `"validation"` / `"registration"`.
+- I **won't** add it to the CI workflow automatically — that's a separate decision if you want it later.
+
+---
+
+### 4.3 Deliverable 3 — `docs/TRAINING_RECIPE_MATRIX.md`
+
+**Purpose:** Clarify the two-dataset training story for the thesis (pretrain → finetune → production inference → adaptation).
+
+**Key facts from the repo:**
+
+| Dataset | File | Rows | Columns | Role |
+|---------|------|------|---------|------|
+| Anxiety dataset (ADAMSense/2005) | `data/anxiety_dataset.csv` | 709,583 | 25 (Ax_p, Ax_w, Ay_p, Ay_w, … Activity, User) | **Pretraining** — multi-user, pocket+wrist, 11 anxiety activities |
+| Fine-tune dataset | `data/all_users_data_labeled.csv` | 385,327 | 9 (timestamp, Ax_w…Gz_w, activity, User) | **Fine-tuning** — wrist-only, same 11 classes, target domain |
+| Production recordings | `data/raw/2025-*_accelerometer.csv` + `*_gyroscope.csv` | varies | raw Garmin export | **Inference** — unlabeled, real-world |
+
+**Training recipe experiments:**
+
+| ID | Recipe | Dataset(s) | Thesis Purpose |
+|----|--------|-----------|----------------|
+| T1 | Fine-tune only | `all_users_data_labeled.csv` | **Control baseline** — single-stage supervised training |
+| T2 | Pretrain → Fine-tune | `anxiety_dataset.csv` → `all_users_data_labeled.csv` | **Current deployed model** — transfer representation from multi-user to wrist-only |
+| T3 | T2 + AdaBN+TENT on production | T2 model + unlabeled production data | **Unsupervised adaptation** — adapt without labels (thesis objective: prove adaptation helps) |
+| T4 | T2 + Calibrated pseudo-label | T2 model + unlabeled production data | **Semi-supervised adaptation** — highest potential accuracy gain, but noisier |
+
+**Metrics to compare across T1–T4:**
+
+- 5-fold CV accuracy on fine-tune holdout (for T1, T2)
+- Mean confidence on production (for all)
+- Mean normalised entropy on production (for all)
+- PSI drift score post-adaptation (for T3, T4)
+- Pseudo-labeled sample count + class balance (for T4 only)
+
+**My thoughts on what actually needs to happen:**
+
+1. **T1 and T2 already exist.** The deployed model at `models/pretrained/fine_tuned_model_1dcnnbilstm.keras` is the T2 recipe (pretrain on anxiety → finetune on all_users). The `model_info.json` confirms the architecture: 1D-CNN-BiLSTM, 499K params, input (200, 6), output 11 classes.
+
+2. **T1 (finetune-only) may need a separate training run** if you don't already have its metrics logged in MLflow. If you do have them from earlier experiments in `mlruns/`, we just reference those.
+
+3. **T3 and T4 are exactly what audit runs A4 and A5 will produce.** So the TRAINING_RECIPE_MATRIX doc is really just a framing + evidence collection template — it doesn't need new code.
+
+4. **The A2 audit run** (originally `--input-csv data/anxiety_dataset.csv`) should indeed use a **production recording**, not the pretrain dataset. The anxiety dataset has 25 columns (pocket+wrist) but the pipeline expects 6-channel wrist-only data. Using it as inference input would fail at Stage 3 (shape mismatch). **Corrected A2:** use the default pipeline input (which reads real Garmin recordings from `data/raw/`). Or, to test a different CSV, use `data/all_users_data_labeled.csv` with `--input-csv` — but that's labeled training data, not production.
+
+   **My recommendation:** Drop A2 as a separate run. A1 already proves the inference path works on real production data. If you want "ingestion generality", the generality is already proven by the 26+ recording pairs in `data/raw/`. Instead, keep A1/A3/A4/A5 — that's 4 runs, each proving a distinct thesis claim.
+
+---
+
+### 4.4 Deliverable 4 — Baseline Governance (Update to Existing Code)
+
+**Current state:** Already implemented correctly:
+- `models/training_baseline.json` — frozen training reference
+- `models/normalized_baseline.json` — operational baseline
+- `artifacts/<run_id>/models/` — per-run copy for traceability
+
+**What the ChatGPT analysis suggests:** Gate `normalized_baseline.json` update behind `--auto-deploy` flag.
+
+**My assessment:**
+
+The `auto_deploy` field already exists in `ModelRegistrationConfig` (line 221 of `config_entity.py`), default `False`. Currently, baseline update (Stage 10) runs unconditionally when `--retrain` is active — it always writes both JSONs.
+
+**Two options:**
+
+| Option | Description | Effort |
+|--------|-------------|--------|
+| A — Gate normalized update behind `auto_deploy` | Stage 10 always writes `training_baseline.json` (re-computed from labeled data) but only writes/overwrites `normalized_baseline.json` if `auto_deploy=True` in registration config. The candidate is still saved inside `artifacts/<run_id>/models/normalized_baseline.json` for traceability. | ~10 lines in `baseline_update.py` |
+| B — Keep current behavior (always write both) | Both baselines always updated. Thesis simply states: "In production, the operational baseline update should be gated behind deployment verification." This is a documentation-only claim. | 0 lines |
+
+**My recommendation: Option B for now.** Reasoning:
+- For thesis audit runs, you **want** baselines to update so you can compare them across A3/A4/A5.
+- The frozen vs operational distinction is a **policy** that the thesis describes; the current code saves both, and the thesis can state: "In a production deployment, the operational baseline update would be conditioned on model-deployment verification."
+- If you want Option A later, it's a trivial change — 1 `if` statement around the `save_normalized()` call.
+- Don't add complexity right before thesis deadline unless it's blocking.
+
+---
+
+### 4.5 Deliverable 5 — `scripts/generate_thesis_evidence_pack.py` (Results Pack Generator)
+
+**Purpose:** Given a list of run_ids (from A1/A3/A4/A5), export a clean "evidence pack" for the thesis Results chapter.
+
+**Output files it would generate:**
+
+```
+outputs/thesis_evidence/
+├── artifact_tree_A1.txt          # `tree artifacts/<run_id_A1>/`
+├── artifact_tree_A4.txt
+├── artifact_tree_A5.txt
+├── key_metrics.json              # extracted from pipeline_result_*.json per run
+├── ablation_table.md             # pre-filled markdown table
+└── run_summary.md                # human-readable summary
+```
+
+**Key metrics to extract per run (from `pipeline_result_*.json`):**
+
+| Field | Source | Runs |
+|-------|--------|------|
+| `mean_confidence` | `result.monitoring.layer1_confidence.mean_confidence` | All |
+| `mean_entropy` | `result.evaluation.confidence_summary` or monitoring layer1 | All |
+| `drift_score` | `result.monitoring.layer3_drift.max_drift` | All |
+| `trigger_action` | `result.trigger.action` | All |
+| `final_accuracy` | `result.retraining.metrics.final_accuracy` | A3/A4/A5 |
+| `val_accuracy` | `result.retraining.metrics.val_accuracy` | A3/A4/A5 |
+| `pseudo_labeled_samples` | `result.retraining.metrics.pseudo_labeled_samples` | A5 |
+| `confidence_threshold` | `result.retraining.metrics.confidence_threshold` | A5 |
+| `entropy_threshold` | `result.retraining.metrics.entropy_threshold` | A5 |
+| `calibration_temperature` | `result.retraining.metrics.calibration_temperature` | A5 |
+| `adaptation_method` | pipeline config | A3/A4/A5 |
+
+**Ablation table it would generate:**
+
+```markdown
+| Metric                         | No retrain (A1) | Supervised (A3) | AdaBN+TENT (A4) | Pseudo-label (A5) |
+|--------------------------------|-----------------|-----------------|------------------|--------------------|
+| Mean confidence                | {auto}          | {auto}          | {auto}           | {auto}             |
+| Mean normalised entropy        | {auto}          | {auto}          | {auto}           | {auto}             |
+| OOD guard triggered?           | —               | —               | {auto}           | —                  |
+| Pseudo-labeled samples         | —               | —               | —                | {auto}             |
+| Class balance (min/max class%) | —               | —               | —                | {auto}             |
+| Val accuracy                   | —               | {auto}          | —                | {auto}             |
+| Drift score (post-adaptation)  | {auto}          | {auto}          | {auto}           | {auto}             |
+| Trigger decision               | {auto}          | {auto}          | {auto}           | {auto}             |
+```
+
+**My thoughts:**
+- ~150 lines of Python. Reads JSON, extracts fields, renders markdown.
+- This is a "nice-to-have" — you can also just manually fill the table after runs. I'd prioritise the traceability doc and audit script first.
+- If you give green light, I'll implement it, but it's the lowest priority of the 5 deliverables.
+
+---
+
+### 4.6 Corrected Audit Run Definitions
+
+Based on the dataset analysis above, here's the updated A1–A5:
+
+| Run | Command | What It Proves |
+|-----|---------|----------------|
+| A1 | `python run_pipeline.py` | Full inference cycle (stages 1–7). Monitoring + trigger work end-to-end. |
+| ~~A2~~ | ~~`--input-csv data/anxiety_dataset.csv`~~ | **DROPPED.** Anxiety dataset has 25 columns (pocket+wrist), pipeline expects 6 (wrist-only). Would fail at transformation. A1 already tests ingestion on real Garmin recordings. |
+| A3 | `python run_pipeline.py --retrain --adapt none` | Supervised retrain path. Baseline update writes both JSONs. Control run for ablation. |
+| A4 | `python run_pipeline.py --retrain --adapt adabn_tent` | Recommended unsupervised adaptation. Check confidence↑, entropy↓, TENT OOD guard should NOT trigger (~1.16 drift is moderate). |
+| A5 | `python run_pipeline.py --retrain --adapt pseudo_label` | Calibrated pseudo-labeling. Check: sample count, class balance, val_accuracy, calibration temperature. Verify <90% of target selected (old bug was ~90%). |
+
+**Net: 4 runs instead of 5.** Each proves a distinct thesis claim. If you really want an A2 "alternate CSV" test, we can create a synthetic trimmed CSV from the anxiety dataset (wrist columns only) — but it's not necessary for the thesis story.
+
+---
+
+### 4.7 Updated Priority TODO
+
+| # | Priority | Item | Status | Effort |
+|---|----------|------|--------|--------|
+| 1 | **MUST** | Run A1 + A3 + A4 + A5 audit, fill ablation table | NOT STARTED | ~2h (runtime) |
+| 2 | **MUST** | Create `docs/THESIS_OBJECTIVES_TRACEABILITY.md` | NOT STARTED | ~30 min |
+| 3 | **MUST** | Create `scripts/audit_artifacts.py` | NOT STARTED | ~45 min |
+| 4 | **SHOULD** | Create `docs/TRAINING_RECIPE_MATRIX.md` | NOT STARTED | ~20 min |
+| 5 | **SHOULD** | Create `scripts/generate_thesis_evidence_pack.py` | NOT STARTED | ~1h |
+| 6 | **SHOULD** | Gate `normalized_baseline.json` update behind `auto_deploy` | DEFERRED (Option B — doc-only for now) | 0 or 10 lines |
+| 7 | **NICE** | EATA / CoTTA / FixMatch as adaptation methods | FUTURE WORK | N/A |
+| 8 | **NICE** | T1 vs T2 training ablation (pretrain helps?) | FUTURE WORK unless MLflow has old runs | 2–4h |
+
+**Execution order when green light is given:**
+
+1. Create `docs/THESIS_OBJECTIVES_TRACEABILITY.md` (pure doc, fast)
+2. Create `scripts/audit_artifacts.py` (code, ~100 lines)
+3. Create `docs/TRAINING_RECIPE_MATRIX.md` (pure doc, fast)
+4. Run A1 → verify with audit_artifacts.py
+5. Run A3 → verify
+6. Run A4 → verify
+7. Run A5 → verify
+8. Fill ablation table + create evidence pack (manual or via script)
+
+---
+
+**Document Status:** Closure Plan Ready  
+**Next Step:** Awaiting green light to create deliverables 1–3, then run A1/A3/A4/A5  
+**Last Updated:** Feb 19, 2026
+

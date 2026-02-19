@@ -235,6 +235,10 @@ class BaselineUpdateConfig:
     output_normalized_path: Optional[Path] = None # where to save normalized baseline
     rebuild_embeddings: bool = False
     model_path: Optional[Path] = None             # for embedding baseline
+    # Governance: False (default) = save baseline only as MLflow artifact.
+    # True = promote to shared models/ path that monitoring reads at runtime.
+    # Use --update-baseline CLI flag to set True explicitly.
+    promote_to_shared: bool = False
 
 
 # ============================================================================

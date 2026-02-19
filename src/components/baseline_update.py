@@ -49,7 +49,7 @@ class BaselineUpdate:
 
         # Determine data source for baseline
         data_path = self.config.training_data_path or (
-            self.pipeline_config.data_raw_dir / "all_users_data_labeled.csv"
+            self.pipeline_config.data_raw_dir.parent / "all_users_data_labeled.csv"
         )
         logger.info("Building baseline from: %s", data_path)
 
@@ -64,13 +64,39 @@ class BaselineUpdate:
             self.pipeline_config.models_dir / "normalized_baseline.json"
         )
 
-        builder.save(output_baseline)
-        logger.info("Baseline saved: %s", output_baseline)
+        promote = getattr(self.config, "promote_to_shared", False)
 
-        builder.save_normalized(output_normalized)
-        logger.info("Normalized baseline saved: %s", output_normalized)
+        if promote:
+            # Write to shared paths that monitoring reads at runtime.
+            # Also save a versioned copy so the change is reversible.
+            builder.save(output_baseline)
+            logger.info("Baseline PROMOTED to shared path: %s", output_baseline)
 
-        # Copy baselines into artifact dir for traceability
+            builder.save_normalized(output_normalized)
+            logger.info("Normalised baseline PROMOTED to shared path: %s", output_normalized)
+
+            # Versioned archive (e.g. training_baseline_20260219_130000.json)
+            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+            versioned_dir = Path(output_baseline).parent / "baseline_versions"
+            versioned_dir.mkdir(parents=True, exist_ok=True)
+            for src_p, dst_name in [
+                (output_baseline,   f"training_baseline_{ts}.json"),
+                (output_normalized, f"normalized_baseline_{ts}.json"),
+            ]:
+                shutil.copy2(src_p, versioned_dir / dst_name)
+                logger.info("Versioned archive saved: %s", versioned_dir / dst_name)
+        else:
+            # Governance default: do NOT overwrite shared baseline.
+            # Only save to artifact dir and log to MLflow.
+            logger.info(
+                "Baseline NOT promoted to shared path (promote_to_shared=False). "
+                "Re-run with --update-baseline to promote."
+            )
+            # Still build in-memory so we can copy the files into the artifact dir.
+            builder.save(output_baseline)       # writes to output_baseline path
+            builder.save_normalized(output_normalized)
+
+        # Copy baselines into artifact dir for traceability (always)
         artifact_models = Path(self.pipeline_config.artifact_dir) / "models"
         artifact_models.mkdir(parents=True, exist_ok=True)
         for src_file in (output_baseline, output_normalized):
@@ -81,6 +107,17 @@ class BaselineUpdate:
                 logger.info("Baseline copied to artifact: %s", dst)
             else:
                 logger.debug("Baseline file not on disk yet (mock run?), skipping artifact copy: %s", src)
+
+        # Log baseline files as MLflow artifacts if a run is active
+        try:
+            import mlflow
+            if mlflow.active_run():
+                mlflow.log_artifact(str(artifact_models / Path(output_baseline).name), artifact_path="baseline")
+                mlflow.log_artifact(str(artifact_models / Path(output_normalized).name), artifact_path="baseline")
+                mlflow.log_param("baseline_promoted", promote)
+                logger.info("Baseline files logged as MLflow artifacts.")
+        except Exception as _mlflow_err:
+            logger.debug("MLflow baseline artifact logging skipped: %s", _mlflow_err)
 
         # Stats summary
         stats = {

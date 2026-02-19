@@ -101,6 +101,7 @@ class ProductionPipeline:
         skip_validation: bool = False,
         continue_on_failure: bool = False,
         enable_retrain: bool = False,
+        update_baseline: bool = False,
     ) -> PipelineResult:
         """
         Execute the pipeline.
@@ -118,6 +119,10 @@ class ProductionPipeline:
             Log errors and continue to next stage instead of aborting.
         enable_retrain : bool
             Include stages 8-10 even when `stages` is None.
+        update_baseline : bool
+            When True, promote the rebuilt baseline to the shared models/ path
+            that monitoring reads.  Default False: baseline is written only as
+            an MLflow artifact (safe governance default — no silent overwrites).
         """
         result = PipelineResult(
             run_id=self.pipeline_config.timestamp,
@@ -354,6 +359,8 @@ class ProductionPipeline:
 
                 elif stage == "baseline_update":
                     from src.components.baseline_update import BaselineUpdate
+                    # Governance: only promote to shared baseline when explicitly requested
+                    self.baseline_config.promote_to_shared = update_baseline
                     comp = BaselineUpdate(
                         self.pipeline_config, self.baseline_config, retraining_art,
                     )
@@ -593,6 +600,11 @@ class ProductionPipeline:
 
     def _end_mlflow(self, tracker, result):
         try:
+            # Derive forced-retrain flag: retraining ran but trigger said no
+            retrain_ran = "retraining" in result.stages_completed
+            trigger_requested = bool(result.trigger and result.trigger.should_retrain) if hasattr(result, "trigger") else False
+            forced_retrain_by_cli = retrain_ran and not trigger_requested
+
             # Log pipeline-level parameters
             tracker.log_params({
                 "stages_completed": ",".join(result.stages_completed),
@@ -600,6 +612,9 @@ class ProductionPipeline:
                 "overall_status": result.overall_status,
                 "n_stages_completed": len(result.stages_completed),
                 "n_stages_failed": len(result.stages_failed),
+                "retrain_ran": str(retrain_ran),
+                "retrain_trigger_initiated": str(trigger_requested),
+                "retrain_forced_by_cli": str(forced_retrain_by_cli),
             })
             
             # Upload run_info.json as artifact
