@@ -8,6 +8,8 @@ from pathlib import Path
 from unittest.mock import patch, MagicMock
 from datetime import datetime
 
+pytestmark = pytest.mark.slow   # fixtures build Keras models via TensorFlow
+
 from src.entity.config_entity import PipelineConfig, ModelRetrainingConfig
 from src.entity.artifact_entity import (
     ModelRetrainingArtifact,

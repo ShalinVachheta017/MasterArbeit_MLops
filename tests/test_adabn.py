@@ -5,6 +5,7 @@ Tests for AdaBN (Adaptive Batch Normalization) domain adaptation.
 import pytest
 import numpy as np
 
+pytestmark = pytest.mark.slow   # requires TensorFlow
 
 # ── Fixtures ──────────────────────────────────────────────────────────
 

@@ -9,6 +9,8 @@ from pathlib import Path
 from unittest.mock import patch, MagicMock
 from datetime import datetime
 
+pytestmark = pytest.mark.integration
+
 from src.entity.config_entity import PipelineConfig
 from src.entity.artifact_entity import PipelineResult
 from src.pipeline.production_pipeline import ProductionPipeline, ALL_STAGES

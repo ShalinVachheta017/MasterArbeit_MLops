@@ -74,9 +74,13 @@ class BaselineUpdate:
         artifact_models = Path(self.pipeline_config.artifact_dir) / "models"
         artifact_models.mkdir(parents=True, exist_ok=True)
         for src_file in (output_baseline, output_normalized):
-            dst = artifact_models / Path(src_file).name
-            shutil.copy2(src_file, dst)
-            logger.info("Baseline copied to artifact: %s", dst)
+            src = Path(src_file)
+            if src.exists():
+                dst = artifact_models / src.name
+                shutil.copy2(src, dst)
+                logger.info("Baseline copied to artifact: %s", dst)
+            else:
+                logger.debug("Baseline file not on disk yet (mock run?), skipping artifact copy: %s", src)
 
         # Stats summary
         stats = {
