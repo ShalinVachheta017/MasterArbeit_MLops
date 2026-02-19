@@ -265,8 +265,17 @@ def _detect_gpu() -> str:
             logger.info("Device: GPU available — %s (memory growth enabled)", names)
             return "gpu"
         else:
-            print("  Device : CPU (no GPU detected)")
-            logger.info("Device: CPU — no GPU detected")
+            tf_ver = getattr(tf, "__version__", "?")
+            if tf_ver >= "2.11":
+                msg = (
+                    f"CPU — TF {tf_ver} on Windows-native has no CUDA GPU support "
+                    "(last native-Windows GPU build was TF 2.10). "
+                    "Use WSL2 for GPU: tensorflow.org/install/pip"
+                )
+            else:
+                msg = "CPU (no GPU detected)"
+            print(f"  Device : {msg}")
+            logger.info("Device: %s", msg)
             return "cpu"
     except Exception as exc:
         print(f"  Device : CPU (GPU detection failed: {exc})")

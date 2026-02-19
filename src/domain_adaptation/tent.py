@@ -104,16 +104,23 @@ def tent_adapt(
         "tent_entropy_after": float("nan"),
         "tent_entropy_delta": float("nan"),
         "tent_ood_skipped": False,
+        "tent_confidence_before": float("nan"),
+        "tent_confidence_after": float("nan"),
+        "tent_confidence_delta": float("nan"),
     }
 
     # ── Safety: OOD guard ──────────────────────────────────────────────
-    init_probs = model.predict(target_X[:min(256, len(target_X))], verbose=0)
+    # Use model() instead of model.predict() to avoid tf.function retracing
+    # caused by predict() receiving variable-length inputs across calls.
+    _eval_X = tf.constant(target_X[:min(256, len(target_X))].astype(np.float32))
+    init_probs = model(_eval_X, training=False).numpy()
     eps = 1e-9
     init_entropy = -(init_probs * np.log(init_probs + eps)).sum(axis=1)
     n_classes = init_probs.shape[1]
     norm_entropy = init_entropy / np.log(n_classes)
     mean_norm_entropy = float(norm_entropy.mean())
     meta["tent_entropy_before"] = mean_norm_entropy
+    meta["tent_confidence_before"] = float(init_probs.max(axis=1).mean())
 
     if mean_norm_entropy > ood_entropy_threshold:
         logger.warning(
@@ -200,26 +207,49 @@ def tent_adapt(
         if (step + 1) % max(1, n_steps // 5) == 0:
             logger.debug("  TENT step %d/%d — entropy_loss=%.4f", step + 1, n_steps, float(loss))
 
-    # ── Evaluate post-adaptation entropy ──────────────────────────────
-    final_probs    = model.predict(target_X[:min(256, len(target_X))], verbose=0)
+    # ── Evaluate post-adaptation entropy and confidence ────────────────
+    # Reuse same tf.constant input to avoid retracing
+    final_probs    = model(_eval_X, training=False).numpy()
     final_entropy  = -(final_probs * np.log(final_probs + eps)).sum(axis=1)
     final_norm_ent = float((final_entropy / np.log(n_classes)).mean())
     entropy_delta  = final_norm_ent - mean_norm_entropy
 
-    meta["tent_entropy_after"] = final_norm_ent
-    meta["tent_entropy_delta"] = entropy_delta
+    mean_conf_after  = float(final_probs.max(axis=1).mean())
+    mean_conf_before = meta["tent_confidence_before"]
+    conf_delta       = mean_conf_after - mean_conf_before
+
+    meta["tent_entropy_after"]     = final_norm_ent
+    meta["tent_entropy_delta"]     = entropy_delta
+    meta["tent_confidence_after"]  = mean_conf_after
+    meta["tent_confidence_delta"]  = conf_delta
 
     logger.info(
-        "TENT done — entropy: %.3f → %.3f (Δ=%+.3f)",
+        "TENT done — entropy: %.3f → %.3f (Δ=%+.3f) | confidence: %.3f → %.3f (Δ=%+.3f)",
         mean_norm_entropy, final_norm_ent, entropy_delta,
+        mean_conf_before, mean_conf_after, conf_delta,
     )
 
     # ── Safety rollback ───────────────────────────────────────────────
-    if entropy_delta > rollback_threshold:
+    # Gate 1: entropy increased beyond rollback_threshold
+    # Gate 2: mean confidence dropped more than 1 pp (adaptation hurt the model)
+    confidence_drop_threshold = 0.01
+    should_rollback = (
+        entropy_delta > rollback_threshold
+        or conf_delta < -confidence_drop_threshold
+    )
+
+    if should_rollback:
+        reasons = []
+        if entropy_delta > rollback_threshold:
+            reasons.append(f"entropy Δ={entropy_delta:+.4f} > threshold {rollback_threshold}")
+        if conf_delta < -confidence_drop_threshold:
+            reasons.append(
+                f"confidence dropped {mean_conf_before:.4f}→{mean_conf_after:.4f} "
+                f"(Δ={conf_delta:+.4f} < −{confidence_drop_threshold})"
+            )
         logger.warning(
-            "TENT rollback: entropy increased by %.3f > threshold %.3f — "
-            "restoring original BN affine weights.",
-            entropy_delta, rollback_threshold,
+            "TENT rollback triggered (%s) — restoring BN affine weights.",
+            "; ".join(reasons),
         )
         for layer in bn_layers:
             if layer.name in initial_affine and layer.gamma is not None:
@@ -228,7 +258,10 @@ def tent_adapt(
                 layer.beta.assign(beta0)
         meta["tent_rollback"] = True
     else:
-        logger.info("TENT accepted — entropy improved or within threshold.")
+        logger.info(
+            "TENT accepted — entropy Δ=%+.4f, confidence Δ=%+.4f (both within thresholds).",
+            entropy_delta, conf_delta,
+        )
 
     return model, meta
 

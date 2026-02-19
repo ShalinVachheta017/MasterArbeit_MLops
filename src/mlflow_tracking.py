@@ -342,14 +342,24 @@ class MLflowTracker:
                 predictions = model.predict(input_example[:1], verbose=0)
                 signature = infer_signature(input_example[:1], predictions)
             
-            # Log model
-            mlflow.keras.log_model(
-                model,
-                artifact_path,
-                signature=signature,
-                input_example=input_example[:1] if input_example is not None else None,
-                registered_model_name=registered_model_name
-            )
+            # Log model (handle artifact_path→name rename in MLflow >=2.9)
+            try:
+                mlflow.keras.log_model(
+                    model,
+                    name=artifact_path,
+                    signature=signature,
+                    input_example=input_example[:1] if input_example is not None else None,
+                    registered_model_name=registered_model_name
+                )
+            except TypeError:
+                # Older MLflow still uses artifact_path= as positional
+                mlflow.keras.log_model(
+                    model,
+                    artifact_path,
+                    signature=signature,
+                    input_example=input_example[:1] if input_example is not None else None,
+                    registered_model_name=registered_model_name
+                )
             logger.info(f"Logged Keras model to {artifact_path}")
             
             if registered_model_name:

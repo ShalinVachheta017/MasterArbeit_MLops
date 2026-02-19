@@ -3,18 +3,17 @@
     "auto": {
       "version": "auto",
       "path": "D:\\study apply\\ML Ops\\MasterArbeit_MLops\\models\\registry\\har_model_vauto.keras",
-      "created_at": "2026-02-19T13:42:53.749422",
+      "created_at": "2026-02-19T16:05:33.067936",
       "deployed_at": null,
       "metrics": {
-        "final_accuracy": 0.4075993001461029,
-        "final_loss": 2.724071741104126,
-        "val_accuracy": 0.9692307710647583,
-        "val_loss": 0.8926728963851929,
-        "pseudo_labeled_samples": 86,
-        "confidence_threshold": 0.7,
-        "entropy_threshold": 0.4
+        "before_mean_confidence": 0.8994881510734558,
+        "after_mean_confidence": 0.8206586837768555,
+        "confidence_improvement": -0.07882946729660034,
+        "after_norm_entropy": 0.20680949047010977,
+        "tent_rollback": 0,
+        "tent_entropy_delta": 0.0031152062433463523
       },
-      "config_hash": "787f5e0cbbac",
+      "config_hash": "6b83a59285e1",
       "data_version": null,
       "status": "archived"
     }

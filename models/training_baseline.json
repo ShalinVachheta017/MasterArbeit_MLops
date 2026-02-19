@@ -369,7 +369,7 @@
     "step_size": 100,
     "n_channels": 6,
     "source_csv": "D:\\study apply\\ML Ops\\MasterArbeit_MLops\\data\\all_users_data_labeled.csv",
-    "created_at": "2026-02-19T13:42:54.588716",
+    "created_at": "2026-02-19T16:05:33.987216",
     "sensor_columns": [
       "Ax_w",
       "Ay_w",

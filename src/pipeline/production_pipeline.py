@@ -654,10 +654,18 @@ class ProductionPipeline:
                 logger.warning("Model file not found at %s — skipping registration.", model_path)
                 return
 
+            loaded_model = self._load_keras_model(model_path)
+            # Build a minimal input example so MLflow can infer the signature
+            try:
+                import numpy as _np
+                _in_shape = loaded_model.input_shape  # e.g. (None, 200, 6)
+                _example  = _np.zeros((1,) + tuple(_in_shape[1:]), dtype=_np.float32)
+            except Exception:
+                _example = None
             tracker.log_keras_model(
-                model=self._load_keras_model(model_path),
+                model=loaded_model,
                 artifact_path="model",
-                input_example=None,  # skip input_example to avoid temp file issues
+                input_example=_example,
                 registered_model_name="har-1dcnn-bilstm",
             )
 
