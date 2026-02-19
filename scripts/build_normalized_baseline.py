@@ -73,8 +73,7 @@ def build_baseline(X: np.ndarray) -> dict:
             "p95": p95[i],
         }
 
-    baseline = {
-        # Flat arrays — used by PostInferenceMonitor._analyze_drift()
+    baseline = {        "schema_version": 1,        # Flat arrays — used by PostInferenceMonitor._analyze_drift()
         "mean": mean,
         "std": std,
         "min": min_val,

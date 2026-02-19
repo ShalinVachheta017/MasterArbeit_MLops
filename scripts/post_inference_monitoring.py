@@ -261,11 +261,21 @@ class PostInferenceMonitor:
             with open(baseline_path, 'r') as f:
                 baseline = json.load(f)
             
+            # Schema guard: fail loudly if required keys are missing
+            _required = {"mean", "std"}
+            _missing  = _required - set(baseline.keys())
+            if _missing:
+                raise ValueError(
+                    f"Baseline JSON is missing required keys: {_missing}. "
+                    f"Available keys: {list(baseline.keys())}. "
+                    f"Re-run Stage 10 (baseline update) to regenerate."
+                )
+
             # Calculate production statistics
             prod_mean = production_data.mean(axis=(0, 1))  # Average over windows and timesteps
             prod_std = production_data.std(axis=(0, 1))
             
-            # Compare with baseline (if available)
+            # Compare with baseline
             if 'mean' in baseline and 'std' in baseline:
                 baseline_mean = np.array(baseline['mean'])
                 baseline_std = np.array(baseline['std'])

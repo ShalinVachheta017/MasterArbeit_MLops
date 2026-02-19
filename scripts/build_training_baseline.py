@@ -195,6 +195,7 @@ class BaselineBuilder:
                 }
 
         self._baseline = {
+            "schema_version": 1,
             **stats,
             "n_channels": int(X.shape[2]),
             "n_samples":  int(X.shape[0]),

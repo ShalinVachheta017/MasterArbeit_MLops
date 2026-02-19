@@ -1,10 +1,11 @@
-"""
+"""    
 Component 10 – Baseline Update
 
 Wraps:  scripts/build_training_baseline.py  →  BaselineBuilder
 """
 
 import logging
+import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -68,6 +69,14 @@ class BaselineUpdate:
 
         builder.save_normalized(output_normalized)
         logger.info("Normalized baseline saved: %s", output_normalized)
+
+        # Copy baselines into artifact dir for traceability
+        artifact_models = Path(self.pipeline_config.artifact_dir) / "models"
+        artifact_models.mkdir(parents=True, exist_ok=True)
+        for src_file in (output_baseline, output_normalized):
+            dst = artifact_models / Path(src_file).name
+            shutil.copy2(src_file, dst)
+            logger.info("Baseline copied to artifact: %s", dst)
 
         # Stats summary
         stats = {

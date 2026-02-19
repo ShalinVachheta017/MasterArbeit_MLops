@@ -27,13 +27,18 @@ class TestTriggerThresholds:
     """Tests for threshold configuration."""
     
     def test_default_thresholds(self):
-        """Test that default thresholds are set correctly."""
+        """Test that default thresholds are set correctly.
+
+        PSI defaults are data-driven (N=24 multi-channel aggregation):
+          psi_warn=0.75, psi_critical=1.50
+        NOT the textbook single-distribution 0.10/0.25.
+        """
         thresholds = TriggerThresholds()
         
         assert thresholds.confidence_warn == 0.55
         assert thresholds.confidence_critical == 0.45
-        assert thresholds.psi_warn == 0.10
-        assert thresholds.psi_critical == 0.25
+        assert thresholds.psi_warn == 0.75
+        assert thresholds.psi_critical == 1.50
     
     def test_custom_thresholds(self):
         """Test custom threshold configuration."""
