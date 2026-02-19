@@ -814,15 +814,62 @@ class DomainAdaptationTrainer(HARTrainer):
         else:
             source_onehot = source_y
 
-        X_combined = np.concatenate([source_X, pseudo_X])
+        # Scale source_X with the same production scaler used on target_X
+        # (production_X.npy was normalized via data/prepared/config.json).
+        import json as _json
+        _config_path = Path(__file__).resolve().parent.parent / "data" / "prepared" / "config.json"
+        if _config_path.exists():
+            with open(_config_path) as _f:
+                _scaler_cfg = _json.load(_f)
+            from sklearn.preprocessing import StandardScaler as _SS
+            _scaler = _SS()
+            _scaler.mean_ = np.array(_scaler_cfg["scaler_mean"])
+            _scaler.scale_ = np.array(_scaler_cfg["scaler_scale"])
+            n_steps, n_sensors = source_X.shape[1], source_X.shape[2]
+            src_flat = source_X.reshape(-1, n_sensors)
+            source_X_scaled = _scaler.transform(src_flat).reshape(source_X.shape)
+            self.logger.info("  Source data scaled with production scaler.")
+        else:
+            self.logger.warning("  Production scaler config not found — using unscaled source data.")
+            source_X_scaled = source_X
+
+        # ------------------------------------------------------------------
+        # 6b. Self-consistency filter: keep only source windows where the
+        #     model's own prediction matches the true label.
+        #     prepare_data() windows the CSV sequentially, which creates
+        #     mixed-activity windows at user/activity boundaries.  The model
+        #     can only classify ~19 % of these correctly.  By keeping only
+        #     self-consistent samples we get a clean, high-quality source set.
+        # ------------------------------------------------------------------
+        _src_preds = base_model.predict(source_X_scaled, verbose=0)
+        _src_pred_cls = _src_preds.argmax(axis=1)
+        _src_true_cls = source_y.astype(int) if source_y.ndim == 1 else source_y.argmax(axis=1)
+        _consistent = _src_pred_cls == _src_true_cls
+        self.logger.info(
+            f"  Self-consistency filter: {_consistent.sum()}/{len(source_X_scaled)} "
+            f"({100 * _consistent.mean():.1f}%) source windows kept"
+        )
+        source_X_scaled = source_X_scaled[_consistent]
+        source_onehot   = source_onehot[_consistent]
+
+        X_combined = np.concatenate([source_X_scaled, pseudo_X])
         y_combined = np.concatenate([source_onehot, pseudo_soft])
         self.logger.info(f"  Combined training set: {len(X_combined)} samples")
 
         # ------------------------------------------------------------------
         # 7. Fine-tune from pretrained base — freeze early layers
         # ------------------------------------------------------------------
-        import copy
-        model = copy.deepcopy(base_model)
+        # NOTE: keras.models.clone_model + set_weights can lose non-trainable
+        # state (e.g. BatchNorm moving stats). Save-and-reload is the only
+        # reliable way to obtain an independent, identical copy of a Keras model.
+        # We must ensure the model is built (called at least once) before saving.
+        import tempfile
+        _ = base_model.predict(pseudo_X[:1], verbose=0)  # ensure model is built
+        _tmp_path = Path(tempfile.mktemp(suffix=".keras"))
+        base_model.save(_tmp_path)
+        model = keras.models.load_model(_tmp_path)
+        _ = model.predict(pseudo_X[:1], verbose=0)  # build the loaded model's graph
+        _tmp_path.unlink(missing_ok=True)
 
         # Freeze all but last 3 layers (feature extractor frozen; classifier fine-tuned)
         for layer in model.layers[:-3]:
@@ -857,8 +904,20 @@ class DomainAdaptationTrainer(HARTrainer):
         )
 
         # ------------------------------------------------------------------
-        # 8. Collect metrics
+        # 8. Collect metrics  (use best-epoch values since EarlyStopping
+        #    with restore_best_weights=True restores the epoch-1 model)
         # ------------------------------------------------------------------
+        _val_losses = history.history.get("val_loss", [])
+        if _val_losses:
+            _best_idx = int(np.argmin(_val_losses))
+        else:
+            _best_idx = -1
+
+        def _hist(key: str) -> float:
+            vals = history.history.get(key, [0.0])
+            idx = _best_idx if 0 <= _best_idx < len(vals) else -1
+            return float(vals[idx])
+
         metrics = {
             "method":                 "pseudo_labeling_calibrated",
             "source_samples":         int(len(source_X)),
@@ -867,10 +926,10 @@ class DomainAdaptationTrainer(HARTrainer):
             "confidence_threshold":   conf_threshold,
             "entropy_threshold":      entropy_threshold,
             "calibration_temperature": float(temperature),
-            "final_loss":     float(history.history["loss"][-1]),
-            "final_accuracy": float(history.history["accuracy"][-1]),
-            "val_loss":     float(history.history.get("val_loss", [0.0])[-1]),
-            "val_accuracy": float(history.history.get("val_accuracy", [0.0])[-1]),
+            "final_loss":     _hist("loss"),
+            "final_accuracy": _hist("accuracy"),
+            "val_loss":       _hist("val_loss"),
+            "val_accuracy":   _hist("val_accuracy"),
         }
         self.logger.info(
             "Pseudo-label fine-tuning done — val_acc=%.4f  val_loss=%.4f",
@@ -917,27 +976,49 @@ class DomainAdaptationTrainer(HARTrainer):
         self, model: keras.Model, X: np.ndarray
     ) -> Optional[np.ndarray]:
         """
-        Return pre-softmax logits by building a logit-output sub-model.
-        Falls back to None if the architecture does not end with a softmax layer.
+        Return pre-softmax logits from the final Dense layer.
+        Works for both built and unbuilt Keras models by using a dummy forward
+        pass to build the graph first if needed.
         """
         try:
-            last = model.layers[-1]
-            if not (hasattr(last, "activation") and
-                    getattr(last.activation, "__name__", "") == "softmax"):
+            import tensorflow as tf
+            # Build the model's graph by running a small prediction
+            _ = model.predict(X[:2], verbose=0)
+
+            # Find last Dense layer (the classifier head)
+            dense_layers = [l for l in model.layers if isinstance(l, keras.layers.Dense)]
+            if not dense_layers:
                 return None
-            # Build model that stops just before the final activation
-            logit_model = keras.Model(
-                inputs=model.input, outputs=last.output
-            )
-            # Override activation to linear for this forward pass
-            # Simpler: use the layer before the final activation
-            if len(model.layers) >= 2:
-                pre_softmax = keras.Model(
-                    inputs=model.input, outputs=model.layers[-2].output
-                )
-                return pre_softmax.predict(X, verbose=0)
-            return logit_model.predict(X, verbose=0)
-        except Exception:
+            last_dense = dense_layers[-1]
+            last_dense_idx = model.layers.index(last_dense)
+            if last_dense_idx == 0:
+                return None
+
+            # For Sequential models, use direct tensor operations instead of
+            # building a sub-model (which requires model.input to be defined).
+            pre_dense_layer = model.layers[last_dense_idx - 1]
+
+            # Use a tf.keras functional approach: input through all layers up to pre_dense
+            @tf.function
+            def get_pre_dense(x_batch):
+                h = x_batch
+                for layer in model.layers[:last_dense_idx]:
+                    h = layer(h, training=False)
+                return h
+
+            out_list = []
+            for i in range(0, len(X), 64):
+                batch = tf.constant(X[i:i+64], dtype=tf.float32)
+                out_list.append(get_pre_dense(batch).numpy())
+            pre_out = np.concatenate(out_list, axis=0)
+
+            # Apply dense kernel (W, b) without softmax activation
+            W = last_dense.kernel.numpy()   # (in_features, n_classes)
+            b = last_dense.bias.numpy()     # (n_classes,)
+            logits = pre_out @ W + b        # (N, n_classes)
+            return logits
+        except Exception as exc:  # noqa: BLE001
+            self.logger.warning("_get_logits failed (%s); will use softmax probs instead", exc)
             return None
     
     def _retrain_mmd(

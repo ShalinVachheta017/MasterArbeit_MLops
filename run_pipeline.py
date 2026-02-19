@@ -200,6 +200,11 @@ Examples:
         help="Training epochs for retraining (default: 100)",
     )
     parser.add_argument(
+        "--skip-cv",
+        action="store_true",
+        help="Skip cross-validation during retraining (faster audit runs)",
+    )
+    parser.add_argument(
         "--auto-deploy",
         action="store_true",
         help="Automatically deploy retrained model if proxy validation passes",
@@ -302,6 +307,7 @@ def main():
         enable_adaptation=(args.adapt != "none"),
         adaptation_method=args.adapt,
         epochs=args.epochs,
+        skip_cv=args.skip_cv,
         labels_path=Path(args.labels) if args.labels else None,
     )
 
@@ -359,64 +365,86 @@ def main():
         sys.exit(1)
 
 
+def _safe_print(text: str):
+    """Print text, replacing characters that can't be encoded on Windows cp1252."""
+    import sys as _sys
+    try:
+        print(text)
+    except UnicodeEncodeError:
+        print(text.encode(_sys.stdout.encoding or "utf-8", errors="replace").decode(
+            _sys.stdout.encoding or "utf-8", errors="replace"
+        ))
+
+
 def _print_pipeline_summary(result):
     """Print a clean summary of key pipeline metrics."""
-    print("\n" + "="*70)
-    print("  PIPELINE SUMMARY")
-    print("="*70)
-    
+    P = _safe_print   # shorthand
+    P("\n" + "="*70)
+    P("  PIPELINE SUMMARY")
+    P("="*70)
+
     # Overall status
-    status_emoji = "✅" if result.overall_status == "SUCCESS" else "⚠️" if result.overall_status == "PARTIAL" else "❌"
-    print(f"\n{status_emoji} Overall Status: {result.overall_status}")
-    print(f"   Completed: {len(result.stages_completed)} stages")
-    print(f"   Failed: {len(result.stages_failed)} stages")
-    
+    status_icon = "[OK]" if result.overall_status == "SUCCESS" else "[!!]" if result.overall_status == "PARTIAL" else "[FAIL]"
+    P(f"\n{status_icon} Overall Status: {result.overall_status}")
+    P(f"   Completed: {len(result.stages_completed)} stages")
+    P(f"   Failed: {len(result.stages_failed)} stages")
+
     # Key metrics
-    print("\n📊 KEY METRICS")
-    print("-" * 70)
-    
+    P("\n  KEY METRICS")
+    P("-" * 70)
+
     # Inference metrics
     if result.inference:
-        print(f"\n  Inference:")
-        print(f"    • Predictions: {result.inference.n_predictions:,}")
-        print(f"    • Duration: {result.inference.inference_time_seconds:.2f}s")
+        P(f"\n  Inference:")
+        P(f"    - Predictions: {result.inference.n_predictions:,}")
+        P(f"    - Duration: {result.inference.inference_time_seconds:.2f}s")
         if result.inference.confidence_stats:
             conf = result.inference.confidence_stats
-            print(f"    • Mean Confidence: {conf.get('mean', 0)*100:.1f}%")
-            print(f"    • Uncertain: {conf.get('n_uncertain', 0)} ({conf.get('n_uncertain', 0)/max(result.inference.n_predictions, 1)*100:.1f}%)")
-    
+            P(f"    - Mean Confidence: {conf.get('mean', 0)*100:.1f}%")
+            P(f"    - Uncertain: {conf.get('n_uncertain', 0)} ({conf.get('n_uncertain', 0)/max(result.inference.n_predictions, 1)*100:.1f}%)")
+
     # Monitoring metrics
     if result.monitoring:
-        print(f"\n  Monitoring:")
-        print(f"    • Overall: {result.monitoring.overall_status}")
-        
+        P(f"\n  Monitoring:")
+        P(f"    - Overall: {result.monitoring.overall_status}")
+
         if result.monitoring.layer3_drift:
             drift = result.monitoring.layer3_drift
             drift_score = drift.get('max_drift', 0)
-            print(f"    • Drift Score: {drift_score:.4f}")
-            
-            # Drift interpretation (thresholds: 0.75 warn, 1.50 alert)
+            P(f"    - Drift Score: {drift_score:.4f}")
+
             if drift_score > 1.50:
-                print(f"      ⚠️ HIGH DRIFT ({drift_score:.3f}) - Retraining recommended")
+                P(f"      [!] HIGH DRIFT ({drift_score:.3f}) - Retraining recommended")
             elif drift_score > 0.75:
-                print(f"      ⚠ Moderate drift ({drift_score:.3f}) - Monitor closely")
+                P(f"      [~] Moderate drift ({drift_score:.3f}) - Monitor closely")
             else:
-                print(f"      ✓ Drift within acceptable range")
-    
+                P(f"      [ok] Drift within acceptable range")
+
     # Trigger decision
     if result.trigger:
-        print(f"\n  Retraining Decision:")
-        retrain_emoji = "🔄" if result.trigger.should_retrain else "✓"
-        print(f"    {retrain_emoji} Should Retrain: {'YES' if result.trigger.should_retrain else 'NO'}")
-        print(f"    • Alert Level: {result.trigger.alert_level}")
+        P(f"\n  Retraining Decision:")
+        retrain_icon = "[retrain]" if result.trigger.should_retrain else "[ok]"
+        P(f"    {retrain_icon} Should Retrain: {'YES' if result.trigger.should_retrain else 'NO'}")
+        P(f"    - Alert Level: {result.trigger.alert_level}")
         if result.trigger.reasons:
-            print(f"    • Reasons:")
-            for reason in result.trigger.reasons[:3]:  # Show first 3
-                print(f"      - {reason}")
-    
+            P(f"    - Reasons:")
+            for reason in result.trigger.reasons[:3]:
+                P(f"      - {reason}")
+
+    # Retraining metrics (if retrain ran)
+    if result.retraining:
+        P(f"\n  Retraining:")
+        for k, v in result.retraining.metrics.items():
+            if isinstance(v, float):
+                P(f"    - {k}: {v:.4f}")
+            else:
+                P(f"    - {k}: {v}")
+        P(f"    - Source samples: {result.retraining.n_source_samples}")
+        P(f"    - Target samples: {result.retraining.n_target_samples}")
+
     # Activity distribution
     if result.inference and result.inference.activity_distribution:
-        print(f"\n  Top 3 Activities Detected:")
+        P(f"\n  Top 3 Activities Detected:")
         sorted_activities = sorted(
             result.inference.activity_distribution.items(),
             key=lambda x: x[1],
@@ -424,12 +452,12 @@ def _print_pipeline_summary(result):
         )[:3]
         for activity, count in sorted_activities:
             pct = count / max(result.inference.n_predictions, 1) * 100
-            print(f"    • {activity}: {count} ({pct:.1f}%)")
-    
-    print("\n" + "="*70)
-    print(f"📁 Artifacts saved to: artifacts/{result.run_id}")
-    print(f"📄 Log file: {CURRENT_LOG_FILE}")
-    print("="*70 + "\n")
+            P(f"    - {activity}: {count} ({pct:.1f}%)")
+
+    P("\n" + "="*70)
+    P(f"  Artifacts saved to: artifacts/{result.run_id}")
+    P(f"  Log file: {CURRENT_LOG_FILE}")
+    P("="*70 + "\n")
 
 
 if __name__ == "__main__":
