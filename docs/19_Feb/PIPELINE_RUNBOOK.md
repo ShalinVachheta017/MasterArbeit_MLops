@@ -422,27 +422,24 @@ docker-compose up inference -d
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/` | API info and version |
-| `GET` | `/health` | Health check (`{"status": "healthy"}`) |
-| `GET` | `/model/info` | Model name, version, input shape, classes |
-| `POST` | `/predict` | Single window prediction (200×6 array) |
-| `POST` | `/predict/batch` | Batch predictions (N×200×6) |
-| `POST` | `/predict/stream` | Stream raw sensor data (auto-windowed) |
+| `GET` | `/` | Embedded HTML dashboard (single-file SPA) |
+| `GET` | `/api/health` | Health check (model/baseline loaded, uptime) |
+| `GET` | `/api/model/info` | Model metadata + activity classes |
+| `POST` | `/api/upload` | CSV upload → windowing → inference → 3-layer monitoring |
 
-### Example: Single Prediction
+> **Note (22 Feb 2026):** Earlier docs referenced `/predict`, `/predict/batch`, and `/predict/stream` endpoints — these do not exist in `src/api/app.py`. The only POST endpoint is `/api/upload` which accepts a CSV file, windows the data, runs inference, and returns per-window predictions with monitoring alerts.
+
+### Example: CSV Upload Prediction
 
 ```python
 import requests
-import numpy as np
 
-# 200 timesteps × 6 sensors
-data = np.random.randn(200, 6).tolist()
-
-response = requests.post("http://localhost:8000/predict", json={
-    "sensor_data": data
-})
+response = requests.post(
+    "http://localhost:8000/api/upload",
+    files={"file": open("session.csv", "rb")}
+)
 print(response.json())
-# {"activity": "hand_tapping", "confidence": 0.87, "probabilities": {...}}
+# {"predictions": [...], "monitoring": {...}, "summary": {...}}
 ```
 
 ### Example: Batch Prediction

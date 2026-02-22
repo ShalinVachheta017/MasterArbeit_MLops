@@ -41,8 +41,8 @@ These questions from [File 24 §4](../docs/22Feb_Opus_Understanding/24_ASSUMPTIO
 | Q-3 | **What is your thesis submission deadline?** | 8 weeks → full plan feasible. 4 weeks → compressed plan with cuts. | Scopes everything | [File 24 Q-3](../docs/22Feb_Opus_Understanding/24_ASSUMPTIONS_GAPS_AND_OPEN_QUESTIONS.md), [File 25 §4](../docs/22Feb_Opus_Understanding/25_EXECUTION_PLAN_4_TO_8_WEEKS.md) |
 | Q-4 | **Do you have GPU access (8GB+ VRAM)?** | Full 26-session sweep + TENT optimization on CPU would take days. 5-session subset is fallback. | Scopes experiment depth | [File 24 Q-4](../docs/22Feb_Opus_Understanding/24_ASSUMPTIONS_GAPS_AND_OPEN_QUESTIONS.md), [File 25 §5](../docs/22Feb_Opus_Understanding/25_EXECUTION_PLAN_4_TO_8_WEEKS.md) |
 | Q-5 | **What level of Prometheus/Grafana integration does your supervisor expect?** | Full integration = 4-8h extra. Config-only = 0h but weaker MLOps claim. "Deployment-ready config" framing is a middle ground. | Scopes PG-1, PG-3 effort | [File 24 Q-5](../docs/22Feb_Opus_Understanding/24_ASSUMPTIONS_GAPS_AND_OPEN_QUESTIONS.md), [Codex §16](../22%20feb%20codex/THESIS_COMPLETION_AND_PIPELINE_ANALYSIS_22_FEB_2026.md) |
-| Q-6 | **Should DANN/MMD be removed or properly implemented?** | Currently, selecting `dann` or `mmd` silently runs pseudo-labeling instead. Remove → cleaner thesis. Implement → more comparisons but 10-15h work. | Scopes Ch 3.6, D-5 | [File 24 Q-6](../docs/22Feb_Opus_Understanding/24_ASSUMPTIONS_GAPS_AND_OPEN_QUESTIONS.md), [File 20 IMP-12](../docs/22Feb_Opus_Understanding/20_IMPROVEMENT_ROADMAP_EVIDENCE_AND_LITERATURE.md) |
-| Q-7 | **Must stages 11-14 work in the orchestrator before submission?** | If yes → IMP-01 is P0 (4-6h). If not → describe as "implemented modules" in thesis and frame integration as future work. | Scopes D-1, CD-6 | [File 24 Q-7](../docs/22Feb_Opus_Understanding/24_ASSUMPTIONS_GAPS_AND_OPEN_QUESTIONS.md) |
+| Q-6 | ~~**Should DANN/MMD be removed or properly implemented?**~~ | ✅ **RESOLVED** — Step 6d: `dann`/`mmd` now raise `NotImplementedError`; thesis claims 3 methods. No silent fallback. | Scopes Ch 3.6, D-5 | [File 24 Q-6](../docs/22Feb_Opus_Understanding/24_ASSUMPTIONS_GAPS_AND_OPEN_QUESTIONS.md), [File 20 IMP-12](../docs/22Feb_Opus_Understanding/20_IMPROVEMENT_ROADMAP_EVIDENCE_AND_LITERATURE.md) |
+| Q-7 | ~~**Must stages 11-14 work in the orchestrator before submission?**~~ | ✅ **RESOLVED** — Step 3: All 14 stages orchestrated. `python run_pipeline.py --advanced` executes all 14. | Scopes D-1, CD-6 | [File 24 Q-7](../docs/22Feb_Opus_Understanding/24_ASSUMPTIONS_GAPS_AND_OPEN_QUESTIONS.md) |
 
 ---
 
@@ -62,10 +62,10 @@ These are assumptions the audit made that **could be incorrect**. If any are wro
 
 | # | Doubt | If Wrong... | Source |
 |--:|-------|------------|--------|
-| D-4 | API monitoring thresholds (10%, 30%, 0.75) were intentionally different from pipeline thresholds | If accidental → inconsistent alerting is a bug, not a design choice | [File 24 A-12-1](../docs/22Feb_Opus_Understanding/24_ASSUMPTIONS_GAPS_AND_OPEN_QUESTIONS.md) |
-| D-5 | DANN/MMD redirect to pseudo-labeling is intentional | If unintentional → 2 of 5 adaptation methods are stubs, not features | [File 24 A-13-1](../docs/22Feb_Opus_Understanding/24_ASSUMPTIONS_GAPS_AND_OPEN_QUESTIONS.md) |
-| D-6 | The 4 placeholder zeros in trigger evaluation are temporary scaffolding | **If permanent → trigger policy never receives real signals for 4 of 7 inputs; 2-of-3 voting is confidence-only** | [File 24 A-14-1](../docs/22Feb_Opus_Understanding/24_ASSUMPTIONS_GAPS_AND_OPEN_QUESTIONS.md) |
-| D-7 | Training session is not excluded from drift analysis (all 26 sessions analyzed) | Self-comparison inflates the "low-drift" count by 1 | [File 24 A-16-1](../docs/22Feb_Opus_Understanding/24_ASSUMPTIONS_GAPS_AND_OPEN_QUESTIONS.md) |
+| D-4 | ~~API monitoring thresholds (10%, 30%, 0.75) were intentionally different from pipeline thresholds~~ | ✅ **RESOLVED** — Step 6a unified thresholds: API now imports `PostInferenceMonitoringConfig` and reads `confidence_warn_threshold=0.60`, `uncertain_pct_threshold=30.0`, `transition_rate_threshold=50.0`, `drift_zscore_threshold=2.0` | [File 24 A-12-1](../docs/22Feb_Opus_Understanding/24_ASSUMPTIONS_GAPS_AND_OPEN_QUESTIONS.md) |
+| D-5 | ~~DANN/MMD redirect to pseudo-labeling is intentional~~ | ✅ **RESOLVED** — Step 6d: DANN/MMD now raise `NotImplementedError`; thesis claims 3 methods (AdaBN, TENT, pseudo-label) | [File 24 A-13-1](../docs/22Feb_Opus_Understanding/24_ASSUMPTIONS_GAPS_AND_OPEN_QUESTIONS.md) |
+| D-6 | ~~The 4 placeholder zeros in trigger evaluation are temporary scaffolding~~ | ✅ **RESOLVED** — Step 2a: All 4 trigger inputs now wired to real monitoring output (mean_entropy, mean_dwell_time_seconds, short_dwell_ratio, n_drifted_channels) | [File 24 A-14-1](../docs/22Feb_Opus_Understanding/24_ASSUMPTIONS_GAPS_AND_OPEN_QUESTIONS.md) |
+| D-7 | ~~Training session is not excluded from drift analysis~~ | ✅ **RESOLVED** — Step 6g: `is_training_session=True` flag skips baseline comparison, logs `TRAINING_SESSION` reason | [File 24 A-16-1](../docs/22Feb_Opus_Understanding/24_ASSUMPTIONS_GAPS_AND_OPEN_QUESTIONS.md) |
 
 ### 3.3 Thesis & Meta Assumptions
 
@@ -120,7 +120,7 @@ These are things the code/thesis currently **claims** but the evidence doesn't f
 | MC-2 | No automated data quality gate — validation warnings don't halt pipeline | Decide if this is intentional (log-only) or should block | [File 24 I-1](../docs/22Feb_Opus_Understanding/24_ASSUMPTIONS_GAPS_AND_OPEN_QUESTIONS.md) |
 | MC-3 | Some paper-summary docs cite page numbers that need manual verification | Page-level citations may be inaccurate | [Codex §17](../22%20feb%20codex/THESIS_COMPLETION_AND_PIPELINE_ANALYSIS_22_FEB_2026.md) |
 | MC-4 | Runtime profiling data not collected for any pipeline stage | E-10 experiment asks for this but no baseline exists | [File 24 P3-5](../docs/22Feb_Opus_Understanding/24_ASSUMPTIONS_GAPS_AND_OPEN_QUESTIONS.md) |
-| MC-5 | No dependency lock file (`requirements.txt` exists but no pinned versions / `poetry.lock`) | Reproducibility gap — File 27 notes this | [File 27](../docs/22Feb_Opus_Understanding/27_REPRODUCIBILITY_AND_AUDIT_CHECKLIST.md) |
+| MC-5 | ~~No dependency lock file~~ | ✅ **RESOLVED** — `config/requirements-lock.txt` created (578 pinned packages, Step 6f) | [File 27](../docs/22Feb_Opus_Understanding/27_REPRODUCIBILITY_AND_AUDIT_CHECKLIST.md) |
 | MC-6 | No data checksums for the 26 session datasets | Can't verify data integrity across machines | [File 27](../docs/22Feb_Opus_Understanding/27_REPRODUCIBILITY_AND_AUDIT_CHECKLIST.md) |
 
 ---

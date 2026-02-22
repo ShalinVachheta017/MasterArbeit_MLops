@@ -61,7 +61,7 @@ These are the main reference documents for running and understanding the pipelin
 
 | File | What It Covers | Read When… |
 |------|---------------|------------|
-| [GITHUB_ACTIONS_CICD_GUIDE.md](GITHUB_ACTIONS_CICD_GUIDE.md) | Technical reference: 6 CI/CD jobs, trigger rules, secrets, customization | You need to **modify CI/CD** |
+| [GITHUB_ACTIONS_CICD_GUIDE.md](GITHUB_ACTIONS_CICD_GUIDE.md) | Technical reference: 7 CI/CD jobs (lint, test, test-slow, build, integration-test, model-validation, notify), trigger rules, secrets, customization | You need to **modify CI/CD** |
 | [GITHUB_ACTIONS_CICD_BEGINNER_GUIDE.md](GITHUB_ACTIONS_CICD_BEGINNER_GUIDE.md) | Beginner tutorial: what is GitHub Actions, step-by-step walkthrough | You are **new to GitHub Actions** |
 | [REPOSITORY_CLEANUP_RECOMMENDATIONS.md](REPOSITORY_CLEANUP_RECOMMENDATIONS.md) | Repo size analysis (~12 GB), 2.8 GB reclaimable, priority cleanup commands | Your disk is **running out of space** |
 

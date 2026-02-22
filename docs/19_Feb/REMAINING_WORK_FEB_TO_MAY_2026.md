@@ -3,14 +3,14 @@
 **Project:** HAR MLOps Pipeline (Master Thesis)  
 **Author:** Shalin Vachheta  
 **Created:** 19 Feb 2026  
-**Pipeline Completion:** ~95%  
+**Pipeline Completion:** ~80–82% *(revised 22 Feb 2026 after cross-code audit; earlier estimate of 95% was over-stated)*  
 **Thesis Writing Completion:** ~5%
 
 ---
 
 ## Status Summary — What Is Done
 
-### Pipeline & Code (✅ 95% Complete)
+### Pipeline & Code (✅ ~80–82% Complete)
 
 | Component | Status | Notes |
 |-----------|:------:|-------|
@@ -33,9 +33,9 @@
 | Sensor placement analysis | ✅ Done | Stage 14, axis-mirror augmentation |
 | MLflow integration | ✅ Done | Logging, model registry |
 | DVC data tracking | ✅ Done | 4 .dvc files, ~228 MB |
-| FastAPI inference API | ✅ Done | 6 endpoints, batch + stream |
+| FastAPI inference API | ✅ Done | 4 endpoints (`/`, `/api/health`, `/api/model/info`, `/api/upload`) |
 | Docker Compose (4 services) | ✅ Done | MLflow, inference, training, preprocessing |
-| GitHub Actions CI/CD | ✅ Done | 6 jobs, push/PR/cron triggers |
+| GitHub Actions CI/CD | ✅ Done | 7 jobs (lint, test, test-slow, build, integration-test, model-validation, notify), push/PR/cron triggers |
 | Unit + integration tests | ✅ Done | pytest with markers |
 | Artifact audit system | ✅ Done | 4 audit runs, all PASS |
 
@@ -256,7 +256,7 @@ Expected outputs:
 ## Notes
 
 - **Thesis writing is THE critical path.** All code/pipeline work is essentially done.
-- The 95% code completion means only optional enhancements (Prometheus/Grafana live dashboards) remain.
+- The ~80–82% code completion (revised 22 Feb 2026) means core pipeline works end-to-end; remaining items include Prometheus/Grafana live dashboards, Chapter 5 thesis writing, and some doc clean-up.
 - Existing documentation in `docs/thesis/` contains outlines, evaluation plans, and concept notes that should be reused.
 - `docs/thesis/chapters/` has draft chapter files that can be starting points.
 - The `FINAL_Thesis_Status_and_Plan_Jan_to_Jun_2026.md` (1995 lines) has the most detailed planning.

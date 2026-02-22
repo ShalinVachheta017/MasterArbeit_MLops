@@ -115,7 +115,7 @@ STEP 7 (Experiments)  →  STEP 8 (Figures)  →  STEP 9 (Thesis Writing)  →  
   - ⏱ 2-3 hours
 
 - [ ] **8c. Create 1D-CNN-BiLSTM architecture figure**
-  - Detailed layer diagram with parameter counts: Conv(64, k=3) → BN → MaxPool → Dropout → Conv(128) → BN → MaxPool → BiLSTM(128) → Dense(64) → Dense(6)
+  - Detailed layer diagram with parameter counts: Conv(64, k=3)×2 → BN → MaxPool → Dropout → Conv(128, k=3)×2 → BN → MaxPool → BiLSTM(64)×2 → Dense(128) → Dense(11)
   - Use draw.io, matplotlib, or similar
   - ⏱ 2-3 hours
 
@@ -147,7 +147,7 @@ STEP 7 (Experiments)  →  STEP 8 (Figures)  →  STEP 9 (Thesis Writing)  →  
 - 3.4 Three-layer monitoring framework (each layer with math definition)
   - Layer 1: mean confidence $\bar{c}$, entropy $H = -\sum p_i \log p_i$, class KL-divergence
   - Layer 2: mean dwell time $\bar{d}$, short-dwell ratio $r_{sd}$
-  - Layer 3: PSI $= \sum (A_i - E_i) \ln(A_i/E_i)$, W₁ distance
+  - Layer 3: z-score drift $= |\mu_{\text{prod}} - \mu_{\text{base}}| / \sigma_{\text{base}}$ (per channel) — PSI/W₁ are Stage 12 only
 - 3.5 Trigger policy (composite logic, threshold params, RETRAIN/ADAPT_ONLY/NO_ACTION)
 - 3.6 Domain adaptation methods (AdaBN, TENT with BN fix, pseudo-label with rollback)
   - Temperature scaling calibration: $\hat{p}_i = \exp(z_i/T) / \sum_j \exp(z_j/T)$
@@ -161,7 +161,7 @@ STEP 7 (Experiments)  →  STEP 8 (Figures)  →  STEP 9 (Thesis Writing)  →  
 > After Ch3. Describe the "how" rather than the "what".
 - 4.1 Repository structure and design principles
 - 4.2 Pipeline orchestration (14-stage, YAML config, entity pattern)
-- 4.3 FastAPI inference service (`/health`, `/upload`, `/predict`, `/monitoring`)
+- 4.3 FastAPI inference service (`/`, `/api/health`, `/api/model/info`, `/api/upload`)
 - 4.4 CI/CD automation (7 jobs, weekly schedule, smoke test)
 - 4.5 Testing strategy (225 tests, unit/integration/slow markers)
 - 4.6 Reproducibility measures (lock file, SHA256, MLflow, commit hash)
@@ -270,7 +270,7 @@ STEP 7 (Experiments)  →  STEP 8 (Figures)  →  STEP 9 (Thesis Writing)  →  
 | # | Task | ⏱ | Why Optional | Source |
 |---|------|:-:|-------------|--------|
 | O-1 | Energy-based OOD score in monitoring | 2-4h | Better Ch5 story but thesis is valid without | IMP-16 |
-| O-2 | Wasserstein option for Layer 3 (replace/augment PSI) | 3-4h | Stage 12 exists; just not plumbed into monitoring comparison | IMP-15 |
+| O-2 | Wasserstein option for Layer 3 (replace/augment z-score) | 3-4h | Stage 12 exists; just not plumbed into Layer 3 monitoring comparison | IMP-15 |
 | O-3 | Wire `MetricsExporter` into `app.py /predict` | 2h | Prometheus metrics from API; nice for demo | IMP-14 |
 | O-4 | Unified drift + confidence per-session report | 4-6h | Better visualization for thesis; manual combination works too | IMP-11 |
 | O-5 | Bridge offline Z-score ↔ pipeline W₁ thresholds | 3-4h | Thesis consistency; can note as future work instead | IMP-10 |

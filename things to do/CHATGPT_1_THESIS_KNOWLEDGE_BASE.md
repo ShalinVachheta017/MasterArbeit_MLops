@@ -17,11 +17,11 @@
 3. **RQ3:** How can a multi-layer monitoring framework (confidence + temporal + drift) improve trigger-policy precision, reducing unnecessary retraining while catching real degradation?
 
 ### Core Thesis Claim
-A 14-stage MLOps pipeline combining 3-layer monitoring, trigger policy logic, and three adaptation methods can maintain HAR model performance in deployed wearable systems without human-labeled production data—demonstrated on 26 sessions of IMU data from a public dataset.
+A 14-stage MLOps pipeline combining 3-layer monitoring, trigger policy logic, and three adaptation methods can maintain anxiety behavior recognition model performance in deployed wearable systems without human-labeled production data—demonstrated on 26 recording sessions of IMU data.
 
 ### Dataset
-- **Source:** Public wearable IMU dataset (HAR benchmark)
-- **26 subject sessions**, each ~1,000 windows post-segmentation
+- **Source:** Self-collected wearable IMU dataset (anxiety/stereotypic behavior recognition)
+- **26 recording sessions**, each ~1,000 windows post-segmentation
 - **Window size:** 200 timesteps × 6 channels (accelerometer + gyroscope, 3 axes each)
 - **Activities:** 11 classes (ear_rubbing, forehead_rubbing, hair_pulling, hand_scratching, hand_tapping, knuckles_cracking, nail_biting, nape_rubbing, sitting, smoking, standing)
 - **Preprocessing:** 50 Hz resampling, bandpass filtering, z-score normalization per session
@@ -62,10 +62,11 @@ python run_pipeline.py --retrain --adapt adabn_tent --advanced
 
 ```
 Input: (200, 6)  ← 200 timesteps, 6 sensor channels
-→ Conv1D(64, k=3, ReLU) → BatchNorm → MaxPool(2) → Dropout(0.3)
-→ Conv1D(128, k=3, ReLU) → BatchNorm → MaxPool(2) → Dropout(0.3)
-→ Bidirectional LSTM(128) → Dropout(0.4)
-→ Dense(64, ReLU) → Dropout(0.3)
+→ Conv1D(64, k=3, ReLU, same) → BatchNorm → Conv1D(64, k=3, ReLU, same) → BatchNorm → MaxPool(2) → Dropout(0.25)
+→ Conv1D(128, k=3, ReLU, same) → BatchNorm → Conv1D(128, k=3, ReLU, same) → BatchNorm → MaxPool(2) → Dropout(0.25)
+→ Bidirectional LSTM(64, return_sequences=True) → BatchNorm → Dropout(0.3)
+→ Bidirectional LSTM(64, return_sequences=False) → BatchNorm → Dropout(0.5)
+→ Dense(128, ReLU) → BatchNorm → Dropout(0.5)
 → Dense(11, Softmax)   ← 11-class anxiety behavior output
 ```
 
@@ -131,9 +132,9 @@ All three are fully implemented. DANN and MMD are explicitly fenced off with `No
 - `mean_entropy` — from Layer 1 monitoring output
 - `mean_dwell_time_seconds` — from Layer 2 temporal monitoring
 - `short_dwell_ratio` — from Layer 2
-- `n_drifted_channels` — from Layer 3 PSI per channel
+- `n_drifted_channels` — from Layer 3 z-score per channel
 
-**Output:** `TriggerDecision` artifact → `RETRAIN` / `ADAPT_ONLY` / `NO_ACTION`
+**Output:** `TriggerDecision` artifact → `NONE` / `MONITOR` / `QUEUE_RETRAIN` / `TRIGGER_RETRAIN` / `ROLLBACK`
 
 ---
 
@@ -142,13 +143,13 @@ All three are fully implemented. DANN and MMD are explicitly fenced off with `No
 **File:** `.github/workflows/ci-cd.yml`
 
 **7 jobs:**
-1. `lint` — flake8 / black check
-2. `unit-tests` — pytest -m unit (~fast)
-3. `integration-tests` — pytest -m integration (incl. `scripts/inference_smoke.py`)
-4. `slow-tests` — pytest -m slow (heavy models)
-5. `build-docker` — builds inference image
-6. `model-validation` — weekly health check (runs Monday 06:00 UTC via schedule cron)
-7. `deploy` — publish Docker image (on tag)
+1. `lint` — flake8 / black / isort check
+2. `test` — pytest unit tests (`not slow and not integration and not gpu`), codecov upload
+3. `test-slow` — TF-based slow tests (`continue-on-error: true`)
+4. `build` — Docker build + push to GHCR (`docker/Dockerfile.inference`)
+5. `integration-test` — pulls Docker image, smoke-tests `/api/health`, runs `scripts/inference_smoke.py` (main branch only)
+6. `model-validation` — weekly health check (Monday 06:00 UTC via schedule cron), DVC pull + drift check
+7. `notify` — runs on failure, placeholder for Slack/email notification
 
 **Weekly schedule trigger:** `0 6 * * 1` — runs drift detection against stored baseline automatically.
 
@@ -262,7 +263,7 @@ All three are fully implemented. DANN and MMD are explicitly fenced off with `No
 - A: Full config YAML reference
 - B: Test matrix (225 tests by category)
 - C: Reproducibility checklist (62-item from Opus File 27)
-- D: FastAPI spec (`/health`, `/upload`, `/predict`, `/monitoring`)
+- D: FastAPI spec (`/`, `/api/health`, `/api/model/info`, `/api/upload`)
 - E: Dataset overview (26 sessions, per-class window counts)
 - F: CI/CD workflow diagram
 

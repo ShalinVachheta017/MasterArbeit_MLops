@@ -3,7 +3,7 @@
 > **Purpose:** Complete log of everything implemented, fixed, and verified in the pipeline. Covers all work from 19 Feb 2026 through 22 Feb 2026 (Steps 1-6 of remediation plan). Use this as the authoritative "what's been built" reference.
 > **Repository:** `d:\study apply\ML Ops\MasterArbeit_MLops`, branch `main`
 > **Test suite:** **225/225 tests passing** (no failures, no errors)
-> **Completion estimate:** ~75–78% of total thesis/pipeline work
+> **Completion estimate:** ~80–82% of total thesis/pipeline work
 
 ---
 
@@ -20,6 +20,7 @@
 | 22 Feb — Step 5c | 22 Feb 2026 | 225/225 tests pass; no regressions | All changes verified non-breaking |
 | 22 Feb — Step 6 | 22 Feb 2026 | 7 medium-priority improvements | Monitoring quality, reproducibility |
 | 22 Feb — Post-audit Docker fix | 22 Feb 2026 | Resolved api.app import shadowing in Docker image | **CI GREEN ✅** — smoke test endpoint calls succeed |
+| 22 Feb — Post-audit-2 label/docs fix | 22 Feb 2026 | README+docs said "6 walking/jogging classes" but actual data has 11 anxiety behavior classes; app.py was correct all along; also fixed PSI→z-score claims | 0 label inconsistencies; 0 monitoring definition drifts |
 
 ---
 
@@ -220,11 +221,11 @@ Confirmed: all Step 1-6 changes are non-breaking. `test_all_stages_list` updated
 #### 6a. Threshold unification
 - **Problem:** `app.py` had 4 hardcoded numbers (0.6, 30, 50, 2.0); pipeline had different values in config
 - **Fix:** Added 4 fields to `PostInferenceMonitoringConfig`:
-  - `confidence_threshold: float = 0.60`
-  - `min_dwell_time_seconds: float = 30.0`
-  - `max_short_dwell_ratio: float = 0.50`
-  - `drift_threshold: float = 2.0`
-- `app.py` now creates `_MON_T = PostInferenceMonitoringConfig()` and reads `_MON_T.confidence_threshold` etc.
+  - `confidence_warn_threshold: float = 0.60`
+  - `uncertain_pct_threshold: float = 30.0`
+  - `transition_rate_threshold: float = 50.0`
+  - `drift_zscore_threshold: float = 2.0`
+- `app.py` now creates `_MON_T = PostInferenceMonitoringConfig()` and reads `_MON_T.confidence_warn_threshold` etc.
 - **Files:** `src/entity/config_entity.py`, `src/api/app.py`
 - **Impact:** API and pipeline alert at exactly the same thresholds regardless of how predictions are made
 
