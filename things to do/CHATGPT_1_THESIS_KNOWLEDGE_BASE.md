@@ -23,7 +23,7 @@ A 14-stage MLOps pipeline combining 3-layer monitoring, trigger policy logic, an
 - **Source:** Public wearable IMU dataset (HAR benchmark)
 - **26 subject sessions**, each ~1,000 windows post-segmentation
 - **Window size:** 200 timesteps × 6 channels (accelerometer + gyroscope, 3 axes each)
-- **Activities:** 6 classes (walking, jogging, sitting, standing, going upstairs, going downstairs)
+- **Activities:** 11 classes (ear_rubbing, forehead_rubbing, hair_pulling, hand_scratching, hand_tapping, knuckles_cracking, nail_biting, nape_rubbing, sitting, smoking, standing)
 - **Preprocessing:** 50 Hz resampling, bandpass filtering, z-score normalization per session
 
 ---
@@ -66,7 +66,7 @@ Input: (200, 6)  ← 200 timesteps, 6 sensor channels
 → Conv1D(128, k=3, ReLU) → BatchNorm → MaxPool(2) → Dropout(0.3)
 → Bidirectional LSTM(128) → Dropout(0.4)
 → Dense(64, ReLU) → Dropout(0.3)
-→ Dense(6, Softmax)   ← 6-class HAR output
+→ Dense(11, Softmax)   ← 11-class anxiety behavior output
 ```
 
 - **Parameters:** ~850K trainable
@@ -84,13 +84,15 @@ Input: (200, 6)  ← 200 timesteps, 6 sensor channels
 |------:|---------|--------|-----------|
 | **1 — Prediction Quality** | Mean confidence, entropy, class distribution stability | Confidence < 0.60 or entropy > 0.8 | Softmax probabilities (calibrated) |
 | **2 — Temporal Behaviour** | Mean dwell time (seconds in class), short-dwell ratio | Dwell < 30s threshold or ratio > 50% | Per-prediction timestamps |
-| **3 — Distribution Drift** | PSI (population stability index) per feature channel | Drift score > 2.0 | KDE-based distribution comparison |
+| **3 — Distribution Drift** | Z-score per channel: `\|prod_mean − base_mean\| / base_std` | z-score > 2.0 | Normalized mean deviation from baseline stats JSON |
+
+> **Note:** PSI and W₁ (Wasserstein) are implemented in Stage 12 (`WassersteinDriftComponent`, `--advanced` flag only). Layer 3 of the regular 10-stage monitoring pipeline uses z-score. Unify the claim in Chapter 3.4: Layer 3 = z-score; Stage 12 = W₁/PSI (advanced).
 
 **Unified thresholds** (all sourced from `PostInferenceMonitoringConfig`):
-- `confidence_threshold: float = 0.60`
-- `min_dwell_time_seconds: float = 30.0`
-- `max_short_dwell_ratio: float = 0.50`
-- `drift_threshold: float = 2.0`
+- `confidence_warn_threshold: float = 0.60`
+- `uncertain_pct_threshold: float = 30.0`
+- `transition_rate_threshold: float = 50.0`
+- `drift_zscore_threshold: float = 2.0`
 
 **Temperature scaling** (Stage 11 output):
 - Auto-loaded from `outputs/calibration/temperature.json`

@@ -22,7 +22,7 @@
 - ✅ **14-stage pipeline** fully orchestrated (`--advanced` flag enables all 14 stages)
 - ✅ **All 225 tests passing** (unit + integration + slow, 0 failures)
 - ✅ **FastAPI inference service** with CSV upload & health check endpoints
-- ✅ **3-layer monitoring** — confidence + temporal patterns + PSI drift (calibrated via temperature scaling)
+- ✅ **3-layer monitoring** — confidence + temporal patterns + z-score drift vs baseline (calibrated via temperature scaling)
 - ✅ **Trigger policy wired** — reads real monitoring metrics, 17 configurable parameters
 - ✅ **CI/CD automated** — weekly model-health check (Monday 06:00 UTC) + hard-fail unit tests
 - ✅ **Dependency lock file** — 578 pinned packages (`config/requirements-lock.txt`)
@@ -74,7 +74,7 @@
 
 ## 🎯 Project Overview
 
-An end-to-end MLOps pipeline for **Human Activity Recognition (HAR)** using wearable IMU sensor data. The system classifies 6 activities (walking, jogging, sitting, standing, stairs up/down) from 3-axis accelerometer + gyroscope data across 26 subject sessions.
+An end-to-end MLOps pipeline for **anxiety behavior recognition** using wearable IMU sensor data. The system classifies 11 anxiety-related behaviors (ear rubbing, forehead rubbing, hair pulling, hand scratching, hand tapping, knuckles cracking, nail biting, nape rubbing, sitting, smoking, standing) from 3-axis accelerometer + gyroscope data across 26 recording sessions.
 
 ### Key Features
 
@@ -84,7 +84,7 @@ An end-to-end MLOps pipeline for **Human Activity Recognition (HAR)** using wear
 | Experiment Tracking | MLflow | ✅ Complete |
 | Containerization | Docker | ✅ Complete |
 | Model Serving API | FastAPI | ✅ Complete |
-| 3-Layer Monitoring | Confidence + Temporal + PSI Drift | ✅ Complete |
+| 3-Layer Monitoring | Confidence + Temporal + Z-Score Drift vs Baseline | ✅ Complete |
 | Temperature Calibration | Softmax temperature scaling | ✅ Complete |
 | Domain Adaptation | AdaBN / TENT / Pseudo-label | ✅ Complete |
 | CI/CD Pipeline | GitHub Actions (weekly schedule) | ✅ Complete |
@@ -95,16 +95,19 @@ An end-to-end MLOps pipeline for **Human Activity Recognition (HAR)** using wear
 
 - **Architecture:** 1D-CNN-BiLSTM (~850K parameters)
 - **Input:** 200 timesteps × 6 channels (4 seconds @ 50Hz)
-- **Output:** 6 activity classes
+- **Output:** 11 activity classes
 - **Sensors:** Ax, Ay, Az (accelerometer) + Gx, Gy, Gz (gyroscope)
 - **Training:** 5-fold stratified CV; val_acc 0.969, F1 0.814 (Feb 2026 audit)
 
 ### Activity Classes
 
 ```
-0: walking           3: standing
-1: jogging           4: going_upstairs
-2: sitting           5: going_downstairs
+0: ear_rubbing        6: nail_biting
+1: forehead_rubbing   7: nape_rubbing
+2: hair_pulling       8: sitting
+3: hand_scratching    9: smoking
+4: hand_tapping      10: standing
+5: knuckles_cracking
 ```
 
 ---
