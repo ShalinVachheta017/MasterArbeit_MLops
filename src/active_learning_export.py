@@ -430,18 +430,18 @@ class ActiveLearningExporter:
 This batch contains sensor data samples that the model is uncertain about.
 Your task is to assign the correct activity label to each sample.
 
-## Activity Classes (11 activities)
-0: Standing
-1: Walking  
-2: Sitting
-3: Lying Down
-4: Running
-5: Climbing Stairs Up
-6: Climbing Stairs Down
-7: Cycling
-8: Nordic Walking
-9: Ironing
-10: Vacuum Cleaning
+## Activity Classes (11 anxiety/stereotypic behavior classes)
+0: ear_rubbing
+1: forehead_rubbing
+2: hair_pulling
+3: hand_scratching
+4: hand_tapping
+5: knuckles_cracking
+6: nail_biting
+7: nape_rubbing
+8: sitting
+9: smoking
+10: standing
 
 ## Labeling Process
 1. Open the samples file (samples_to_label.csv)

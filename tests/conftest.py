@@ -73,8 +73,9 @@ def sample_labeled_data():
     n_samples = 5000
     
     activities = [
-        'sitting', 'standing', 'walking', 'hand_tapping',
-        'nail_biting', 'hair_pulling', 'smoking'
+        'ear_rubbing', 'forehead_rubbing', 'hair_pulling',
+        'hand_scratching', 'hand_tapping', 'knuckles_cracking',
+        'nail_biting', 'nape_rubbing', 'sitting', 'smoking', 'standing'
     ]
     
     # Generate data for each activity

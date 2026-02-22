@@ -51,7 +51,7 @@
 |---------|---------|----------------|
 | 3.1 System Overview | 14-stage pipeline architecture, design rationale | **Fig: End-to-end pipeline** (Mermaid → PDF) |
 | 3.2 Data Pipeline | Ingestion (3 paths), validation (5 checks), preprocessing (4 steps), windowing | **Fig: Data flow diagram** |
-| 3.3 Model Architecture | 1D-CNN-BiLSTM: 2×Conv1D → BiLSTM → Dense; ~1.5M params; 200×6 input | **Fig: Architecture diagram**, **Table: Layer shapes + params** |
+| 3.3 Model Architecture | 1D-CNN-BiLSTM (v1): Conv1D(16)→Conv1D(32)→BiLSTM(64)→BiLSTM(32)→Dense(32)→Dense(11); ~499K params; 200×6 input | **Fig: Architecture diagram**, **Table: Layer shapes + params** |
 | 3.4 3-Layer Monitoring Framework | L1 confidence, L2 temporal, L3 drift; orthogonal design; combined status | **Fig: 3-layer monitoring** (from File 12 Mermaid) |
 | 3.5 Trigger Policy | 2-of-3 voting, 5 action levels, cooldown + escalation | **Fig: Trigger state machine** (from File 14 Mermaid) |
 | 3.6 Adaptation Methods | AdaBN algorithm, TENT with 3 safety gates, AdaBN+TENT combined, calibrated pseudo-labeling with 7 stages | **Fig: Adaptation decision tree** (from File 13 Mermaid), **Table: Method comparison** |

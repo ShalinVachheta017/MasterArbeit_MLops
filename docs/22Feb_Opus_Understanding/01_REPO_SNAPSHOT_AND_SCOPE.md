@@ -112,7 +112,7 @@ Each stage follows a consistent wrapper pattern:
 
 ### Model Architecture
 
-**FACT:** 1D-CNN-BiLSTM, ~1.5M parameters, 200 timesteps × 6 sensors, 11 activity classes.
+**FACT:** 1D-CNN-BiLSTM, ~499K trainable parameters (v1 deployed architecture), 200 timesteps × 6 sensors, 11 activity classes.
 [CODE: src/train.py | symbol:HARModelBuilder]
 
 ### Adaptation Methods Available

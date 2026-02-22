@@ -93,7 +93,7 @@ An end-to-end MLOps pipeline for **anxiety behavior recognition** using wearable
 
 ### Model Details
 
-- **Architecture:** 1D-CNN-BiLSTM (~850K parameters)
+- **Architecture:** 1D-CNN-BiLSTM (~499K trainable parameters, v1 deployed)
 - **Input:** 200 timesteps × 6 channels (4 seconds @ 50Hz)
 - **Output:** 11 activity classes
 - **Sensors:** Ax, Ay, Az (accelerometer) + Gx, Gy, Gz (gyroscope)
@@ -166,12 +166,12 @@ An end-to-end MLOps pipeline for **anxiety behavior recognition** using wearable
 │                         4. INFERENCE (Production)                           │
 │  ┌─────────────┐    ┌──────────────┐    ┌─────────────────┐                │
 │  │ Docker      │───▶│ FastAPI      │───▶│ Predictions     │                │
-│  │ Container   │    │ /predict     │    │ + Confidence    │                │
-│  │             │    │ endpoint     │    │                 │                │
+│  │ Container   │    │ /api/upload  │    │ + Confidence    │                │
+│  │             │    │ endpoint     │    │ + Monitoring    │                │
 │  └─────────────┘    └──────────────┘    └─────────────────┘                │
 │         │                                                                   │
 │         ▼                                                                   │
-│  localhost:8000/docs  (Swagger UI)                                         │
+│  localhost:8000  (Web dashboard + Swagger UI at /docs)                      │
 └─────────────────────────────────────────────────────────────────────────────┘
                                      │
                                      ▼
@@ -781,9 +781,10 @@ python src/run_inference.py
 
 # API inference (start the service first)
 docker-compose up -d inference
-curl -X POST http://localhost:8000/predict \
-  -H "Content-Type: application/json" \
-  -d '{"window": [[0.1, 0.2, -9.8, 0.01, 0.02, 0.03], ...]}'
+curl http://localhost:8000/api/health
+# Upload CSV for inference + monitoring
+curl -X POST http://localhost:8000/api/upload \
+  -F "file=@session.csv"
 ```
 
 ---
@@ -923,44 +924,28 @@ New Garmin Export (XLSX)
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/` | API info |
-| GET | `/health` | Health check |
-| GET | `/model/info` | Model details |
-| POST | `/predict` | Single window prediction |
-| POST | `/predict/batch` | Batch predictions |
-| POST | `/predict/stream` | Stream of readings |
+| GET | `/` | Embedded HTML dashboard (single-file SPA) |
+| GET | `/api/health` | Health check (model/baseline loaded, uptime) |
+| GET | `/api/model/info` | Model metadata + activity classes |
+| POST | `/api/upload` | CSV upload → windowing → inference → 3-layer monitoring |
+
+> **Note:** Earlier docs referenced `/predict`, `/predict/batch`, and `/predict/stream` endpoints — these do not exist. The only POST endpoint is `/api/upload`.
 
 ### Example Requests
 
 ```powershell
 # Health Check
-curl http://localhost:8000/health
-# Response: {"status":"healthy","model_loaded":true,...}
+curl http://localhost:8000/api/health
+# Response: {"status":"healthy","model_loaded":true,"baseline_loaded":true,...}
 
 # Model Info
-curl http://localhost:8000/model/info
-# Response: {"model_name":"1D-CNN-BiLSTM HAR","input_shape":[200,6],...}
+curl http://localhost:8000/api/model/info
+# Response: {"model_name":"1D-CNN-BiLSTM","activity_classes":{...},...}
 
-# Single Prediction (200x6 window)
-curl -X POST http://localhost:8000/predict \
-  -H "Content-Type: application/json" \
-  -d '{
-    "window": [
-      [0.1, 0.2, -9.8, 0.01, 0.02, 0.03],
-      ... (200 rows total)
-    ],
-    "return_probabilities": true
-  }'
-
-# Batch Prediction
-curl -X POST http://localhost:8000/predict/batch \
-  -H "Content-Type: application/json" \
-  -d '{
-    "windows": [
-      [[...], [...], ...],
-      [[...], [...], ...]
-    ]
-  }'
+# CSV Upload (inference + monitoring)
+curl -X POST http://localhost:8000/api/upload \
+  -F "file=@session.csv"
+# Response: {"predictions":[...],"monitoring":{...},"summary":{...}}
 ```
 
 ### Swagger UI
@@ -1070,13 +1055,14 @@ cat config/pipeline_config.yaml | Select-String "enable_gravity"
 
 | Phase | Task | Status |
 |-------|------|--------|
-| **Month 1** | Data ingestion & preprocessing | ✅ Complete |
-| **Month 2** | Model versioning (DVC, MLflow) | ✅ Complete |
-| **Month 2** | Docker containerization | ✅ Complete |
-| **Month 3** | CI/CD pipeline (GitHub Actions) | ⏳ Next |
-| **Month 3** | FastAPI deployment | ✅ Complete |
-| **Month 4** | Monitoring & drift detection | ⏳ Planned |
-| **Month 5** | Refinement & documentation | ⏳ Planned |
+| **Month 1** | Data ingestion & preprocessing (14-stage pipeline) | ✅ Complete |
+| **Month 2** | Model versioning (DVC + MLflow tracking) | ✅ Complete |
+| **Month 2** | Docker containerization (training + inference) | ✅ Complete |
+| **Month 3** | CI/CD pipeline (7-job GitHub Actions) | ✅ Complete |
+| **Month 3** | FastAPI deployment + 3-layer monitoring | ✅ Complete |
+| **Month 4** | Drift detection (z-score, Wasserstein, PSI) | ✅ Complete |
+| **Month 4** | Active learning export pipeline | ✅ Complete |
+| **Month 5** | Architecture alignment & documentation | 🔄 In Progress |
 | **Month 6** | Thesis writing | ⏳ Planned |
 
 ---
@@ -1130,5 +1116,5 @@ This project is part of a Master's Thesis at [University Name].
 
 ---
 
-**Last Updated:** December 11, 2025  
-**Version:** 2.0.0
+**Last Updated:** February 22, 2026  
+**Version:** 3.0.0
