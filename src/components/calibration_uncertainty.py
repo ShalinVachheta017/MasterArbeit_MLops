@@ -72,7 +72,8 @@ class CalibrationUncertainty:
                     probs[i, int(row.get("predicted_label", 0))] = row["confidence"]
             else:
                 return CalibrationUncertaintyArtifact(
-                    calibration_warnings=["No probability data available for calibration."]
+                    overall_status="WARN",
+                    calibration_warnings=["No probability data available for calibration."],
                 )
 
         # --- Temperature Scaling ---
@@ -127,7 +128,9 @@ class CalibrationUncertainty:
         with open(report_path, "w") as f:
             json.dump(report_data, f, indent=2, default=str)
 
+        status = "WARN" if analysis.get("calibration_warnings") else "OK"
         return CalibrationUncertaintyArtifact(
+            overall_status=status,
             temperature=scaler.temperature,
             temperature_path=temp_path,
             overconfidence_gap=analysis.get("overconfidence_ratio", 0.0),

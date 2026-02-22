@@ -193,6 +193,7 @@ class BaselineUpdateArtifact:
 class CalibrationUncertaintyArtifact:
     """Output of calibration and uncertainty quantification."""
 
+    overall_status: str = "UNKNOWN"
     temperature: float = 1.0
     temperature_path: Optional[Path] = None
     ece: float = 0.0

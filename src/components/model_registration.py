@@ -87,7 +87,15 @@ class ModelRegistration:
                         list(metrics.keys()),
                         list(current_metrics.keys()),
                     )
-                    is_better = True  # safe fallback when accuracy unavailable
+                    # Expected for TTA/unsupervised adaptation (AdaBN/TENT produce no
+                    # labeled val_accuracy — they operate on unlabeled target data only).
+                    # Governance is enforced at the deployment gate (auto_deploy=False
+                    # by default), NOT here — so registering as is_better=True is safe:
+                    # the model is versioned in the registry but NOT auto-deployed.
+                    # An explicit --deploy flag or manual promotion is required to ship
+                    # an adaptation-updated model, consistent with the TFX/rollback
+                    # philosophy (Baylor et al. 2017; Sculley et al. 2015 Hidden Debt).
+                    is_better = True
 
         # Deploy if auto_deploy is on and model is better (or first time)
         deployed = False
