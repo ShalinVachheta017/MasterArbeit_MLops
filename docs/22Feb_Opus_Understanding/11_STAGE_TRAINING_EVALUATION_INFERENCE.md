@@ -10,33 +10,36 @@
 ### 1.1 Architecture Definition
 
 **FACT:** Built by `HARModelBuilder.create_1dcnn_bilstm()` in `src/train.py`.
-[CODE: src/train.py | class:HARModelBuilder | method:create_1dcnn_bilstm]
+[CODE: src/train.py | class:HARModelBuilder | method:create_1dcnn_bilstm → _build_v1]
+
+**Deployed Architecture (v1 — default, matches pretrained checkpoint):**
 
 ```
 Input: (batch, 200, 6)  — 200 timesteps × 6 IMU channels
 
 CNN Block 1:
-    Conv1D(64, k=3, relu, padding=same) → BatchNorm → 
-    Conv1D(64, k=3, relu, padding=same) → BatchNorm → MaxPool1D(2) → Dropout(0.25)
-    Output: (batch, 100, 64)
+    Conv1D(16, k=2, relu, padding=valid) → BatchNorm → Dropout(0.1)
+    Output: (batch, 199, 16)
 
 CNN Block 2:
-    Conv1D(128, k=3, relu, padding=same) → BatchNorm →
-    Conv1D(128, k=3, relu, padding=same) → BatchNorm → MaxPool1D(2) → Dropout(0.25)
-    Output: (batch, 50, 128)
+    Conv1D(32, k=2, relu, padding=valid) → BatchNorm → Dropout(0.2)
+    Output: (batch, 198, 32)
 
 BiLSTM Block:
-    Bidirectional(LSTM(64, return_sequences=True)) → BatchNorm → Dropout(0.3)
-    Bidirectional(LSTM(64, return_sequences=False)) → BatchNorm → Dropout(0.5)
-    Output: (batch, 128)
+    Bidirectional(LSTM(64, return_sequences=True)) → BatchNorm → Dropout(0.2)
+    Bidirectional(LSTM(32, return_sequences=True)) → BatchNorm → Dropout(0.2)
+    Output: (batch, 198, 64)
 
 Classifier:
-    Dense(128, relu) → BatchNorm → Dropout(0.5)
+    Flatten → Dense(32, relu) → BatchNorm → Dropout(0.5)
     Dense(11, softmax)
     Output: (batch, 11)
 ```
 
-**FACT:** ~1.5M parameters. 6 BatchNormalization layers (critical for AdaBN/TENT adaptation).
+**FACT:** 499,131 trainable parameters. 5 BatchNormalization layers (critical for AdaBN/TENT adaptation).
+
+> **v2 variant** (paper-inspired, ~306K params, Conv64×2→128×2→MaxPool→BiLSTM64×2→Dense128) is available via
+> `model_version="v2"` in `TrainingConfig` but is **not** the deployed model.
 
 ### 1.2 Training Configuration
 
@@ -53,9 +56,11 @@ Classifier:
 | `reduce_lr_patience` | 5 | Factor 0.5, min_lr 1e-6 |
 | `n_folds` | 5 | Stratified K-Fold |
 | `cv_random_seed` | 42 | Reproducibility |
-| `dropout_cnn` | 0.25 | |
-| `dropout_lstm` | 0.3 | |
-| `dropout_dense` | 0.5 | |
+| `model_version` | `"v1"` | `"v1"` (deployed) or `"v2"` (paper-inspired) |
+| `dropout_cnn_1` | 0.1 | After 1st Conv block |
+| `dropout_cnn_2` | 0.2 | After 2nd Conv block |
+| `dropout_lstm` | 0.2 | After each BiLSTM layer |
+| `dropout_dense` | 0.5 | After Dense hidden layer |
 
 **FACT:** [CODE: src/train.py | class:TrainingConfig]
 

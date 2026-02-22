@@ -60,22 +60,29 @@ python run_pipeline.py --retrain --adapt adabn_tent --advanced
 
 ## 3. Model Architecture — 1D-CNN-BiLSTM
 
+### Deployed Architecture (v1 — default, matches pretrained checkpoint)
+
 ```
 Input: (200, 6)  ← 200 timesteps, 6 sensor channels
-→ Conv1D(64, k=3, ReLU, same) → BatchNorm → Conv1D(64, k=3, ReLU, same) → BatchNorm → MaxPool(2) → Dropout(0.25)
-→ Conv1D(128, k=3, ReLU, same) → BatchNorm → Conv1D(128, k=3, ReLU, same) → BatchNorm → MaxPool(2) → Dropout(0.25)
-→ Bidirectional LSTM(64, return_sequences=True) → BatchNorm → Dropout(0.3)
-→ Bidirectional LSTM(64, return_sequences=False) → BatchNorm → Dropout(0.5)
-→ Dense(128, ReLU) → BatchNorm → Dropout(0.5)
+→ Conv1D(16, k=2, ReLU, valid) → BatchNorm → Dropout(0.1)
+→ Conv1D(32, k=2, ReLU, valid) → BatchNorm → Dropout(0.2)
+→ Bidirectional LSTM(64, return_sequences=True) → BatchNorm → Dropout(0.2)
+→ Bidirectional LSTM(32, return_sequences=True) → BatchNorm → Dropout(0.2)
+→ Flatten
+→ Dense(32, ReLU) → BatchNorm → Dropout(0.5)
 → Dense(11, Softmax)   ← 11-class anxiety behavior output
 ```
 
-- **Parameters:** ~850K trainable
-- **Training:** Adam, lr=0.001, batch=32, 50 epochs with early stopping (patience=10)
+- **Parameters:** ~499K trainable (499,131)
+- **Training:** Adam, lr=0.001, batch=64, 100 epochs with early stopping (patience=15)
 - **5-fold stratified CV** on training set; best fold model promoted
 - **Output:** softmax probabilities (calibrated by Stage 11 temperature T)
-- **File:** `models/fine_tuned_model_1dcnnbilstm.keras`
+- **File:** `models/pretrained/fine_tuned_model_1dcnnbilstm.keras`
 - **SHA256 fingerprint** stored in model registry (MLflow)
+- **Config field:** `model_version="v1"` (default in `TrainingConfig`)
+
+> **Note:** A larger paper-inspired variant (v2, ~306K params, Conv64×2→Conv128×2→BiLSTM64×2→Dense128) is available
+> via `model_version="v2"` but is **not** the deployed model.
 
 ---
 

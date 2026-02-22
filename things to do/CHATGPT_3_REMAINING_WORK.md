@@ -115,7 +115,7 @@ STEP 7 (Experiments)  →  STEP 8 (Figures)  →  STEP 9 (Thesis Writing)  →  
   - ⏱ 2-3 hours
 
 - [ ] **8c. Create 1D-CNN-BiLSTM architecture figure**
-  - Detailed layer diagram with parameter counts: Conv(64, k=3)×2 → BN → MaxPool → Dropout → Conv(128, k=3)×2 → BN → MaxPool → BiLSTM(64)×2 → Dense(128) → Dense(11)
+  - Detailed layer diagram with parameter counts (v1, deployed): Conv1D(16, k=2, valid) → BN → DO(0.1) → Conv1D(32, k=2, valid) → BN → DO(0.2) → BiLSTM(64) → BiLSTM(32) → Flatten → Dense(32) → Dense(11) — 499K params
   - Use draw.io, matplotlib, or similar
   - ⏱ 2-3 hours
 

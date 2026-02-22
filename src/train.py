@@ -108,10 +108,16 @@ class TrainingConfig:
     n_folds: int = 5
     cv_random_seed: int = 42
 
-    # Regularization
-    dropout_cnn: float = 0.25
-    dropout_lstm: float = 0.3
-    dropout_dense: float = 0.5
+    # Architecture selection
+    # "v1" = pretrained architecture (Conv16→32, BiLSTM64→32, Dense32) — 499K params
+    # "v2" = paper-inspired (Conv64×2→128×2, BiLSTM64×2, Dense128) — ~306K params
+    model_version: str = "v1"
+
+    # Regularization — defaults match the deployed pretrained model (v1)
+    dropout_cnn_1: float = 0.1   # after 1st Conv block
+    dropout_cnn_2: float = 0.2   # after 2nd Conv block
+    dropout_lstm: float = 0.2    # after each BiLSTM layer
+    dropout_dense: float = 0.5   # after Dense hidden layer
 
     # Domain adaptation (for retraining)
     enable_domain_adaptation: bool = False
@@ -228,13 +234,67 @@ class HARModelBuilder:
 
     def create_1dcnn_bilstm(self) -> keras.Model:
         """
-        Create 1D-CNN-BiLSTM model per ICTH_16 paper.
+        Create 1D-CNN-BiLSTM model matching the deployed pretrained checkpoint.
 
-        Architecture:
-        - 2 CNN blocks for feature extraction
-        - 2 BiLSTM layers for temporal dependencies
-        - Dense layers for classification
+        Dispatches to v1 (default, matches pretrained model) or v2 (paper-inspired)
+        based on ``self.config.model_version``.
         """
+        if self.config.model_version == "v2":
+            return self._build_v2()
+        return self._build_v1()
+
+    # ------------------------------------------------------------------
+    # v1 — matches  models/pretrained/fine_tuned_model_1dcnnbilstm.keras
+    #       Conv1D(16,2,valid) → Conv1D(32,2,valid) → BiLSTM(64) →
+    #       BiLSTM(32) → Flatten → Dense(32) → Dense(n_classes)
+    #       Trainable params ≈ 499 K  (window=200, sensors=6, classes=11)
+    # ------------------------------------------------------------------
+    def _build_v1(self) -> keras.Model:
+        """Architecture identical to the deployed pretrained model (499 K params)."""
+        model = keras.Sequential(
+            [
+                # Input
+                keras.layers.Input(shape=(self.config.window_size, self.config.n_sensors)),
+                # CNN Block 1
+                keras.layers.Conv1D(16, 2, activation="relu", padding="valid"),
+                keras.layers.BatchNormalization(),
+                keras.layers.Dropout(self.config.dropout_cnn_1),
+                # CNN Block 2
+                keras.layers.Conv1D(32, 2, activation="relu", padding="valid"),
+                keras.layers.BatchNormalization(),
+                keras.layers.Dropout(self.config.dropout_cnn_2),
+                # BiLSTM layers
+                keras.layers.Bidirectional(keras.layers.LSTM(64, return_sequences=True)),
+                keras.layers.BatchNormalization(),
+                keras.layers.Dropout(self.config.dropout_lstm),
+                keras.layers.Bidirectional(keras.layers.LSTM(32, return_sequences=True)),
+                keras.layers.BatchNormalization(),
+                keras.layers.Dropout(self.config.dropout_lstm),
+                # Flatten temporal output → Dense
+                keras.layers.Flatten(),
+                keras.layers.Dense(32, activation="relu"),
+                keras.layers.BatchNormalization(),
+                keras.layers.Dropout(self.config.dropout_dense),
+                keras.layers.Dense(self.config.n_classes, activation="softmax"),
+            ]
+        )
+
+        model.compile(
+            optimizer=keras.optimizers.Adam(learning_rate=self.config.learning_rate),
+            loss="sparse_categorical_crossentropy",
+            metrics=["accuracy"],
+        )
+
+        return model
+
+    # ------------------------------------------------------------------
+    # v2 — larger ICTH_16-paper-inspired architecture
+    #       Conv1D(64,3,same)×2 → MaxPool → Conv1D(128,3,same)×2 → MaxPool →
+    #       BiLSTM(64) → BiLSTM(64,ret=False) → Dense(128) → Dense(n_classes)
+    #       Trainable params ≈ 306 K  (window=200, sensors=6, classes=11)
+    # ------------------------------------------------------------------
+    def _build_v2(self) -> keras.Model:
+        """Larger paper-inspired architecture (kept for future experimentation)."""
         model = keras.Sequential(
             [
                 # Input layer
@@ -245,15 +305,15 @@ class HARModelBuilder:
                 keras.layers.Conv1D(64, 3, activation="relu", padding="same"),
                 keras.layers.BatchNormalization(),
                 keras.layers.MaxPooling1D(2),
-                keras.layers.Dropout(self.config.dropout_cnn),
+                keras.layers.Dropout(self.config.dropout_cnn_1),
                 # CNN Block 2
                 keras.layers.Conv1D(128, 3, activation="relu", padding="same"),
                 keras.layers.BatchNormalization(),
                 keras.layers.Conv1D(128, 3, activation="relu", padding="same"),
                 keras.layers.BatchNormalization(),
                 keras.layers.MaxPooling1D(2),
-                keras.layers.Dropout(self.config.dropout_cnn),
-                # BiLSTM layers (per ICTH_16: "BiLSTM layers model temporal dependencies")
+                keras.layers.Dropout(self.config.dropout_cnn_2),
+                # BiLSTM layers
                 keras.layers.Bidirectional(keras.layers.LSTM(64, return_sequences=True)),
                 keras.layers.BatchNormalization(),
                 keras.layers.Dropout(self.config.dropout_lstm),
