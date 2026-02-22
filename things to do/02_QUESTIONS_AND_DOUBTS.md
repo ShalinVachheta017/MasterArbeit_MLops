@@ -1,8 +1,8 @@
 # Questions & Doubts — Master Thesis HAR MLOps
 
 > **Compiled from:** Opus 22-file audit pack + Codex independent analysis  
-> **Repository:** commit `168c05bb`, branch `main`  
-> **Date:** 2026-02-22
+> **Repository:** commit `7f892d8`, branch `main` — **CI GREEN ✅**  
+> **Date:** 2026-02-22 (updated after all Steps 1-6 + Docker fix)
 
 ---
 
@@ -99,12 +99,12 @@ These are things the code/thesis currently **claims** but the evidence doesn't f
 
 | # | Claim | Reality | Risk | Source |
 |--:|-------|---------|------|--------|
-| CR-1 | "14-stage pipeline" | Only 10 stages orchestrated; 4 exist as modules | Examiner checks pipeline code → mismatch | [File 04 §6](../docs/22Feb_Opus_Understanding/04_OVERALL_PROGRESS_RISK_AND_CRITICAL_PATH.md), [File 24 D-1](../docs/22Feb_Opus_Understanding/24_ASSUMPTIONS_GAPS_AND_OPEN_QUESTIONS.md) |
-| CR-2 | "Model governance with validation" | `is_better=True` auto-promotes every model | Examiner reads code → governance is fake | [File 24 T-2](../docs/22Feb_Opus_Understanding/24_ASSUMPTIONS_GAPS_AND_OPEN_QUESTIONS.md), [File 28 Q5](../docs/22Feb_Opus_Understanding/28_REVIEWER_EXAMINER_RUBRIC_ALIGNMENT.md) |
-| CR-3 | "2-of-3 voting trigger" | 4 of 7 inputs are zeros → voting is confidence-only | Trigger policy is undermined | [File 24 T-1](../docs/22Feb_Opus_Understanding/24_ASSUMPTIONS_GAPS_AND_OPEN_QUESTIONS.md) |
-| CR-4 | "5 adaptation methods" | DANN/MMD silently run pseudo-labeling | Only 3 methods actually work | [File 24 D-5](../docs/22Feb_Opus_Understanding/24_ASSUMPTIONS_GAPS_AND_OPEN_QUESTIONS.md), [File 20 IMP-12](../docs/22Feb_Opus_Understanding/20_IMPROVEMENT_ROADMAP_EVIDENCE_AND_LITERATURE.md) |
-| CR-5 | "Prometheus/Grafana observability" | Config files exist but never integrated into running services | Observable in theory, not practice | [File 24 PG-1](../docs/22Feb_Opus_Understanding/24_ASSUMPTIONS_GAPS_AND_OPEN_QUESTIONS.md), [Codex §16](../22%20feb%20codex/THESIS_COMPLETION_AND_PIPELINE_ANALYSIS_22_FEB_2026.md) |
-| CR-6 | "CI/CD model validation" | 3 steps are echo stubs + missing smoke script | CI doesn't actually validate models | [File 24 A-1, A-2](../docs/22Feb_Opus_Understanding/24_ASSUMPTIONS_GAPS_AND_OPEN_QUESTIONS.md) |
+| CR-1 | "14-stage pipeline" | ✅ **FIXED** — All 14 stages now orchestrated in `production_pipeline.py` | Resolved — `python run_pipeline.py --advanced` runs all 14 end-to-end | Step 3 |
+| CR-2 | "Model governance with validation" | ✅ **FIXED** — `model_registration.py` now calls `registry.list_versions()` and gates on 99% F1 threshold | Resolved | Step 2b |
+| CR-3 | "2-of-3 voting trigger" | ✅ **FIXED** — All 4 trigger inputs (entropy, dwell, short_dwell_ratio, n_drifted_channels) now read from real monitoring output | Resolved | Step 2a |
+| CR-4 | "5 adaptation methods" | ✅ **FIXED** — DANN/MMD removed from docs; now raise `NotImplementedError`; thesis claims 3 methods | Resolved | Step 6d |
+| CR-5 | "Prometheus/Grafana observability" | ⚠️ **STILL OPEN** — Config files exist but never integrated into running services | Candidate for Optional Task O-9; must be framed in thesis as "deployment-ready config" | [File 24 PG-1](../docs/22Feb_Opus_Understanding/24_ASSUMPTIONS_GAPS_AND_OPEN_QUESTIONS.md) |
+| CR-6 | "CI/CD model validation" | ✅ **FIXED** — Smoke script created (Step 1b); Docker api.app shadowing resolved; CI confirmed GREEN (commit `7f892d8`) | Resolved | Steps 1b, 4, Docker fix |
 
 **Strategy:** Either fix each gap (see [01_REMAINING_WORK.md](01_REMAINING_WORK.md) P0 tasks) **or** reword the thesis claim to accurately describe what exists.
 
@@ -123,13 +123,22 @@ These are things the code/thesis currently **claims** but the evidence doesn't f
 
 ---
 
-## 7 Priority Action: Top 5 Things to Resolve First
+## 7 Priority Action: Current State (Updated 22 Feb 2026)
 
-1. **Answer Q-3 (deadline)** → this scopes everything else
-2. **Answer Q-7 (stages 11-14 requirement)** → largest code task depends on this
-3. **Fix CR-2 (`is_better=True`)** → most embarrassing examiner finding
-4. **Fix CR-3 (placeholder zeros)** → second-most embarrassing finding
-5. **Answer Q-1 (primary adaptation method)** → scopes experiment design
+The critical blockers are now all resolved. Here is the updated priority order:
+
+**Already DONE (Steps 1-6 + CI/Docker fix):**
+- ~~Fix CR-2 (`is_better=True`)~~ ✅ Real registry comparison live
+- ~~Fix CR-3 (placeholder zeros)~~ ✅ All 4 trigger inputs wired to real monitoring
+- ~~Fix CR-1 (14 stages)~~ ✅ All 14 stages orchestrated
+- ~~Fix CR-6 (CI stubs)~~ ✅ CI is GREEN (commit `7f892d8`)
+
+**Still to do — in this order:**
+1. **Answer Q-3 (submission deadline)** → scopes everything below
+2. **Answer Q-4 (GPU access)** → determines experiment depth
+3. **Run Step 7 experiments** → Chapter 5 cannot be written without this
+4. **Answer Q-1 (primary adaptation method)** → focus ablation comparisons
+5. **Address CR-5 (Prometheus/Grafana)** → frame as "deployment-ready config" in thesis, or wire it (Optional O-9)
 
 ---
 
@@ -143,3 +152,63 @@ These are things the code/thesis currently **claims** but the evidence doesn't f
 | Opus File 04 | Overall progress, 6 blockers, risk matrix, final verdict | `docs/22Feb_Opus_Understanding/04_OVERALL_PROGRESS_RISK_AND_CRITICAL_PATH.md` |
 | Opus File 20 | 20 improvements with literature references | `docs/22Feb_Opus_Understanding/20_IMPROVEMENT_ROADMAP_EVIDENCE_AND_LITERATURE.md` |
 | Codex Analysis | Per-stage pseudocode, §7 monitoring rationale, §8-9 trigger/adaptation design, §16 Prometheus decision, §20 remaining work | `22 feb codex/THESIS_COMPLETION_AND_PIPELINE_ANALYSIS_22_FEB_2026.md` |
+
+---
+
+## 9 🔴 Questions to Ask Your Supervisor (Mentor Meeting)
+
+> These questions cannot be resolved from the codebase alone — they require your supervisor's decision or your university's rules. Bring these to your next meeting. Answers directly change the thesis scope.
+
+### 9.1 Deadline and Scope
+
+| # | Question | Why It Matters | Impact If Not Clarified |
+|--:|---------|--------------|------------------------|
+| **M-1** | **What is the exact submission deadline?** | 8 weeks → full experiment suite feasible. 6 weeks → compressed. 4 weeks → cut optional tasks immediately. | Cannot plan weeks 1-8 without this |
+| **M-2** | **How many pages is the thesis expected to be?** (German CS master's: typically 60-100 pages) | Current plan writes ~90-100 pages across 7 chapters. If limit is 60 pages, cut Chapter 2 depth. | Affects chapter length targets |
+| **M-3** | **Is the abstract required in both German (Zusammenfassung) and English?** | Adds ~250 words + translation effort. | Affects Chapter 7 scope |
+
+### 9.2 Data and Experiments
+
+| # | Question | Why It Matters | Impact If Not Clarified |
+|--:|---------|--------------|------------------------|
+| **M-4** | **Does the supervisor expect experiments on the full 26 sessions, or is a subset acceptable?** | Full sweep needs ~8-12h GPU time. If 5 sessions are sufficient, experiments can be done on CPU. | Scopes Step 7 dramatically |
+| **M-5** | **Is there access to university GPU cluster / cloud GPU (Colab Pro, Kaggle, Azure ML)?** | Full 5-method ablation on 26 sessions × 5 adaptations takes days on CPU. | Without GPU, only subset experiments are realistic |
+| **M-6** | **Which public dataset is this? (WISDM / PAMAP2 / UCI HAR?)** | Dataset attribution is needed for citations and reproducibility section. The audit calls it "26-session IMU benchmark" but never names it explicitly. | Missing citation in Chapter 2 |
+
+### 9.3 Methodology and Claims
+
+| # | Question | Why It Matters | Impact If Not Clarified |
+|--:|---------|--------------|------------------------|
+| **M-7** | **Is the proxy metric evaluation approach (confidence drop ↔ accuracy drop) acceptable without labeled production data?** | This is the core thesis claim. The examiner will probe it (EQ-1). If supervisor requires labeled data, need to set aside 2-3 labeled sessions now. | Scopes experiment E-10 and Chapter 5.7 |
+| **M-8** | **Should DANN/MMD be "removed" (framed as future work) or does the thesis need to compare 5 adaptation methods?** | DANN/MMD now raise `NotImplementedError`. Thesis claims 3 methods. If the rubric requires 5 comparisons, this becomes a 10-15h implementation task. | Changes thesis contribution claim |
+| **M-9** | **Which adaptation method should be the primary thesis contribution?** (AdaBN / TENT / pseudo-label, or the AdaBN+TENT composition) | Determines which method gets most depth in Ch 3 and most ablation cells in Ch 5. | Focuses experiment design at Step 7d |
+
+### 9.4 Observability and Infrastructure
+
+| # | Question | Why It Matters | Impact If Not Clarified |
+|--:|---------|--------------|------------------------|
+| **M-10** | **What level of Prometheus/Grafana integration is expected?** Three options:  (a) Config exists = acceptable (current state)  (b) Live dashboard demo required for defense  (c) Just mention as future work | Currently CR-5: configs exist but never wired into running services. Option (b) = 4-8h extra. | Determines if Optional O-9 must become mandatory |
+| **M-11** | **Does the defense require a live running demo, or is a video recording acceptable?** | If live demo: the Docker container must be tested end-to-end on defense hardware. If recording: lower risk. | Affects defense preparation (D-2) |
+
+### 9.5 Data Leakage — High-Priority Verification
+
+| # | Question | Why It Matters | Recommended Action |
+|--:|---------|--------------|-------------------|
+| **M-12** | **Was windowing done BEFORE or AFTER the train/val/test split?** If windowing happens before split, adjacent windows from the same session appear in both train and val folds → **data leakage → inflated accuracy**. | Our val_acc is 0.969 — suspicious if there is leakage. If leakage is confirmed, the entire accuracy claim needs to be recalculated. | Run `grep -n "window\|split\|fold" src/components/data_transformation.py` and check line order. Verify with supervisor before relying on accuracy numbers in Chapter 5. |
+
+---
+
+## 10 ⚠️ Genuine Concerns About the Thesis (Honest Assessment)
+
+> These are things that, from a pure thesis-quality perspective, are risks worth addressing NOW rather than at the defense.
+
+| # | Concern | Severity | Recommended Action |
+|--:|---------|:--------:|-------------------|
+| **W-1** | **Chapter 5 (Results) is completely empty.** No experiments at scale have been run. A1/A3/A4/A5 are single-session runs, not the full 26-session suite. | 🔴 HIGH | Start Step 7 immediately. This is the biggest blocking risk. |
+| **W-2** | **Data leakage risk (D-3).** If windowing happens before CV fold split, `val_acc 0.969` may be inflated. | 🔴 HIGH | Verify in `src/components/data_transformation.py` before writing Chapter 5. |
+| **W-3** | **F1 0.814 vs val_acc 0.969.** A gap this large (15pp) suggests class imbalance — one or more classes are being mis-classified. An examiner will ask about this immediately. | 🟡 MEDIUM | Run per-class confusion matrix. Identify which class has low recall. Add a brief explanation in Chapter 5. |
+| **W-4** | **A2 (AdaBN-only) audit run has never been done.** The ablation table has a missing cell. Cannot compare all 3 methods head-to-head. | 🟡 MEDIUM | Run `python run_pipeline.py --retrain --adapt adabn --skip-ingestion` (1 hour). |
+| **W-5** | **Prometheus/Grafana (CR-5) is config-only.** If the defense requires a live monitoring dashboard, it cannot currently be demonstrated. | 🟡 MEDIUM | Either wire it (Optional O-9, 4-8h) or explicitly frame it as "deployment-ready configuration" in Chapter 4.7 Known Limitations. |
+| **W-6** | **The thesis title references "continuous monitoring" but the actual monitoring is batch-triggered, not continuous.** An examiner may probe the word "continuous". | 🟡 MEDIUM | Clarify in Ch 3.1: "continuous" means every inference session is monitored; it does not mean real-time stream processing. |
+| **W-7** | **12 Citation TODOs unresolved.** BibTeX entries incomplete for 12 in-code references. | 🟢 LOW | Resolve during thesis writing (Step 9i). 3-4 hours. |
+| **W-8** | **Runtime profiling data (E-10) has no baseline.** The proxy-metric correlation experiment requires per-session timing data that was never collected. | 🟢 LOW | Either collect during Step 7a batch run, or remove E-10 from experiment plan and frame as future work. |

@@ -1,9 +1,10 @@
 # HAR MLOps Thesis — Everything Remaining (ChatGPT Handoff File 3 of 3)
 
 > **Purpose:** Complete roadmap of what still needs to be done before thesis submission. Ordered by priority and dependency. Steps 1-6 already done (see File 2). Steps 7-10 + optional items are here.
-> **Repository:** `d:\study apply\ML Ops\MasterArbeit_MLops`, branch `main`
-> **Status:** ~75-78% complete. ~164-230 required hours remaining (5-6 weeks full-time).
+> **Repository:** `d:\study apply\ML Ops\MasterArbeit_MLops`, branch `main`, commit `7f892d8`
+> **Status:** ~80-82% complete. **CI pipeline is GREEN ✅**. ~143-197 required hours remaining (4-5 weeks full-time).
 > **Urgent risk:** Chapter 5 (Results) is completely empty — the thesis cannot be submitted without running experiments first.
+> **All code fixes complete:** Steps 1-6 done, Docker api.app shadow resolved, 225/225 tests pass, 14/14 stages orchestrated.
 
 ---
 
@@ -322,6 +323,7 @@ These are open questions from Opus File 24 that the experiments or thesis writin
 | Step | Hours | Status |
 |------|:-----:|:------:|
 | 1-6. Code fixes + improvements | ~29-38h | ✅ **DONE** |
+| CI/Docker fix (post-audit) | ~3h | ✅ **DONE — CI GREEN** |
 | 7. Experiments | 20-30h | ❌ Not started |
 | 8. Figures & tables | 8-12h | ❌ Not started |
 | 9. Thesis writing | 100-130h | ~30% done (outlines + 3 partial drafts) |

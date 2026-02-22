@@ -2,7 +2,7 @@
 
 > **Compiled from:** ALL docs — 22 Opus audit files, Codex analysis, 19_Feb folder (4 files), `docs/stages/10_IMPROVEMENTS_ROADMAP.md`, `docs/WHATS_NEXT.md`, thesis chapter drafts, and live code verification  
 > **Repository:** commit `168c05bb`, branch `main`  
-> **Last updated:** 2026-02-22 (v3 — Steps 3-6 completed; 225/225 tests passing)
+> **Last updated:** 2026-02-22 (v4 — Steps 3-6 completed; 225/225 tests passing; **CI GREEN ✅** commit `7f892d8`)
 >
 > **⚠ IMPORTANT — 19_Feb docs claim "95% complete / all stages working". Code verification on 22 Feb shows this is NOT accurate.** The core 10-stage pipeline runs, but stages 11-14 are dead code, several critical values are hardcoded stubs, and there are runtime crash bugs. Real completion is ~64-68%.
 
@@ -73,8 +73,10 @@ These don't crash, but they make your thesis claims false. An examiner reading t
 
 ---
 
-## STEP 4 — Fix CI/CD ✅ DONE
+## STEP 4 — Fix CI/CD ✅ DONE + CONFIRMED GREEN
 
+> **FINAL STATUS (22 Feb 2026):** CI pipeline is fully green ✅. Last confirmed by commit `7f892d8` (Docker api.app shadowing fix). The `build` job rebuilds `ghcr.io/...:latest`; integration tests pull `:latest` and the smoke test passes.
+>
 > **WHY:** The weekly model-health check was architecturally wired (`model-validation` job) but was unreachable: the `schedule:` trigger was missing from the `on:` block. The three steps in that job were `echo` stubs — they logged text but performed zero validation. The `integration-test` job also referenced `scripts/inference_smoke.py` (created in Step 1b) which confirmed the fix was live.
 > 
 > **WHAT was done:**
@@ -89,6 +91,11 @@ These don't crash, but they make your thesis claims false. An examiner reading t
 
 - [x] **4a.** Add `on.schedule` trigger (weekly cron)
 - [x] **4b.** Replace 3 echo stubs with real dvc/pytest/drift commands
+- [x] **4c.** Fix Docker api.app shadowing (`docker/api/` was being copied to `/app/api/`, shadowing `src/api/`)
+  - `docker/api/` → `/app/docker_api/` (no longer shadows)
+  - `PYTHONPATH=/app:/app/src` (production module importable)
+  - CMD now runs `uvicorn src.api.app:app` (was `uvicorn api.app:app`)
+  - **Commits:** `380e455` → `e9b19cd` → `edbc399` → `7f892d8`
 
 ---
 
@@ -324,7 +331,7 @@ These are from `docs/stages/10_IMPROVEMENTS_ROADMAP.md`, Opus Files 20 (IMP-15 t
 | 1. Crash bug fixes | 2-3h | ✅ DONE |
 | 2. Placeholder stub fixes | 4-6h | ✅ DONE |
 | 3. Wire stages 11-14 | 4-6h | ✅ DONE |
-| 4. CI/CD fixes | 1-2h | ✅ DONE |
+| 4. CI/CD fixes | 1-2h | ✅ DONE + GREEN ✅ (commit `7f892d8`) |
 | 5. Validate with full run | 2-4h | ✅ DONE (5c=225/225; 5a/5b need data) |
 | 6. Medium-priority improvements | 8-12h | ✅ DONE |
 | 7. Experiments | 20-30h | Not started |

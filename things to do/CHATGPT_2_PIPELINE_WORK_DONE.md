@@ -19,6 +19,7 @@
 | 22 Feb — Step 4 | 22 Feb 2026 | CI/CD schedule + real commands | Automated weekly drift detection |
 | 22 Feb — Step 5c | 22 Feb 2026 | 225/225 tests pass; no regressions | All changes verified non-breaking |
 | 22 Feb — Step 6 | 22 Feb 2026 | 7 medium-priority improvements | Monitoring quality, reproducibility |
+| 22 Feb — Post-audit Docker fix | 22 Feb 2026 | Resolved api.app import shadowing in Docker image | **CI GREEN ✅** — smoke test endpoint calls succeed |
 
 ---
 
@@ -363,3 +364,46 @@ Confirmed: all Step 1-6 changes are non-breaking. `test_all_stages_list` updated
 | Adaptation methods | **3 implemented** (AdaBN, TENT, pseudo-label) | `src/domain_adaptation/` |
 | Baseline accuracy (A3) | **val_acc 0.969, F1 0.814** | Audit run 19 Feb |
 | Baseline confidence (A1) | **84.6%** | Audit run 19 Feb |
+
+---
+
+## 22 Feb 2026 — Post-Audit CI/Docker Fixes (✅ CONFIRMED CI GREEN)
+
+**Commits:** `380e455` → `e9b19cd` → `edbc399` → `7f892d8`  
+**Net result:** CI pipeline is now fully green. Smoke test passes. Docker container imports the correct API module.
+
+### Root Cause
+
+The Docker inference container was starting with `uvicorn api.app:app`, but:
+- `COPY docker/api/ /app/api/` placed a legacy directory at `/app/api/`
+- That **shadowed** `src/api/` (which contains the real `app.py` with `/api/health` and `/api/upload`)
+- `docker/api/` only has `main.py` — no `app.py` — so Uvicorn crashed with `Could not import module "api.app"`
+- The smoke script (`scripts/inference_smoke.py`) then failed because the container never started
+
+### Changes Made to `docker/Dockerfile.inference`
+
+| Before | After | Why |
+|--------|-------|-----|
+| `COPY docker/api/ /app/api/` | `COPY docker/api/ /app/docker_api/` | Prevents shadowing of `src/api/` |
+| `PYTHONPATH=/app/src:/app/api:$PYTHONPATH` | `PYTHONPATH=/app:/app/src:$PYTHONPATH` | `/app` is the project root; `src.api.app` is importable |
+| `CMD ["uvicorn", "api.app:app", ...]` | `CMD ["uvicorn", "src.api.app:app", ...]` | Points to production FastAPI app |
+
+### Changes Made to `.github/workflows/ci-cd.yml` (during CI fix commits)
+
+- `curl .../health` → `curl .../api/health` (endpoint prefix fix)
+- `sleep 10` wait loop → readiness poll loop (`until curl -sf .../api/health; do sleep 2; done`)
+
+### Result
+
+- Docker container starts successfully; `src.api.app` is imported
+- `/api/health` responds HTTP 200
+- `/api/upload` accepts the test CSV
+- CI integration test job passes ✅
+- **CI pipeline is FULLY GREEN as of commit `7f892d8`**
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| `docker/Dockerfile.inference` | All 3 lines described above |
+| `.github/workflows/ci-cd.yml` | Health endpoint URL fix + poll loop |

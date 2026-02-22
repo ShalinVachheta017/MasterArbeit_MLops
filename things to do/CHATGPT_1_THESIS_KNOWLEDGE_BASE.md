@@ -1,8 +1,8 @@
 # HAR MLOps Master Thesis — Knowledge Base (ChatGPT Handoff File 1 of 3)
 
 > **Purpose:** Complete context for the thesis. This is a distillation of 22 Opus audit files + Codex pseudocode analysis, filtered to reflect current reality (as of 22 Feb 2026, after Steps 1-6 completed). All resolved issues are marked or omitted.
-> **Repository:** `d:\study apply\ML Ops\MasterArbeit_MLops`, branch `main`
-> **Completion estimate:** ~75–78% (was ~64% at audit time; Steps 1-6 added ~11 points)
+> **Repository:** `d:\study apply\ML Ops\MasterArbeit_MLops`, branch `main`, commit `7f892d8` — **CI GREEN ✅**
+> **Completion estimate:** ~80–82% (was ~64% at audit time; Steps 1-6 added ~11 points; Docker/CI fix added ~2 more)
 
 ---
 
@@ -151,6 +151,10 @@ All three are fully implemented. DANN and MMD are explicitly fenced off with `No
 **Weekly schedule trigger:** `0 6 * * 1` — runs drift detection against stored baseline automatically.
 
 **Smoke tester:** `scripts/inference_smoke.py` hits `/api/health` and `/api/upload` with a minimal test CSV; stdlib only (no extra deps).
+
+**Docker image:** `ghcr.io/shalinvachheta017/masterarbeit_mlops:latest` serves `src/api/app.py` via `uvicorn src.api.app:app`. The `docker/api/` legacy directory is copied to `/app/docker_api/` (not `/app/api/`) to avoid shadowing the production API module. `PYTHONPATH=/app:/app/src`.
+
+**CI Status: ✅ CONFIRMED GREEN** (commit `7f892d8`, 22 Feb 2026).
 
 ---
 
@@ -368,9 +372,10 @@ All three are fully implemented. DANN and MMD are explicitly fenced off with `No
 | **IMP-10** | Offline Z-score threshold (Wasserstein analysis) vs pipeline W₁ threshold are not bridged | Threshold numbers inconsistent between scripts and pipeline |
 | **IMP-11** | No unified cross-dataset drift + confidence report | Manual combination needed for Ch 5 |
 | **IMP-14** | `MetricsExporter` class exists but not wired into `app.py /predict` | Prometheus metrics not exported from API |
-| **W-1** | Chapter 5 Results is empty — no experiment data collected at scale | Biggest remaining risk for thesis quality |
+| **W-1** | Chapter 5 Results is empty — no experiment data collected at scale | **Biggest remaining risk for thesis quality** |
 | **W-5** | No labeled production data — proxy metrics only | Examiner will probe this (Q2 answer above) |
 | **W-7** | Prometheus/Grafana never integrated (same as PG-1) | Defense demo of monitoring dashboard not possible without O-9 optional task |
 | **Q-1** | Does confidence drop predict accuracy drop significantly on this dataset? | Core claim needs E-10 validation |
 | **Q-2** | Does 3-layer monitoring outperform 1-layer? | Core claim needs E-8 ablation |
 | **Q-3** | Which adapter actually wins on cross-subject HAR? | Core claim needs E-5 comparison |
+| ~~CI/CD~~ | ~~3 echo stubs + missing smoke script~~ | ✅ **RESOLVED** — Smoke script created, Docker fix applied, CI is GREEN |
