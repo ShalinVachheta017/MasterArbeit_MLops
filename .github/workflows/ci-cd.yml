@@ -250,13 +250,25 @@ jobs:
             -e LOG_LEVEL=INFO \
             ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           
-          # Wait for container to be ready
-          sleep 10
+          # Wait for API to be ready — poll /api/health up to 60 s (TF import is slow)
+          echo "Waiting for API to become ready..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8000/api/health > /dev/null 2>&1; then
+              echo "API is up after $((i * 2)) seconds"
+              break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "ERROR: API did not start within 60 seconds"
+              docker logs har-test
+              exit 1
+            fi
+            sleep 2
+          done
       
       - name: Run smoke tests
         run: |
           # Health check — hard fail if API is not up
-          curl -f http://localhost:8000/health || exit 1
+          curl -f http://localhost:8000/api/health || exit 1
           
           # Run inference smoke test — hard fail if script errors
           python scripts/inference_smoke.py --endpoint http://localhost:8000
