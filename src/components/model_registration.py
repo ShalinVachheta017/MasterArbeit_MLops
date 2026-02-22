@@ -8,12 +8,12 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-from src.entity.config_entity import ModelRegistrationConfig, PipelineConfig
 from src.entity.artifact_entity import (
-    ModelRetrainingArtifact,
     ModelEvaluationArtifact,
     ModelRegistrationArtifact,
+    ModelRetrainingArtifact,
 )
+from src.entity.config_entity import ModelRegistrationConfig, PipelineConfig
 
 logger = logging.getLogger(__name__)
 
@@ -41,15 +41,10 @@ class ModelRegistration:
 
         from src.model_rollback import ModelRegistry
 
-        registry_dir = self.config.registry_dir or (
-            self.pipeline_config.models_dir / "registry"
-        )
+        registry_dir = self.config.registry_dir or (self.pipeline_config.models_dir / "registry")
         registry = ModelRegistry(registry_dir=Path(registry_dir))
 
-        model_path = Path(
-            self.config.model_path
-            or self.retraining_artifact.retrained_model_path
-        )
+        model_path = Path(self.config.model_path or self.retraining_artifact.retrained_model_path)
         version = self.config.version  # None → auto-increment
         metrics = self.retraining_artifact.metrics or {}
 
@@ -80,14 +75,17 @@ class ModelRegistration:
                     is_better = float(new_acc) >= float(cur_acc)
                     logger.info(
                         "Model comparison: new_acc=%.4f vs current_acc=%.4f → is_better=%s",
-                        float(new_acc), float(cur_acc), is_better,
+                        float(new_acc),
+                        float(cur_acc),
+                        is_better,
                     )
                 else:
                     logger.warning(
                         "Cannot compare models: accuracy key missing. "
                         "New metrics keys: %s | Current metrics keys: %s. "
                         "Defaulting to is_better=True.",
-                        list(metrics.keys()), list(current_metrics.keys()),
+                        list(metrics.keys()),
+                        list(current_metrics.keys()),
                     )
                     is_better = True  # safe fallback when accuracy unavailable
 

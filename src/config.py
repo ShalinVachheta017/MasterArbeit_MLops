@@ -60,21 +60,21 @@ NUM_CLASSES = 11  # 11 activity types
 
 # Activity labels (from labeled dataset)
 ACTIVITY_LABELS = [
-    'ear_rubbing',
-    'forehead_rubbing', 
-    'hair_pulling',
-    'hand_scratching',
-    'hand_tapping',
-    'knuckles_cracking',
-    'nail_biting',
-    'nape_rubbing',
-    'sitting',
-    'smoking',
-    'standing'
+    "ear_rubbing",
+    "forehead_rubbing",
+    "hair_pulling",
+    "hand_scratching",
+    "hand_tapping",
+    "knuckles_cracking",
+    "nail_biting",
+    "nape_rubbing",
+    "sitting",
+    "smoking",
+    "standing",
 ]
 
 # Sensor columns
-SENSOR_COLUMNS = ['Ax_w', 'Ay_w', 'Az_w', 'Gx_w', 'Gy_w', 'Gz_w']
+SENSOR_COLUMNS = ["Ax_w", "Ay_w", "Az_w", "Gx_w", "Gy_w", "Gz_w"]
 
 # Usage:
 # from src.config import PROJECT_ROOT, PRETRAINED_MODEL, WINDOW_SIZE

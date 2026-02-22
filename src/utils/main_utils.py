@@ -27,10 +27,10 @@ import pandas as pd
 
 from src.utils.common import (
     ensure_dir,
+    get_timestamp,
     read_json,
     read_yaml,
     validate_file_exists,
-    get_timestamp,
 )
 
 logger = logging.getLogger(__name__)
@@ -52,12 +52,17 @@ _DEFAULT_ACTIVITY_LABELS: List[str] = [
 ]
 
 _DEFAULT_SENSOR_COLUMNS: List[str] = [
-    "Ax", "Ay", "Az",
-    "Gx", "Gy", "Gz",
+    "Ax",
+    "Ay",
+    "Az",
+    "Gx",
+    "Gy",
+    "Gz",
 ]
 
 
 # ─── Activity / sensor accessors ─────────────────────────────────────
+
 
 def get_activity_labels() -> List[str]:
     """Return the canonical list of 11 HAR activity labels."""
@@ -70,6 +75,7 @@ def get_sensor_columns() -> List[str]:
 
 
 # ─── Model I/O ───────────────────────────────────────────────────────
+
 
 def load_model(path: Union[str, Path]) -> Any:
     """Load a Keras ``.keras`` (or ``.h5``) model with error handling.
@@ -95,9 +101,9 @@ def load_model(path: Union[str, Path]) -> Any:
     validate_file_exists(path, "Model file")
     try:
         import tensorflow as tf
+
         model = tf.keras.models.load_model(str(path))
-        logger.info("Loaded model: %s  (params=%s)", path.name,
-                     f"{model.count_params():,}")
+        logger.info("Loaded model: %s  (params=%s)", path.name, f"{model.count_params():,}")
         return model
     except Exception as exc:
         raise RuntimeError(f"Failed to load model {path}: {exc}") from exc
@@ -127,6 +133,7 @@ def save_model(model: Any, path: Union[str, Path]) -> Path:
 
 # ─── Predictions I/O ─────────────────────────────────────────────────
 
+
 def load_predictions(csv_path: Union[str, Path]) -> pd.DataFrame:
     """Load a predictions CSV in the standardised pipeline format.
 
@@ -145,12 +152,14 @@ def load_predictions(csv_path: Union[str, Path]) -> pd.DataFrame:
     csv_path = Path(csv_path)
     validate_file_exists(csv_path, "Predictions CSV")
     df = pd.read_csv(csv_path)
-    logger.info("Loaded predictions: %s  rows=%d  cols=%s",
-                csv_path.name, len(df), list(df.columns))
+    logger.info(
+        "Loaded predictions: %s  rows=%d  cols=%s", csv_path.name, len(df), list(df.columns)
+    )
     return df
 
 
 # ─── Pipeline config ─────────────────────────────────────────────────
+
 
 def load_config_from_yaml(
     path: Optional[Union[str, Path]] = None,
@@ -175,6 +184,7 @@ def load_config_from_yaml(
 
 
 # ─── Class distribution ──────────────────────────────────────────────
+
 
 def compute_class_distribution(
     predictions: np.ndarray,
@@ -209,6 +219,7 @@ def compute_class_distribution(
 
 # ─── Logging helper ──────────────────────────────────────────────────
 
+
 def setup_stage_logger(
     stage_name: str,
     log_dir: Union[str, Path],
@@ -234,9 +245,7 @@ def setup_stage_logger(
     stage_logger.setLevel(level)
 
     # File handler (per-stage)
-    fh = logging.FileHandler(
-        log_dir / f"{stage_name}_{get_timestamp()}.log", encoding="utf-8"
-    )
+    fh = logging.FileHandler(log_dir / f"{stage_name}_{get_timestamp()}.log", encoding="utf-8")
     fh.setLevel(level)
     fmt = logging.Formatter(
         "%(asctime)s  %(levelname)-8s  %(name)s  %(message)s",
@@ -248,6 +257,7 @@ def setup_stage_logger(
 
 
 # ─── File archiving ──────────────────────────────────────────────────
+
 
 def archive_file(
     src: Union[str, Path],

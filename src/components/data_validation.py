@@ -9,8 +9,8 @@ from pathlib import Path
 
 import pandas as pd
 
-from src.entity.config_entity import DataValidationConfig, PipelineConfig
 from src.entity.artifact_entity import DataIngestionArtifact, DataValidationArtifact
+from src.entity.config_entity import DataValidationConfig, PipelineConfig
 
 logger = logging.getLogger(__name__)
 
@@ -49,8 +49,12 @@ class DataValidation:
         )
         result = validator.validate(df)
 
-        logger.info("Validation result: valid=%s  errors=%d  warnings=%d",
-                     result.is_valid, len(result.errors), len(result.warnings))
+        logger.info(
+            "Validation result: valid=%s  errors=%d  warnings=%d",
+            result.is_valid,
+            len(result.errors),
+            len(result.warnings),
+        )
 
         return DataValidationArtifact(
             is_valid=result.is_valid,

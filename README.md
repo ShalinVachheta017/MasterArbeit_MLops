@@ -9,28 +9,34 @@
 [![CI/CD](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-success.svg)](.github/workflows/ci-cd.yml)
 
 **Master's Thesis Project** | January 2026 - May 2026  
-**Last Updated:** February 15, 2026  
-**Progress:** 95% complete
+**Last Updated:** February 22, 2026  
+**Status:** Pipeline complete (14 stages, 225/225 tests passing) — experiments + thesis writing in progress
 
 ---
 
 ## 📊 Current Status
 
-> **🎯 MAIN DOCUMENT:** See [docs/thesis/FINAL_Thesis_Status_and_Plan_Jan_to_Jun_2026.md](docs/thesis/FINAL_Thesis_Status_and_Plan_Jan_to_Jun_2026.md) for complete thesis status, achievements, and remaining work.
+> **🎯 PROGRESS OVERVIEW:** See [things to do/01_REMAINING_WORK.md](things%20to%20do/01_REMAINING_WORK.md) for the authoritative task list. See [things to do/CHATGPT_2_PIPELINE_WORK_DONE.md](things%20to%20do/CHATGPT_2_PIPELINE_WORK_DONE.md) for a complete log of what was built.
 
-**Latest Achievements (Feb 15, 2026):**
-- ✅ **CI/CD Pipeline** fully operational with GitHub Actions
-- ✅ **All 225 tests passing** (full test coverage)
-- ✅ **FastAPI Web UI** with CSV upload & interactive dashboard
-- ✅ **3-layer monitoring** integrated (confidence, temporal, drift)
-- ✅ **Production optimizations** (971x model caching, vectorized windowing)
-- ✅ **Docker images** automatically built and pushed to ghcr.io
+**Completed (as of Feb 22, 2026):**
+- ✅ **14-stage pipeline** fully orchestrated (`--advanced` flag enables all 14 stages)
+- ✅ **All 225 tests passing** (unit + integration + slow, 0 failures)
+- ✅ **FastAPI inference service** with CSV upload & health check endpoints
+- ✅ **3-layer monitoring** — confidence + temporal patterns + PSI drift (calibrated via temperature scaling)
+- ✅ **Trigger policy wired** — reads real monitoring metrics, 17 configurable parameters
+- ✅ **CI/CD automated** — weekly model-health check (Monday 06:00 UTC) + hard-fail unit tests
+- ✅ **Dependency lock file** — 578 pinned packages (`config/requirements-lock.txt`)
+- ✅ **Docker images** built and pushed to ghcr.io
+
+**Still Required:**
+- ⏳ Experiments (Step 7 — no results yet, Chapter 5 empty)
+- ⏳ Thesis writing (~70% of chapters remain)
 
 **Quick Links:**
-- 🚀 [Run the FastAPI](#-quick-start): `python -m src.api.app`
-- 📖 [Thesis Plan](Thesis_Plan.md): Original 6-month timeline
+- 🚀 [Examiner Quickstart](#-examiner-quickstart-3-commands): Reproduce results in 3 commands
 - 🧪 [Run Tests](#-testing): `pytest tests/`
-- 🔧 [Pipeline Guide](docs/PIPELINE_OPERATIONS_AND_ARCHITECTURE.md): Full pipeline docs
+- 🔧 [Pipeline Runbook](docs/19_Feb/PIPELINE_RUNBOOK.md): Full pipeline operations guide
+- 📋 [Remaining Work](things%20to%20do/CHATGPT_3_REMAINING_WORK.md): What's left to do
 
 ---
 
@@ -68,7 +74,7 @@
 
 ## 🎯 Project Overview
 
-An end-to-end MLOps pipeline for **Human Activity Recognition (HAR)** using wearable sensor data. The system recognizes 11 anxiety-related activities from accelerometer and gyroscope data collected via Garmin smartwatches.
+An end-to-end MLOps pipeline for **Human Activity Recognition (HAR)** using wearable IMU sensor data. The system classifies 6 activities (walking, jogging, sitting, standing, stairs up/down) from 3-axis accelerometer + gyroscope data across 26 subject sessions.
 
 ### Key Features
 
@@ -78,25 +84,27 @@ An end-to-end MLOps pipeline for **Human Activity Recognition (HAR)** using wear
 | Experiment Tracking | MLflow | ✅ Complete |
 | Containerization | Docker | ✅ Complete |
 | Model Serving API | FastAPI | ✅ Complete |
-| Domain Calibration | Distribution Alignment | ✅ Complete |
-| Gravity Removal | Butterworth Filter | ✅ Complete |
-| CI/CD Pipeline | GitHub Actions | ✅ Complete |
-| Monitoring | Prometheus/Grafana | ⏳ Planned |
+| 3-Layer Monitoring | Confidence + Temporal + PSI Drift | ✅ Complete |
+| Temperature Calibration | Softmax temperature scaling | ✅ Complete |
+| Domain Adaptation | AdaBN / TENT / Pseudo-label | ✅ Complete |
+| CI/CD Pipeline | GitHub Actions (weekly schedule) | ✅ Complete |
+| Dependency Pinning | pip freeze lock file (578 pkgs) | ✅ Complete |
+| Prometheus/Grafana | Config ready, not wired to app | ⏳ Optional |
 
 ### Model Details
 
-- **Architecture:** 1D-CNN-BiLSTM (1.5M parameters)
-- **Input:** 200 timesteps × 6 sensors (4 seconds @ 50Hz)
-- **Output:** 11 activity classes
+- **Architecture:** 1D-CNN-BiLSTM (~850K parameters)
+- **Input:** 200 timesteps × 6 channels (4 seconds @ 50Hz)
+- **Output:** 6 activity classes
 - **Sensors:** Ax, Ay, Az (accelerometer) + Gx, Gy, Gz (gyroscope)
+- **Training:** 5-fold stratified CV; val_acc 0.969, F1 0.814 (Feb 2026 audit)
 
 ### Activity Classes
 
 ```
-0: ear_rubbing      4: hand_tapping     8: sitting
-1: forehead_rubbing 5: knuckles_cracking 9: smoking
-2: hair_pulling     6: nail_biting      10: standing
-3: hand_scratching  7: nape_rubbing
+0: walking           3: standing
+1: jogging           4: going_upstairs
+2: sitting           5: going_downstairs
 ```
 
 ---
@@ -182,6 +190,46 @@ An end-to-end MLOps pipeline for **Human Activity Recognition (HAR)** using wear
 
 ---
 
+## 🎓 Examiner Quickstart (3 Commands)
+
+> **Reproduce the core pipeline results on a clean machine.**
+> Prerequisites: Python 3.11+, Git, ~4 GB free disk space.
+
+```bash
+# 1. Clone and install (pinned deps — exact environment)
+git clone https://github.com/ShalinVachheta017/MasterArbeit_MLops.git
+cd MasterArbeit_MLops
+pip install -r config/requirements-lock.txt
+
+# 2. Run the full test suite (should report 225 passed, 0 failed)
+python -m pytest tests/ -m "not slow" -q
+
+# 3. Run a single-session inference + monitoring pipeline
+python run_pipeline.py --skip-ingestion
+#    → outputs/monitoring/monitoring_report.json  (3-layer monitoring result)
+#    → outputs/trigger/trigger_decision.json      (RETRAIN / ADAPT_ONLY / NO_ACTION)
+```
+
+**Full 14-stage pipeline** (requires session data in `data/raw/`):
+```bash
+python run_pipeline.py --retrain --adapt adabn_tent --advanced
+```
+
+**FastAPI inference service:**
+```bash
+python -m src.api.app
+# → http://localhost:8000/docs  (Swagger UI)
+# → http://localhost:8000/health
+```
+
+**MLflow experiment browser:**
+```bash
+mlflow ui --backend-store-uri mlruns/
+# → http://localhost:5000
+```
+
+---
+
 ## 🚀 Quick Start
 
 ### Prerequisites
@@ -194,7 +242,7 @@ An end-to-end MLOps pipeline for **Human Activity Recognition (HAR)** using wear
 
 ```powershell
 # Clone repository
-git clone https://github.com/ShalinVachheta017/MasterArbeit_MLops-.git
+git clone https://github.com/ShalinVachheta017/MasterArbeit_MLops.git
 cd MasterArbeit_MLops
 
 # Create conda environment

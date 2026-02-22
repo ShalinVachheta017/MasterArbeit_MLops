@@ -14,10 +14,11 @@ Author: Thesis Project
 Date: 2026
 """
 
-import pandas as pd
-import numpy as np
 from pathlib import Path
+
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 from scipy import stats
 
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -34,7 +35,7 @@ df = pd.read_csv(labeled_path)
 print(f"✓ Total samples: {len(df)}")
 print(f"✓ Activities: {df['activity'].nunique()}")
 
-feature_cols = ['Ax_w', 'Ay_w', 'Az_w', 'Gx_w', 'Gy_w', 'Gz_w']
+feature_cols = ["Ax_w", "Ay_w", "Az_w", "Gx_w", "Gy_w", "Gz_w"]
 
 # ============================================================================
 # STEP 1: Check Statistical Separability of Activities
@@ -45,15 +46,15 @@ print("=" * 70)
 
 activity_stats = {}
 
-for activity in sorted(df['activity'].unique()):
-    activity_data = df[df['activity'] == activity][feature_cols]
-    
+for activity in sorted(df["activity"].unique()):
+    activity_data = df[df["activity"] == activity][feature_cols]
+
     stats_dict = {
-        'count': len(activity_data),
-        'mean_magnitude': np.sqrt((activity_data**2).sum(axis=1)).mean(),
-        'std_magnitude': np.sqrt((activity_data**2).sum(axis=1)).std(),
-        'gyro_intensity': activity_data[['Gx_w', 'Gy_w', 'Gz_w']].abs().mean().mean(),
-        'accel_intensity': activity_data[['Ax_w', 'Ay_w', 'Az_w']].abs().mean().mean(),
+        "count": len(activity_data),
+        "mean_magnitude": np.sqrt((activity_data**2).sum(axis=1)).mean(),
+        "std_magnitude": np.sqrt((activity_data**2).sum(axis=1)).std(),
+        "gyro_intensity": activity_data[["Gx_w", "Gy_w", "Gz_w"]].abs().mean().mean(),
+        "accel_intensity": activity_data[["Ax_w", "Ay_w", "Az_w"]].abs().mean().mean(),
     }
     activity_stats[activity] = stats_dict
 
@@ -64,8 +65,10 @@ print(f"{'Activity':<20} {'Samples':>8} {'Movement':>12} {'Gyro':>10} {'Accel':>
 print("-" * 90)
 
 for activity, stats in sorted(activity_stats.items()):
-    print(f"{activity:<20} {stats['count']:>8} {stats['mean_magnitude']:>12.3f} "
-          f"{stats['gyro_intensity']:>10.3f} {stats['accel_intensity']:>10.3f}")
+    print(
+        f"{activity:<20} {stats['count']:>8} {stats['mean_magnitude']:>12.3f} "
+        f"{stats['gyro_intensity']:>10.3f} {stats['accel_intensity']:>10.3f}"
+    )
 
 # ============================================================================
 # STEP 2: Check if Activities Form Distinct Clusters
@@ -78,11 +81,11 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 
 # Sample data for faster computation
-sample_size = min(1000, len(df) // df['activity'].nunique())
-df_sample = df.groupby('activity').sample(n=sample_size, random_state=42)
+sample_size = min(1000, len(df) // df["activity"].nunique())
+df_sample = df.groupby("activity").sample(n=sample_size, random_state=42)
 
 X = df_sample[feature_cols].values
-y = df_sample['activity'].values
+y = df_sample["activity"].values
 
 # Standardize and reduce to 2D
 scaler = StandardScaler()
@@ -121,16 +124,16 @@ print("STEP 3: TEMPORAL VALIDATION - Are Transitions Clean?")
 print("=" * 70)
 
 # Add timestamp parsing
-df['timestamp'] = pd.to_datetime(df['timestamp'])
-df = df.sort_values('timestamp')
-df['prev_activity'] = df['activity'].shift(1)
-df['is_transition'] = df['activity'] != df['prev_activity']
+df["timestamp"] = pd.to_datetime(df["timestamp"])
+df = df.sort_values("timestamp")
+df["prev_activity"] = df["activity"].shift(1)
+df["is_transition"] = df["activity"] != df["prev_activity"]
 
-transitions = df[df['is_transition'] == True]
+transitions = df[df["is_transition"] == True]
 print(f"\nNumber of activity transitions: {len(transitions)}")
 print("\nTransition sequence:")
 for idx, row in transitions.head(15).iterrows():
-    prev = row['prev_activity'] if pd.notna(row['prev_activity']) else 'START'
+    prev = row["prev_activity"] if pd.notna(row["prev_activity"]) else "START"
     print(f"  {prev:>20} → {row['activity']:<20} at {row['timestamp']}")
 
 # ============================================================================
@@ -148,27 +151,29 @@ if not train_path.exists():
 train_df = pd.read_csv(train_path)
 train_stats = {}
 
-for activity in sorted(train_df['activity'].unique()):
-    activity_data = train_df[train_df['activity'] == activity][feature_cols]
+for activity in sorted(train_df["activity"].unique()):
+    activity_data = train_df[train_df["activity"] == activity][feature_cols]
     train_stats[activity] = {
-        'gyro_intensity': activity_data[['Gx_w', 'Gy_w', 'Gz_w']].abs().mean().mean(),
-        'accel_intensity': activity_data[['Ax_w', 'Ay_w', 'Az_w']].abs().mean().mean(),
+        "gyro_intensity": activity_data[["Gx_w", "Gy_w", "Gz_w"]].abs().mean().mean(),
+        "accel_intensity": activity_data[["Ax_w", "Ay_w", "Az_w"]].abs().mean().mean(),
     }
 
 print("\nIntensity Comparison (Garmin vs Training):")
 print("-" * 80)
-print(f"{'Activity':<20} {'Garmin Gyro':>12} {'Train Gyro':>12} {'Garmin Accel':>12} {'Train Accel':>12}")
+print(
+    f"{'Activity':<20} {'Garmin Gyro':>12} {'Train Gyro':>12} {'Garmin Accel':>12} {'Train Accel':>12}"
+)
 print("-" * 80)
 
 correlation_scores = []
 for activity in sorted(set(activity_stats.keys()) & set(train_stats.keys())):
-    g_gyro = activity_stats[activity]['gyro_intensity']
-    t_gyro = train_stats[activity]['gyro_intensity']
-    g_accel = activity_stats[activity]['accel_intensity']
-    t_accel = train_stats[activity]['accel_intensity']
-    
+    g_gyro = activity_stats[activity]["gyro_intensity"]
+    t_gyro = train_stats[activity]["gyro_intensity"]
+    g_accel = activity_stats[activity]["accel_intensity"]
+    t_accel = train_stats[activity]["accel_intensity"]
+
     print(f"{activity:<20} {g_gyro:>12.3f} {t_gyro:>12.3f} {g_accel:>12.3f} {t_accel:>12.3f}")
-    
+
     # Simple correlation check
     if t_gyro > 0 and t_accel > 0:
         gyro_ratio = min(g_gyro, t_gyro) / max(g_gyro, t_gyro)
@@ -198,14 +203,16 @@ else:
 
 # Check 2: Pattern similarity
 if avg_correlation < 0.5:
-    issues.append(f"Garmin patterns differ significantly from training data ({avg_correlation:.0%} similarity)")
+    issues.append(
+        f"Garmin patterns differ significantly from training data ({avg_correlation:.0%} similarity)"
+    )
 elif avg_correlation < 0.7:
     warnings.append(f"Moderate pattern similarity to training data ({avg_correlation:.0%})")
 else:
     print(f"✅ Garmin patterns match training data well ({avg_correlation:.0%})")
 
 # Check 3: Sample counts
-min_samples = min(s['count'] for s in activity_stats.values())
+min_samples = min(s["count"] for s in activity_stats.values())
 if min_samples < 1000:
     warnings.append(f"Some activities have few samples (min: {min_samples})")
 else:
@@ -236,7 +243,8 @@ print("RECOMMENDATIONS")
 print("=" * 70)
 
 if issues:
-    print("""
+    print(
+        """
 ❌ YOUR LABELS NEED VALIDATION!
 
 The sensor data patterns don't strongly support your time-based labels.
@@ -262,9 +270,11 @@ Option C - Collect NEW Labeled Data:
   1. Record activities again with precise timing
   2. Mark exact start/stop times during recording
   3. Use video/stopwatch for accurate labels
-""")
+"""
+    )
 elif warnings:
-    print("""
+    print(
+        """
 ⚠️  LABELS ARE ACCEPTABLE BUT NOT PERFECT
 
 Your time-based labels show reasonable patterns, but there's room for improvement.
@@ -276,9 +286,11 @@ SUGGESTED ACTIONS:
 3. Expect 70-80% accuracy (not 85%+)
 
 You can proceed to fine-tuning, but be aware results may be limited by label quality.
-""")
+"""
+    )
 else:
-    print("""
+    print(
+        """
 ✅ YOUR LABELS LOOK GOOD!
 
 The sensor patterns match expected activity characteristics and align well
@@ -289,7 +301,8 @@ with training data. You can confidently proceed with:
 3. Production deployment
 
 Your time-based labeling appears scientifically sound!
-""")
+"""
+    )
 
 print("\n" + "=" * 70)
 print("VALIDATION COMPLETE")

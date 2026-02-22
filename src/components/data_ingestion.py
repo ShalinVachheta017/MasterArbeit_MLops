@@ -38,8 +38,8 @@ from typing import Dict, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 
-from src.entity.config_entity import DataIngestionConfig, PipelineConfig
 from src.entity.artifact_entity import DataIngestionArtifact
+from src.entity.config_entity import DataIngestionConfig, PipelineConfig
 
 logger = logging.getLogger(__name__)
 
@@ -52,14 +52,20 @@ DEFAULT_INTERPOLATION_LIMIT = 2
 
 # Column name mappings (Garmin / decoded → standard x, y, z)
 ACCEL_RENAME = {
-    "calibrated_accel_x": "x", "calibrated_accel_y": "y",
+    "calibrated_accel_x": "x",
+    "calibrated_accel_y": "y",
     "calibrated_accel_z": "z",
-    "accel_x": "x", "accel_y": "y", "accel_z": "z",
+    "accel_x": "x",
+    "accel_y": "y",
+    "accel_z": "z",
 }
 GYRO_RENAME = {
-    "calibrated_gyro_x": "x", "calibrated_gyro_y": "y",
+    "calibrated_gyro_x": "x",
+    "calibrated_gyro_y": "y",
     "calibrated_gyro_z": "z",
-    "gyro_x": "x", "gyro_y": "y", "gyro_z": "z",
+    "gyro_x": "x",
+    "gyro_y": "y",
+    "gyro_z": "z",
 }
 
 # Manifest filename for tracking what has been processed
@@ -69,6 +75,7 @@ PROCESSED_MANIFEST = "ingestion_manifest.json"
 # ============================================================================
 # HELPER: Raw File Discovery
 # ============================================================================
+
 
 def discover_sensor_files(
     raw_dir: Path,
@@ -137,6 +144,7 @@ def find_latest_sensor_pair(raw_dir: Path) -> Tuple[Path, Path]:
 # HELPER: Processing Manifest (skip-already-processed)
 # ============================================================================
 
+
 def _load_manifest(processed_dir: Path) -> Dict:
     manifest_path = processed_dir / PROCESSED_MANIFEST
     if manifest_path.exists():
@@ -161,6 +169,7 @@ def _pair_key(accel_path: Path, gyro_path: Path) -> str:
 # HELPER: Sensor Data Loading & Parsing
 # ============================================================================
 
+
 def _load_sensor_file(file_path: Path) -> pd.DataFrame:
     """Load a sensor file (Excel or CSV)."""
     suffix = file_path.suffix.lower()
@@ -174,26 +183,20 @@ def _load_sensor_file(file_path: Path) -> pd.DataFrame:
     return df
 
 
-def _validate_sensor_file(
-    df: pd.DataFrame, file_path: Path, sensor_type: str
-) -> None:
+def _validate_sensor_file(df: pd.DataFrame, file_path: Path, sensor_type: str) -> None:
     """
     Validate sensor file has required data.
 
     Raises ValueError if file is empty or missing required columns.
     """
     if len(df) == 0:
-        raise ValueError(
-            f"Empty file: {file_path.name} has 0 rows"
-        )
+        raise ValueError(f"Empty file: {file_path.name} has 0 rows")
 
     # Check for required time column ('timestamp' is the raw column;
     # 'true_time' is computed later by _create_timestamps)
     df_cols_lower = [col.lower().strip() for col in df.columns]
-    if 'timestamp' not in df_cols_lower:
-        raise ValueError(
-            f"Missing 'timestamp' column in {file_path.name}"
-        )
+    if "timestamp" not in df_cols_lower:
+        raise ValueError(f"Missing 'timestamp' column in {file_path.name}")
 
 
 def _normalize_columns(df: pd.DataFrame, sensor_type: str) -> pd.DataFrame:
@@ -314,21 +317,28 @@ def _merge_and_resample(
     )
 
     n_matched = merged[["Gx", "Gy", "Gz"]].notna().all(axis=1).sum()
-    logger.info("  Merge: %d/%d rows matched (%.1f%%)",
-                n_matched, len(merged), 100 * n_matched / max(len(merged), 1))
+    logger.info(
+        "  Merge: %d/%d rows matched (%.1f%%)",
+        n_matched,
+        len(merged),
+        100 * n_matched / max(len(merged), 1),
+    )
 
     # Set time index and resample
     merged = merged.set_index("true_time")
     period = f"{int(1000 / target_hz)}ms"  # e.g., "20ms" for 50Hz
-    resampled = merged.resample(period).mean().interpolate(
-        method="linear", limit=DEFAULT_INTERPOLATION_LIMIT,
+    resampled = (
+        merged.resample(period)
+        .mean()
+        .interpolate(
+            method="linear",
+            limit=DEFAULT_INTERPOLATION_LIMIT,
+        )
     )
     resampled = resampled.dropna().reset_index()
 
     # Add convenience columns
-    resampled["timestamp_ms"] = (
-        resampled["true_time"].astype(np.int64) // 10**6
-    )
+    resampled["timestamp_ms"] = resampled["true_time"].astype(np.int64) // 10**6
     resampled["timestamp_iso"] = resampled["true_time"].dt.strftime("%Y-%m-%dT%H:%M:%S.%f")
 
     logger.info("  Resampled to %d Hz: %d rows", target_hz, len(resampled))
@@ -338,6 +348,7 @@ def _merge_and_resample(
 # ============================================================================
 # DATA INGESTION COMPONENT
 # ============================================================================
+
 
 class DataIngestion:
     """Ingest raw sensor files (Excel/CSV pairs or single CSV) into a fused CSV.
@@ -487,8 +498,9 @@ class DataIngestion:
             # ALL files already processed — reuse latest fused CSV
             latest_csv = output_dir / "sensor_fused_50Hz.csv"
             if latest_csv.exists():
-                logger.info("All %d pair(s) already processed. Reusing: %s",
-                            len(all_pairs), latest_csv)
+                logger.info(
+                    "All %d pair(s) already processed. Reusing: %s", len(all_pairs), latest_csv
+                )
                 df = pd.read_csv(latest_csv)
                 return DataIngestionArtifact(
                     fused_csv_path=latest_csv,
@@ -502,30 +514,35 @@ class DataIngestion:
             new_pairs = [all_pairs[0]]
 
         # Process new pairs (use the newest unprocessed one for the main fused CSV)
-        logger.info("Processing %d new pair(s) (skipped %d already-processed)",
-                     len(new_pairs), len(all_pairs) - len(new_pairs))
+        logger.info(
+            "Processing %d new pair(s) (skipped %d already-processed)",
+            len(new_pairs),
+            len(all_pairs) - len(new_pairs),
+        )
 
         # Try processing pairs until one succeeds (skip empty/corrupt files)
         fused_df = None
         processed_pair = None
-        
+
         for accel_path, gyro_path in new_pairs:
             try:
                 logger.info("Processing pair:")
                 logger.info("  Accel: %s", accel_path)
                 logger.info("  Gyro:  %s", gyro_path)
-                
+
                 fused_df = self._process_pair(accel_path, gyro_path)
                 processed_pair = (accel_path, gyro_path)
                 break  # Success — stop trying other pairs
-            
+
             except (ValueError, KeyError, Exception) as e:
                 logger.warning("  ⚠ Skipping pair due to error: %s", str(e))
                 continue  # Try next pair
-        
+
         if fused_df is None or processed_pair is None:
-            raise ValueError(f"All {len(new_pairs)} sensor pairs failed processing (empty files or corrupt data)")
-        
+            raise ValueError(
+                f"All {len(new_pairs)} sensor pairs failed processing (empty files or corrupt data)"
+            )
+
         accel_path, gyro_path = processed_pair
         dest = output_dir / "sensor_fused_50Hz.csv"
         fused_df.to_csv(dest, index=False)
@@ -537,11 +554,10 @@ class DataIngestion:
             "fused_csv": str(dest),
             "timestamp": datetime.now().isoformat(),
             "n_rows": len(fused_df),
-                }
+        }
         _save_manifest(output_dir, manifest)
 
-        logger.info("Fused CSV: %d rows × %d cols → %s",
-                     len(fused_df), len(fused_df.columns), dest)
+        logger.info("Fused CSV: %d rows × %d cols → %s", len(fused_df), len(fused_df.columns), dest)
 
         return DataIngestionArtifact(
             fused_csv_path=dest,

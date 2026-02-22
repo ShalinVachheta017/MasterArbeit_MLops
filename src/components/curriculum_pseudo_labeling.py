@@ -10,12 +10,12 @@ from typing import Optional
 
 import numpy as np
 
-from src.entity.config_entity import CurriculumPseudoLabelingConfig, PipelineConfig
 from src.entity.artifact_entity import (
-    ModelRetrainingArtifact,
-    DataTransformationArtifact,
     CurriculumPseudoLabelingArtifact,
+    DataTransformationArtifact,
+    ModelRetrainingArtifact,
 )
+from src.entity.config_entity import CurriculumPseudoLabelingConfig, PipelineConfig
 
 logger = logging.getLogger(__name__)
 
@@ -39,14 +39,13 @@ class CurriculumPseudoLabeling:
         logger.info("STAGE 13 — Curriculum Pseudo-Labeling")
         logger.info("=" * 60)
 
+        from src.curriculum_pseudo_labeling import CurriculumConfig as _CConfig
         from src.curriculum_pseudo_labeling import (
-            CurriculumConfig as _CConfig,
             CurriculumTrainer,
         )
 
         output_dir = Path(
-            self.config.output_dir
-            or self.pipeline_config.outputs_dir / "curriculum_training"
+            self.config.output_dir or self.pipeline_config.outputs_dir / "curriculum_training"
         )
         output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -65,8 +64,7 @@ class CurriculumPseudoLabeling:
 
         # Load unlabeled production data
         unlabeled_path = (
-            self.config.unlabeled_data_path
-            or self.transformation_artifact.production_X_path
+            self.config.unlabeled_data_path or self.transformation_artifact.production_X_path
         )
         if not Path(unlabeled_path).exists():
             logger.error("Unlabeled data not found: %s", unlabeled_path)
@@ -77,6 +75,7 @@ class CurriculumPseudoLabeling:
         # Load model
         try:
             import tensorflow as tf
+
             model_path = self.pipeline_config.models_pretrained_dir / "model.h5"
             if not model_path.exists():
                 model_path = self.pipeline_config.models_pretrained_dir / "model.keras"

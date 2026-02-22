@@ -35,13 +35,14 @@ _MODEL_CACHE = {}
 def load_model_cached(model_path: Path):
     """
     Load a Keras model with caching.
-    
+
     Subsequent calls with the same path return the cached model,
     eliminating 2-5s cold-load time during batch processing or API serving.
     """
     key = str(model_path.resolve())
     if key not in _MODEL_CACHE:
         import tensorflow as tf
+
         logger.info("Loading model (cold): %s", model_path.name)
         _MODEL_CACHE[key] = tf.keras.models.load_model(str(model_path))
     else:
@@ -53,6 +54,7 @@ def clear_model_cache():
     """Clear all cached models (e.g., after retraining)."""
     _MODEL_CACHE.clear()
     import tensorflow as tf
+
     tf.keras.backend.clear_session()
     logger.info("Model cache cleared")
 
@@ -61,6 +63,7 @@ def clear_model_cache():
 # Vectorized Batch Prediction
 # ============================================================================
 
+
 def predict_batch_optimized(
     model,
     X: np.ndarray,
@@ -68,15 +71,15 @@ def predict_batch_optimized(
 ) -> np.ndarray:
     """
     Run vectorized batch prediction with optimal batch size.
-    
+
     Replaces Python-loop prediction with a single model.predict() call
     using configurable batch sizes for memory/speed trade-off.
-    
+
     Args:
         model: Loaded Keras model
         X: Input array of shape (n_windows, timesteps, channels)
         batch_size: Batch size for prediction (64 is optimal for most models)
-    
+
     Returns:
         probabilities: np.ndarray of shape (n_windows, n_classes)
     """
@@ -88,6 +91,7 @@ def predict_batch_optimized(
 # TF-Lite Conversion
 # ============================================================================
 
+
 def convert_to_tflite(
     keras_model_path: Path,
     output_path: Optional[Path] = None,
@@ -96,13 +100,13 @@ def convert_to_tflite(
 ) -> Path:
     """
     Convert Keras model to TF-Lite with optional INT8 quantization.
-    
+
     Args:
         keras_model_path: Path to .keras model
         output_path: Output .tflite path (default: same dir, .tflite extension)
         quantize: Apply dynamic-range INT8 quantization
         representative_data: Sample data for full INT8 quantization
-        
+
     Returns:
         Path to the converted .tflite model
     """
@@ -129,9 +133,11 @@ def convert_to_tflite(
         logger.info("  Dynamic-range INT8 quantization enabled")
 
         if representative_data is not None:
+
             def representative_dataset():
                 for i in range(min(200, len(representative_data))):
-                    yield [representative_data[i:i+1].astype(np.float32)]
+                    yield [representative_data[i : i + 1].astype(np.float32)]
+
             converter.representative_dataset = representative_dataset
             logger.info("  Full INT8 quantization with representative dataset")
 
@@ -159,10 +165,11 @@ def convert_to_tflite(
 # TF-Lite Inference
 # ============================================================================
 
+
 class TFLitePredictor:
     """
     Fast inference using TF-Lite runtime.
-    
+
     Usage:
         predictor = TFLitePredictor("model.tflite")
         probabilities = predictor.predict(X)  # X: (n_windows, 200, 6)
@@ -170,39 +177,39 @@ class TFLitePredictor:
 
     def __init__(self, model_path: Path):
         import tensorflow as tf
+
         self.interpreter = tf.lite.Interpreter(model_path=str(model_path))
         self.interpreter.allocate_tensors()
-        
+
         self.input_details = self.interpreter.get_input_details()
         self.output_details = self.interpreter.get_output_details()
-        
+
         self.input_shape = self.input_details[0]["shape"]  # e.g., (1, 200, 6)
         logger.info(
             "TF-Lite model loaded: input=%s, output=%s",
-            self.input_shape, self.output_details[0]["shape"],
+            self.input_shape,
+            self.output_details[0]["shape"],
         )
 
     def predict(self, X: np.ndarray) -> np.ndarray:
         """
         Run inference on batch of windows.
-        
+
         Args:
             X: np.ndarray of shape (n_windows, timesteps, channels)
-            
+
         Returns:
             probabilities: np.ndarray of shape (n_windows, n_classes)
         """
         results = []
         X = X.astype(np.float32)
-        
+
         for i in range(len(X)):
-            self.interpreter.set_tensor(
-                self.input_details[0]["index"], X[i:i+1]
-            )
+            self.interpreter.set_tensor(self.input_details[0]["index"], X[i : i + 1])
             self.interpreter.invoke()
             output = self.interpreter.get_tensor(self.output_details[0]["index"])
             results.append(output[0])
-        
+
         return np.array(results)
 
     def predict_batch(self, X: np.ndarray, batch_size: int = 64) -> np.ndarray:
@@ -218,6 +225,7 @@ class TFLitePredictor:
 # Benchmarking
 # ============================================================================
 
+
 def benchmark_models(
     keras_path: Path,
     tflite_path: Optional[Path] = None,
@@ -225,12 +233,12 @@ def benchmark_models(
 ) -> dict:
     """
     Benchmark model inference speed and caching performance.
-    
+
     Tests:
     1. Cold vs cached model loading
     2. Batch size impact on inference speed
     3. TF-Lite comparison (if available)
-    
+
     Returns dict with timing results.
     """
     import tensorflow as tf
@@ -272,7 +280,7 @@ def benchmark_models(
     # Benchmark TF-Lite (if available)
     if tflite_path is None:
         tflite_path = keras_path.with_suffix(".tflite")
-    
+
     if tflite_path and tflite_path.exists():
         try:
             predictor = TFLitePredictor(tflite_path)
@@ -295,6 +303,7 @@ def benchmark_models(
 # CLI
 # ============================================================================
 
+
 def main():
     import argparse
     import json
@@ -302,7 +311,9 @@ def main():
     parser = argparse.ArgumentParser(description="Production optimization utilities")
     parser.add_argument("--convert", type=Path, help="Convert Keras model to TF-Lite")
     parser.add_argument("--benchmark", type=Path, help="Benchmark Keras vs TF-Lite")
-    parser.add_argument("--quantize", action="store_true", default=True, help="Apply INT8 quantization")
+    parser.add_argument(
+        "--quantize", action="store_true", default=True, help="Apply INT8 quantization"
+    )
     parser.add_argument("--representative-data", type=Path, help="Path to .npy for full INT8 quant")
     parser.add_argument("--output", type=Path, default=None, help="Output .tflite path")
     args = parser.parse_args()

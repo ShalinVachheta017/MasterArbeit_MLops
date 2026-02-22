@@ -19,11 +19,11 @@ Stages:
     10  Baseline Update        (rebuild drift baselines)
 """
 
-from dataclasses import dataclass, field
-from pathlib import Path
-from datetime import datetime
-from typing import List, Optional
 import os
+from dataclasses import dataclass, field
+from datetime import datetime
+from pathlib import Path
+from typing import List, Optional
 
 TIMESTAMP: str = datetime.now().strftime("%Y%m%d_%H%M%S")
 
@@ -32,9 +32,11 @@ TIMESTAMP: str = datetime.now().strftime("%Y%m%d_%H%M%S")
 # Master Pipeline Config
 # ============================================================================
 
+
 @dataclass
 class PipelineConfig:
     """Top-level pipeline settings shared by all stages."""
+
     pipeline_name: str = "har_mental_health_pipeline"
     artifact_dir: str = os.path.join("artifacts", TIMESTAMP)
     timestamp: str = TIMESTAMP
@@ -73,12 +75,14 @@ class PipelineConfig:
 # Stage 1 – Data Ingestion
 # ============================================================================
 
+
 @dataclass
 class DataIngestionConfig:
     """Configuration for raw-sensor-data ingestion (Excel/CSV → fused CSV)."""
-    accel_file: Optional[Path] = None          # auto-detect if None
-    gyro_file: Optional[Path] = None           # auto-detect if None
-    input_csv: Optional[Path] = None           # direct CSV (your own recording)
+
+    accel_file: Optional[Path] = None  # auto-detect if None
+    gyro_file: Optional[Path] = None  # auto-detect if None
+    input_csv: Optional[Path] = None  # direct CSV (your own recording)
     target_hz: int = 50
     merge_tolerance_ms: int = 1
     output_dir: Optional[Path] = None
@@ -88,12 +92,12 @@ class DataIngestionConfig:
 # Stage 2 – Data Validation
 # ============================================================================
 
+
 @dataclass
 class DataValidationConfig:
     """Configuration for data validation."""
-    sensor_columns: List[str] = field(
-        default_factory=lambda: ["Ax", "Ay", "Az", "Gx", "Gy", "Gz"]
-    )
+
+    sensor_columns: List[str] = field(default_factory=lambda: ["Ax", "Ay", "Az", "Gx", "Gy", "Gz"])
     expected_frequency_hz: float = 50.0
     max_acceleration_ms2: float = 50.0
     max_gyroscope_dps: float = 500.0
@@ -104,18 +108,18 @@ class DataValidationConfig:
 # Stage 3 – Data Transformation (Preprocessing)
 # ============================================================================
 
+
 @dataclass
 class DataTransformationConfig:
     """Configuration for preprocessing (CSV → windowed .npy arrays)."""
+
     input_csv: Optional[Path] = None
-    enable_unit_conversion: bool = True    # milliG → m/s² (MUST match training)
-    enable_gravity_removal: bool = False   # Keep False (training had gravity)
+    enable_unit_conversion: bool = True  # milliG → m/s² (MUST match training)
+    enable_gravity_removal: bool = False  # Keep False (training had gravity)
     enable_calibration: bool = False
-    window_size: int = 200                 # 4 seconds at 50 Hz
-    overlap: float = 0.5                   # 50 % overlap
-    sensors: List[str] = field(
-        default_factory=lambda: ["Ax", "Ay", "Az", "Gx", "Gy", "Gz"]
-    )
+    window_size: int = 200  # 4 seconds at 50 Hz
+    overlap: float = 0.5  # 50 % overlap
+    sensors: List[str] = field(default_factory=lambda: ["Ax", "Ay", "Az", "Gx", "Gy", "Gz"])
     output_dir: Optional[Path] = None
 
 
@@ -123,14 +127,16 @@ class DataTransformationConfig:
 # Stage 4 – Model Inference
 # ============================================================================
 
+
 @dataclass
 class ModelInferenceConfig:
     """Configuration for model inference."""
-    model_path: Optional[Path] = None      # defaults to pretrained
-    input_npy: Optional[Path] = None       # defaults to prepared/production_X.npy
+
+    model_path: Optional[Path] = None  # defaults to pretrained
+    input_npy: Optional[Path] = None  # defaults to prepared/production_X.npy
     batch_size: int = 32
     confidence_threshold: float = 0.50
-    mode: str = "batch"                    # "batch" or "realtime"
+    mode: str = "batch"  # "batch" or "realtime"
     output_dir: Optional[Path] = None
 
 
@@ -138,11 +144,13 @@ class ModelInferenceConfig:
 # Stage 5 – Model Evaluation
 # ============================================================================
 
+
 @dataclass
 class ModelEvaluationConfig:
     """Configuration for prediction evaluation."""
+
     predictions_csv: Optional[Path] = None
-    labels_path: Optional[Path] = None     # optional — unlabeled is fine
+    labels_path: Optional[Path] = None  # optional — unlabeled is fine
     output_dir: Optional[Path] = None
     confidence_bins: int = 10
 
@@ -151,9 +159,11 @@ class ModelEvaluationConfig:
 # Stage 6 – Post-Inference Monitoring
 # ============================================================================
 
+
 @dataclass
 class PostInferenceMonitoringConfig:
     """Configuration for post-inference monitoring (3-layer)."""
+
     predictions_csv: Optional[Path] = None
     production_data_npy: Optional[Path] = None
     baseline_stats_json: Optional[Path] = None
@@ -162,12 +172,12 @@ class PostInferenceMonitoringConfig:
 
     # ── Thresholds (single source of truth — also read by src/api/app.py) ──
     # Layer 1 — confidence
-    confidence_warn_threshold: float = 0.60      # mean confidence below this → WARNING
-    uncertain_pct_threshold: float = 30.0        # % of low-confidence windows → WARNING
+    confidence_warn_threshold: float = 0.60  # mean confidence below this → WARNING
+    uncertain_pct_threshold: float = 30.0  # % of low-confidence windows → WARNING
     # Layer 2 — temporal
-    transition_rate_threshold: float = 50.0      # % transition rate above this → WARNING
+    transition_rate_threshold: float = 50.0  # % transition rate above this → WARNING
     # Layer 3 — drift
-    drift_zscore_threshold: float = 2.0          # per-channel z-score above this → WARNING
+    drift_zscore_threshold: float = 2.0  # per-channel z-score above this → WARNING
 
     # Temperature-scaling calibration (applied before Layer 1/3 analysis)
     # Set to the temperature T from Stage 11 (CalibrationUncertainty) output;
@@ -175,7 +185,7 @@ class PostInferenceMonitoringConfig:
     calibration_temperature: float = 1.0
 
     # Baseline quality guard
-    max_baseline_age_days: int = 90              # warn if baseline file is older than this
+    max_baseline_age_days: int = 90  # warn if baseline file is older than this
 
     # Drift exclusion: skip Layer 3 when production data IS the training data
     # (self-comparison would give artificially low drift scores).
@@ -186,9 +196,11 @@ class PostInferenceMonitoringConfig:
 # Stage 7 – Trigger Evaluation
 # ============================================================================
 
+
 @dataclass
 class TriggerEvaluationConfig:
     """Configuration for retraining-trigger evaluation."""
+
     confidence_warn: float = 0.65
     confidence_critical: float = 0.50
     drift_psi_warn: float = 0.75
@@ -203,13 +215,15 @@ class TriggerEvaluationConfig:
 # Stage 8 – Model Retraining
 # ============================================================================
 
+
 @dataclass
 class ModelRetrainingConfig:
     """Configuration for model retraining (including domain adaptation)."""
+
     # Data paths
-    source_data_path: Optional[Path] = None        # labeled training CSV
-    target_data_npy: Optional[Path] = None          # unlabeled production .npy
-    labels_path: Optional[Path] = None              # user-provided labels (optional)
+    source_data_path: Optional[Path] = None  # labeled training CSV
+    target_data_npy: Optional[Path] = None  # unlabeled production .npy
+    labels_path: Optional[Path] = None  # user-provided labels (optional)
 
     # Training hyperparameters
     epochs: int = 100
@@ -220,9 +234,9 @@ class ModelRetrainingConfig:
 
     # Domain adaptation
     enable_adaptation: bool = False
-    adaptation_method: str = "adabn"               # adabn | tent | adabn_tent | pseudo_label
-                                                    # NOTE: mmd and dann are NOT implemented.
-    adabn_n_batches: int = 10                      # batches for AdaBN / TENT steps
+    adaptation_method: str = "adabn"  # adabn | tent | adabn_tent | pseudo_label
+    # NOTE: mmd and dann are NOT implemented.
+    adabn_n_batches: int = 10  # batches for AdaBN / TENT steps
 
     # Output
     output_dir: Optional[Path] = None
@@ -234,29 +248,33 @@ class ModelRetrainingConfig:
 # Stage 9 – Model Registration
 # ============================================================================
 
+
 @dataclass
 class ModelRegistrationConfig:
     """Configuration for model versioning and deployment."""
+
     registry_dir: Optional[Path] = None
-    model_path: Optional[Path] = None             # new model to register
-    version: Optional[str] = None                 # auto-incremented if None
-    auto_deploy: bool = False                     # deploy immediately if better
-    proxy_validation: bool = True                 # validate before deployment
+    model_path: Optional[Path] = None  # new model to register
+    version: Optional[str] = None  # auto-incremented if None
+    auto_deploy: bool = False  # deploy immediately if better
+    proxy_validation: bool = True  # validate before deployment
 
 
 # ============================================================================
 # Stage 10 – Baseline Update
 # ============================================================================
 
+
 @dataclass
 class BaselineUpdateConfig:
     """Configuration for rebuilding drift baselines after retraining."""
-    training_data_path: Optional[Path] = None     # CSV with labeled data
-    scaler_config_path: Optional[Path] = None     # scaler params for normalized baseline
-    output_baseline_path: Optional[Path] = None   # where to save baseline JSON
-    output_normalized_path: Optional[Path] = None # where to save normalized baseline
+
+    training_data_path: Optional[Path] = None  # CSV with labeled data
+    scaler_config_path: Optional[Path] = None  # scaler params for normalized baseline
+    output_baseline_path: Optional[Path] = None  # where to save baseline JSON
+    output_normalized_path: Optional[Path] = None  # where to save normalized baseline
     rebuild_embeddings: bool = False
-    model_path: Optional[Path] = None             # for embedding baseline
+    model_path: Optional[Path] = None  # for embedding baseline
     # Governance: False (default) = save baseline only as MLflow artifact.
     # True = promote to shared models/ path that monitoring reads at runtime.
     # Use --update-baseline CLI flag to set True explicitly.
@@ -267,9 +285,11 @@ class BaselineUpdateConfig:
 # Stage 11 – Calibration & Uncertainty Quantification
 # ============================================================================
 
+
 @dataclass
 class CalibrationUncertaintyConfig:
     """Configuration for post-hoc calibration and MC Dropout UQ."""
+
     # Temperature scaling
     initial_temperature: float = 1.5
     temp_lr: float = 0.01
@@ -297,9 +317,11 @@ class CalibrationUncertaintyConfig:
 # Stage 12 – Wasserstein Drift Detection
 # ============================================================================
 
+
 @dataclass
 class WassersteinDriftConfig:
     """Configuration for Wasserstein-based distribution drift detection."""
+
     warn_threshold: float = 0.3
     critical_threshold: float = 0.5
     min_drifted_channels_warn: int = 2
@@ -312,9 +334,7 @@ class WassersteinDriftConfig:
     # Multi-resolution
     enable_multi_resolution: bool = True
 
-    sensor_columns: List[str] = field(
-        default_factory=lambda: ["Ax", "Ay", "Az", "Gx", "Gy", "Gz"]
-    )
+    sensor_columns: List[str] = field(default_factory=lambda: ["Ax", "Ay", "Az", "Gx", "Gy", "Gz"])
     baseline_data_path: Optional[Path] = None
     output_dir: Optional[Path] = None
 
@@ -323,13 +343,15 @@ class WassersteinDriftConfig:
 # Stage 13 – Curriculum Pseudo-Labeling
 # ============================================================================
 
+
 @dataclass
 class CurriculumPseudoLabelingConfig:
     """Configuration for curriculum-style self-training."""
+
     initial_confidence_threshold: float = 0.95
     final_confidence_threshold: float = 0.80
     n_iterations: int = 5
-    threshold_decay: str = "linear"        # linear or exponential
+    threshold_decay: str = "linear"  # linear or exponential
 
     max_samples_per_class: int = 20
     min_samples_per_class: int = 3
@@ -355,16 +377,16 @@ class CurriculumPseudoLabelingConfig:
 # Stage 14 – Sensor Placement Robustness
 # ============================================================================
 
+
 @dataclass
 class SensorPlacementConfig:
     """Configuration for sensor placement robustness (hand detection, mirroring)."""
+
     mirror_axes: List[int] = field(default_factory=lambda: [1, 2, 4, 5])
     mirror_probability: float = 0.5
     dominant_accel_threshold: float = 1.2
 
-    sensor_columns: List[str] = field(
-        default_factory=lambda: ["Ax", "Ay", "Az", "Gx", "Gy", "Gz"]
-    )
+    sensor_columns: List[str] = field(default_factory=lambda: ["Ax", "Ay", "Az", "Gx", "Gy", "Gz"])
     accel_indices: List[int] = field(default_factory=lambda: [0, 1, 2])
     gyro_indices: List[int] = field(default_factory=lambda: [3, 4, 5])
     output_dir: Optional[Path] = None

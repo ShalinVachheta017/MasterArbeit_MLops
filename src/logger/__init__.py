@@ -18,12 +18,12 @@ Usage:
 
 import logging
 import os
-from logging.handlers import RotatingFileHandler
 from datetime import datetime
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 # Constants for log configuration
-LOG_DIR = 'logs'
+LOG_DIR = "logs"
 LOG_FILE = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
 MAX_LOG_SIZE = 5 * 1024 * 1024  # 5 MB
 BACKUP_COUNT = 3
@@ -38,58 +38,54 @@ log_file_path = log_dir_path / LOG_FILE
 def get_logger():
     """
     Configure and return the root logger.
-    
+
     This function sets up a comprehensive logging system that:
     - Logs DEBUG level and above to rotating files
     - Logs INFO level and above to console
     - Automatically rotates log files when they reach 5MB
     - Keeps 3 backup log files
     - Uses timestamped filenames for each run
-    
+
     Returns:
         logging.Logger: Configured root logger
     """
     logger = logging.getLogger()
-    
+
     # Only configure if not already configured (prevent duplicate handlers)
     if not logger.handlers:
         # Set root logger to INFO (not DEBUG) to avoid third-party noise
         logger.setLevel(logging.INFO)
-        
+
         # Define formatter for consistent log message format
         formatter = logging.Formatter(
-            "[ %(asctime)s ] %(name)s - %(levelname)s - %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S"
+            "[ %(asctime)s ] %(name)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
         )
-        
+
         # File handler with rotation - detailed logging
         file_handler = RotatingFileHandler(
-            log_file_path,
-            maxBytes=MAX_LOG_SIZE,
-            backupCount=BACKUP_COUNT,
-            encoding='utf-8'
+            log_file_path, maxBytes=MAX_LOG_SIZE, backupCount=BACKUP_COUNT, encoding="utf-8"
         )
         file_handler.setFormatter(formatter)
         file_handler.setLevel(logging.DEBUG)  # File gets DEBUG for our code
-        
+
         # Console handler - cleaner output
         console_handler = logging.StreamHandler()
         console_handler.setFormatter(formatter)
         console_handler.setLevel(logging.INFO)
-        
+
         # Add handlers
         logger.addHandler(file_handler)
         logger.addHandler(console_handler)
-        
+
         # Silence noisy third-party loggers
-        logging.getLogger('git').setLevel(logging.WARNING)
-        logging.getLogger('urllib3').setLevel(logging.WARNING)
-        logging.getLogger('matplotlib').setLevel(logging.WARNING)
-        logging.getLogger('h5py').setLevel(logging.WARNING)
-        logging.getLogger('tensorflow').setLevel(logging.WARNING)
-        logging.getLogger('pydot').setLevel(logging.WARNING)
-        logging.getLogger('numexpr').setLevel(logging.WARNING)
-    
+        logging.getLogger("git").setLevel(logging.WARNING)
+        logging.getLogger("urllib3").setLevel(logging.WARNING)
+        logging.getLogger("matplotlib").setLevel(logging.WARNING)
+        logging.getLogger("h5py").setLevel(logging.WARNING)
+        logging.getLogger("tensorflow").setLevel(logging.WARNING)
+        logging.getLogger("pydot").setLevel(logging.WARNING)
+        logging.getLogger("numexpr").setLevel(logging.WARNING)
+
     return logger
 
 

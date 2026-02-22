@@ -36,7 +36,7 @@ Date: February 2026
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -46,6 +46,7 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 # CONFIGURATION
 # ============================================================================
+
 
 @dataclass
 class CalibrationConfig:
@@ -73,6 +74,7 @@ class CalibrationConfig:
 # ============================================================================
 # TEMPERATURE SCALING
 # ============================================================================
+
 
 class TemperatureScaler:
     """
@@ -122,9 +124,7 @@ class TemperatureScaler:
             scaled = logits / t
             # Numerically stable log-softmax
             max_logits = np.max(scaled, axis=1, keepdims=True)
-            log_sum_exp = max_logits.squeeze() + np.log(
-                np.sum(np.exp(scaled - max_logits), axis=1)
-            )
+            log_sum_exp = max_logits.squeeze() + np.log(np.sum(np.exp(scaled - max_logits), axis=1))
             log_probs = scaled[np.arange(len(labels)), labels] - log_sum_exp
             return -np.mean(log_probs)
 
@@ -173,6 +173,7 @@ class TemperatureScaler:
 # ============================================================================
 # MC DROPOUT UNCERTAINTY
 # ============================================================================
+
 
 class MCDropoutEstimator:
     """
@@ -238,17 +239,13 @@ class MCDropoutEstimator:
 
         all_probs = np.array(all_probs)  # (n_passes, N, C)
         mean_probs = np.mean(all_probs, axis=0)  # (N, C)
-        std_probs = np.std(all_probs, axis=0)    # (N, C)
+        std_probs = np.std(all_probs, axis=0)  # (N, C)
 
         # Predictive entropy = -sum(mean_p * log(mean_p))
-        predictive_entropy = -np.sum(
-            mean_probs * np.log(mean_probs + 1e-10), axis=1
-        )  # (N,)
+        predictive_entropy = -np.sum(mean_probs * np.log(mean_probs + 1e-10), axis=1)  # (N,)
 
         # Expected entropy (aleatoric) = mean[-sum(p * log(p))]
-        per_pass_entropy = -np.sum(
-            all_probs * np.log(all_probs + 1e-10), axis=2
-        )  # (n_passes, N)
+        per_pass_entropy = -np.sum(all_probs * np.log(all_probs + 1e-10), axis=2)  # (n_passes, N)
         expected_entropy = np.mean(per_pass_entropy, axis=0)  # (N,)
 
         # Mutual information (epistemic) = predictive - expected
@@ -267,6 +264,7 @@ class MCDropoutEstimator:
 # ============================================================================
 # CALIBRATION EVALUATOR (ECE, Brier, Reliability Diagram)
 # ============================================================================
+
 
 class CalibrationEvaluator:
     """
@@ -320,14 +318,16 @@ class CalibrationEvaluator:
             n_in_bin = mask.sum()
 
             if n_in_bin == 0:
-                bins.append({
-                    "bin_lower": float(lo),
-                    "bin_upper": float(hi),
-                    "n_samples": 0,
-                    "accuracy": 0.0,
-                    "confidence": 0.0,
-                    "gap": 0.0,
-                })
+                bins.append(
+                    {
+                        "bin_lower": float(lo),
+                        "bin_upper": float(hi),
+                        "n_samples": 0,
+                        "accuracy": 0.0,
+                        "confidence": 0.0,
+                        "gap": 0.0,
+                    }
+                )
                 continue
 
             bin_acc = accuracies[mask].mean()
@@ -335,14 +335,16 @@ class CalibrationEvaluator:
             gap = abs(bin_acc - bin_conf)
             ece += (n_in_bin / N) * gap
 
-            bins.append({
-                "bin_lower": float(lo),
-                "bin_upper": float(hi),
-                "n_samples": int(n_in_bin),
-                "accuracy": float(bin_acc),
-                "confidence": float(bin_conf),
-                "gap": float(gap),
-            })
+            bins.append(
+                {
+                    "bin_lower": float(lo),
+                    "bin_upper": float(hi),
+                    "n_samples": int(n_in_bin),
+                    "accuracy": float(bin_acc),
+                    "confidence": float(bin_conf),
+                    "gap": float(gap),
+                }
+            )
 
         return float(ece), bins
 
@@ -454,6 +456,7 @@ class CalibrationEvaluator:
 # ============================================================================
 # UNLABELED CALIBRATION (no ground truth needed)
 # ============================================================================
+
 
 class UnlabeledCalibrationAnalyzer:
     """

@@ -10,11 +10,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from src.entity.config_entity import ModelInferenceConfig, PipelineConfig
 from src.entity.artifact_entity import (
     DataTransformationArtifact,
     ModelInferenceArtifact,
 )
+from src.entity.config_entity import ModelInferenceConfig, PipelineConfig
 
 logger = logging.getLogger(__name__)
 
@@ -38,20 +38,16 @@ class ModelInference:
         logger.info("STAGE 4 — Model Inference")
         logger.info("=" * 60)
 
-        from src.run_inference import (
-            InferencePipeline as _InferencePipeline,
-            InferenceConfig as _InferenceConfig,
-        )
+        from src.run_inference import InferenceConfig as _InferenceConfig
+        from src.run_inference import InferencePipeline as _InferencePipeline
 
         # Build the internal config
         model_path = self.config.model_path or (
-            self.pipeline_config.models_pretrained_dir
-            / "fine_tuned_model_1dcnnbilstm.keras"
+            self.pipeline_config.models_pretrained_dir / "fine_tuned_model_1dcnnbilstm.keras"
         )
         input_npy = self.config.input_npy or self.transformation_artifact.production_X_path
         output_dir = Path(
-            self.config.output_dir
-            or self.pipeline_config.data_prepared_dir / "predictions"
+            self.config.output_dir or self.pipeline_config.data_prepared_dir / "predictions"
         )
         output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -72,9 +68,7 @@ class ModelInference:
         # Parse result dict to artifact
         # run() returns {"results": DataFrame, "output_files": {"csv": Path, "npy": Path, "json": Path}, "probabilities": ndarray}
         output_files = result.get("output_files", {})
-        predictions_csv = Path(
-            output_files.get("csv", output_dir / "predictions_fresh.csv")
-        )
+        predictions_csv = Path(output_files.get("csv", output_dir / "predictions_fresh.csv"))
         probabilities_npy = output_files.get("npy")
         if probabilities_npy:
             probabilities_npy = Path(probabilities_npy)
@@ -102,7 +96,9 @@ class ModelInference:
         if results_df is not None and len(results_df) > 0:
             try:
                 if "predicted_activity" in results_df.columns:
-                    activity_distribution = results_df["predicted_activity"].value_counts().to_dict()
+                    activity_distribution = (
+                        results_df["predicted_activity"].value_counts().to_dict()
+                    )
                 elif "predicted_class" in results_df.columns:
                     activity_distribution = results_df["predicted_class"].value_counts().to_dict()
             except Exception:
@@ -118,7 +114,9 @@ class ModelInference:
                         "median": float(conf.median()),
                     }
                     if "confidence_level" in results_df.columns:
-                        confidence_stats["levels"] = results_df["confidence_level"].value_counts().to_dict()
+                        confidence_stats["levels"] = (
+                            results_df["confidence_level"].value_counts().to_dict()
+                        )
                     if "is_uncertain" in results_df.columns:
                         confidence_stats["n_uncertain"] = int(results_df["is_uncertain"].sum())
             except Exception:

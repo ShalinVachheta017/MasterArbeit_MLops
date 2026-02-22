@@ -27,13 +27,13 @@ Author: HAR MLOps Pipeline
 Date: February 2026
 """
 
+import json
 import sys
 import time
-import json
 import traceback
-from pathlib import Path
 from datetime import datetime
-from typing import Dict, List, Optional, Any
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 # ── Ensure src/ is importable ──────────────────────────────────────────────
 _SRC_DIR = Path(__file__).resolve().parent
@@ -41,30 +41,31 @@ _PROJECT_ROOT = _SRC_DIR.parent
 sys.path.insert(0, str(_SRC_DIR))
 sys.path.insert(0, str(_PROJECT_ROOT))
 
-# ── Core utilities ─────────────────────────────────────────────────────────
-from src.core.logger import get_pipeline_logger
 from src.core.exception import PipelineException
 
-# ── Entity dataclasses ─────────────────────────────────────────────────────
-from src.entity.config_entity import (
-    PipelineConfig,
-    DataIngestionConfig,
-    DataValidationConfig,
-    PreprocessingConfig,
-    InferenceConfig,
-    EvaluationConfig,
-    MonitoringConfig,
-    TriggerConfig,
-)
+# ── Core utilities ─────────────────────────────────────────────────────────
+from src.core.logger import get_pipeline_logger
 from src.entity.artifact_entity import (
     DataIngestionArtifact,
     DataValidationArtifact,
-    PreprocessingArtifact,
-    InferenceArtifact,
     EvaluationArtifact,
+    InferenceArtifact,
     MonitoringArtifact,
-    TriggerArtifact,
     PipelineResult,
+    PreprocessingArtifact,
+    TriggerArtifact,
+)
+
+# ── Entity dataclasses ─────────────────────────────────────────────────────
+from src.entity.config_entity import (
+    DataIngestionConfig,
+    DataValidationConfig,
+    EvaluationConfig,
+    InferenceConfig,
+    MonitoringConfig,
+    PipelineConfig,
+    PreprocessingConfig,
+    TriggerConfig,
 )
 
 # ── Existing src modules (imported lazily inside each stage method) ────────
@@ -78,6 +79,7 @@ logger = get_pipeline_logger("inference_pipeline")
 # ============================================================================
 # INFERENCE PIPELINE
 # ============================================================================
+
 
 class InferencePipeline:
     """
@@ -139,6 +141,7 @@ class InferencePipeline:
                 raise FileNotFoundError(f"Expected output not found: {fused_csv}")
 
             import pandas as pd
+
             df_info = pd.read_csv(fused_csv, nrows=5)
 
             artifact = DataIngestionArtifact(
@@ -177,6 +180,7 @@ class InferencePipeline:
 
         try:
             import pandas as pd
+
             from data_validator import DataValidator
 
             cfg = config or DataValidationConfig()
@@ -232,14 +236,15 @@ class InferencePipeline:
         t0 = time.time()
 
         try:
-            import pandas as pd
             import numpy as np
+            import pandas as pd
+
             from preprocess_data import (
-                UnitDetector,
-                GravityRemover,
                 DomainCalibrator,
-                UnifiedPreprocessor,
+                GravityRemover,
                 PreprocessLogger,
+                UnifiedPreprocessor,
+                UnitDetector,
             )
 
             cfg = config or PreprocessingConfig()
@@ -322,8 +327,8 @@ class InferencePipeline:
         t0 = time.time()
 
         try:
-            from run_inference import InferencePipeline as _InferencePipeline
             from run_inference import InferenceConfig as _InfCfg
+            from run_inference import InferencePipeline as _InferencePipeline
 
             cfg = config or InferenceConfig()
 
@@ -359,8 +364,12 @@ class InferencePipeline:
             if results_df is not None and hasattr(results_df, "__len__"):
                 n_preds = len(results_df)
 
-            pred_csv = output_files.get("csv", cfg.output_dir or self.cfg.outputs_dir / "predictions_fresh.csv")
-            pred_npy = output_files.get("npy", cfg.output_dir or self.cfg.outputs_dir / "production_predictions_fresh.npy")
+            pred_csv = output_files.get(
+                "csv", cfg.output_dir or self.cfg.outputs_dir / "predictions_fresh.csv"
+            )
+            pred_npy = output_files.get(
+                "npy", cfg.output_dir or self.cfg.outputs_dir / "production_predictions_fresh.npy"
+            )
             prob_npy = output_files.get("probabilities")
 
             artifact = InferenceArtifact(
@@ -399,10 +408,8 @@ class InferencePipeline:
         t0 = time.time()
 
         try:
-            from evaluate_predictions import (
-                EvaluationPipeline as _EvalPipeline,
-                EvaluationConfig as _EvalCfg,
-            )
+            from evaluate_predictions import EvaluationConfig as _EvalCfg
+            from evaluate_predictions import EvaluationPipeline as _EvalPipeline
 
             cfg = config or EvaluationConfig()
             eval_cfg = _EvalCfg()
@@ -476,7 +483,9 @@ class InferencePipeline:
             report = monitor.run(
                 predictions_path=Path(pred_csv),
                 production_data_path=Path(prod_npy) if prod_npy else None,
-                baseline_path=Path(baseline_json) if baseline_json and Path(baseline_json).exists() else None,
+                baseline_path=(
+                    Path(baseline_json) if baseline_json and Path(baseline_json).exists() else None
+                ),
                 output_dir=cfg.output_dir or self.cfg.outputs_dir / "monitoring",
             )
 
@@ -488,7 +497,11 @@ class InferencePipeline:
                 overall = report.get("overall_status", "UNKNOWN")
 
             artifact = MonitoringArtifact(
-                monitoring_report=report if isinstance(report, dict) else vars(report) if hasattr(report, "__dict__") else {},
+                monitoring_report=(
+                    report
+                    if isinstance(report, dict)
+                    else vars(report) if hasattr(report, "__dict__") else {}
+                ),
                 overall_status=overall,
             )
 
@@ -651,21 +664,18 @@ class InferencePipeline:
 
         # ── Stage 2: Validation ────────────────────────────────────────
         if "validation" in run_stages and ingestion_art:
-            validation_art = _run_stage(
-                "validation", self.start_data_validation, ingestion_art
-            )
+            validation_art = _run_stage("validation", self.start_data_validation, ingestion_art)
 
         # ── Stage 3: Preprocessing ────────────────────────────────────
         if "preprocessing" in run_stages and ingestion_art:
-            preprocess_art = _run_stage(
-                "preprocessing", self.start_preprocessing, ingestion_art
-            )
+            preprocess_art = _run_stage("preprocessing", self.start_preprocessing, ingestion_art)
         else:
             # Use existing production_X.npy
             prod_x = self.cfg.data_prepared_dir / "production_X.npy"
             meta = self.cfg.data_prepared_dir / "production_metadata.json"
             if prod_x.exists():
                 import numpy as np
+
                 X = np.load(prod_x)
                 logger.info(f"Skipping preprocessing — using existing {prod_x} ({X.shape})")
                 preprocess_art = PreprocessingArtifact(
@@ -680,15 +690,11 @@ class InferencePipeline:
 
         # ── Stage 4: Inference ─────────────────────────────────────────
         if "inference" in run_stages and preprocess_art:
-            inference_art = _run_stage(
-                "inference", self.start_inference, preprocess_art
-            )
+            inference_art = _run_stage("inference", self.start_inference, preprocess_art)
 
         # ── Stage 5: Evaluation ────────────────────────────────────────
         if "evaluation" in run_stages and inference_art:
-            evaluation_art = _run_stage(
-                "evaluation", self.start_evaluation, inference_art
-            )
+            evaluation_art = _run_stage("evaluation", self.start_evaluation, inference_art)
 
         # ── Stage 6: Monitoring ────────────────────────────────────────
         if "monitoring" in run_stages and inference_art:
@@ -701,9 +707,7 @@ class InferencePipeline:
 
         # ── Stage 7: Trigger Evaluation ────────────────────────────────
         if "trigger" in run_stages and monitoring_art:
-            trigger_art = _run_stage(
-                "trigger", self.start_trigger_evaluation, monitoring_art
-            )
+            trigger_art = _run_stage("trigger", self.start_trigger_evaluation, monitoring_art)
 
         # ── Finalize ───────────────────────────────────────────────────
         self.result.end_time = datetime.now().isoformat()

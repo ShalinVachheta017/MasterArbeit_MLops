@@ -30,7 +30,7 @@ Date: February 2026
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -41,29 +41,22 @@ logger = logging.getLogger(__name__)
 # CONFIGURATION
 # ============================================================================
 
+
 @dataclass
 class RobustnessConfig:
     """Configuration for robustness evaluation."""
 
     # Gaussian noise levels (fraction of signal std)
-    noise_levels: List[float] = field(
-        default_factory=lambda: [0.0, 0.05, 0.10, 0.20, 0.50]
-    )
+    noise_levels: List[float] = field(default_factory=lambda: [0.0, 0.05, 0.10, 0.20, 0.50])
 
     # Missing data ratios
-    missing_ratios: List[float] = field(
-        default_factory=lambda: [0.0, 0.05, 0.10, 0.20]
-    )
+    missing_ratios: List[float] = field(default_factory=lambda: [0.0, 0.05, 0.10, 0.20])
 
     # Sampling rate jitter (fraction deviation from 50Hz)
-    jitter_levels: List[float] = field(
-        default_factory=lambda: [0.0, 0.02, 0.05, 0.10]
-    )
+    jitter_levels: List[float] = field(default_factory=lambda: [0.0, 0.02, 0.05, 0.10])
 
     # Sensor saturation thresholds
-    saturation_thresholds: List[float] = field(
-        default_factory=lambda: [50.0, 20.0, 10.0, 5.0]
-    )
+    saturation_thresholds: List[float] = field(default_factory=lambda: [50.0, 20.0, 10.0, 5.0])
 
     # Batch size for inference
     batch_size: int = 64
@@ -78,6 +71,7 @@ class RobustnessConfig:
 # ============================================================================
 # NOISE INJECTORS
 # ============================================================================
+
 
 class GaussianNoiseInjector:
     """Add Gaussian noise at a specified fraction of signal std."""
@@ -223,6 +217,7 @@ class SaturationInjector:
 # ROBUSTNESS EVALUATOR
 # ============================================================================
 
+
 class RobustnessEvaluator:
     """
     Comprehensive robustness evaluation framework.
@@ -282,15 +277,9 @@ class RobustnessEvaluator:
             # Average across seeds
             results[f"noise_{level:.2f}"] = {
                 "noise_level": level,
-                "accuracy_mean": float(
-                    np.mean([r["accuracy"] for r in seed_results])
-                ),
-                "accuracy_std": float(
-                    np.std([r["accuracy"] for r in seed_results])
-                ),
-                "confidence_mean": float(
-                    np.mean([r["mean_confidence"] for r in seed_results])
-                ),
+                "accuracy_mean": float(np.mean([r["accuracy"] for r in seed_results])),
+                "accuracy_std": float(np.std([r["accuracy"] for r in seed_results])),
+                "confidence_mean": float(np.mean([r["mean_confidence"] for r in seed_results])),
             }
             logger.info(
                 "Noise %.2f → accuracy=%.4f (±%.4f)",
@@ -316,12 +305,8 @@ class RobustnessEvaluator:
 
             results[f"missing_{ratio:.2f}"] = {
                 "missing_ratio": ratio,
-                "accuracy_mean": float(
-                    np.mean([r["accuracy"] for r in seed_results])
-                ),
-                "accuracy_std": float(
-                    np.std([r["accuracy"] for r in seed_results])
-                ),
+                "accuracy_mean": float(np.mean([r["accuracy"] for r in seed_results])),
+                "accuracy_std": float(np.std([r["accuracy"] for r in seed_results])),
             }
         return results
 
@@ -405,8 +390,9 @@ class RobustnessEvaluator:
                 axes[0].set_xlabel("Noise Level (fraction of signal std)")
                 axes[0].set_ylabel("Accuracy")
                 axes[0].set_title("Gaussian Noise Robustness")
-                axes[0].axhline(y=report["baseline"]["accuracy"], color="r",
-                                linestyle="--", label="Baseline")
+                axes[0].axhline(
+                    y=report["baseline"]["accuracy"], color="r", linestyle="--", label="Baseline"
+                )
                 axes[0].legend()
                 axes[0].grid(True, alpha=0.3)
 
@@ -418,8 +404,9 @@ class RobustnessEvaluator:
                 axes[1].set_xlabel("Missing Data Ratio")
                 axes[1].set_ylabel("Accuracy")
                 axes[1].set_title("Missing Data Robustness")
-                axes[1].axhline(y=report["baseline"]["accuracy"], color="r",
-                                linestyle="--", label="Baseline")
+                axes[1].axhline(
+                    y=report["baseline"]["accuracy"], color="r", linestyle="--", label="Baseline"
+                )
                 axes[1].legend()
                 axes[1].grid(True, alpha=0.3)
 
@@ -431,16 +418,15 @@ class RobustnessEvaluator:
                 axes[2].set_xlabel("Sampling Rate Jitter (fraction)")
                 axes[2].set_ylabel("Accuracy")
                 axes[2].set_title("Sampling Jitter Robustness")
-                axes[2].axhline(y=report["baseline"]["accuracy"], color="r",
-                                linestyle="--", label="Baseline")
+                axes[2].axhline(
+                    y=report["baseline"]["accuracy"], color="r", linestyle="--", label="Baseline"
+                )
                 axes[2].legend()
                 axes[2].grid(True, alpha=0.3)
 
             plt.suptitle("Model Robustness Under Sensor Degradation", fontsize=14)
             plt.tight_layout()
-            plt.savefig(
-                output_path / "degradation_curves.png", dpi=150, bbox_inches="tight"
-            )
+            plt.savefig(output_path / "degradation_curves.png", dpi=150, bbox_inches="tight")
             plt.close()
             logger.info("Degradation curves saved: %s", output_path)
 

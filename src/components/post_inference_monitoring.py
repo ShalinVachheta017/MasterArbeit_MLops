@@ -8,12 +8,12 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-from src.entity.config_entity import PostInferenceMonitoringConfig, PipelineConfig
 from src.entity.artifact_entity import (
-    ModelInferenceArtifact,
     DataTransformationArtifact,
+    ModelInferenceArtifact,
     PostInferenceMonitoringArtifact,
 )
+from src.entity.config_entity import PipelineConfig, PostInferenceMonitoringConfig
 
 logger = logging.getLogger(__name__)
 
@@ -39,17 +39,20 @@ class PostInferenceMonitoring:
         logger.info("STAGE 6 — Post-Inference Monitoring")
         logger.info("=" * 60)
 
-        import sys, os
+        import os
+        import sys
+
         # Ensure scripts/ is importable
         scripts_dir = str(self.pipeline_config.scripts_dir)
         if scripts_dir not in sys.path:
             sys.path.insert(0, scripts_dir)
 
-        from post_inference_monitoring import PostInferenceMonitor
-
         # 6b — Load calibration temperature from previous Stage 11 run (if available).
         # Subsequent pipeline runs benefit from the temperature fitted during Stage 11.
         import json as _json
+
+        from post_inference_monitoring import PostInferenceMonitor
+
         calibration_temperature = self.config.calibration_temperature  # default 1.0
         if calibration_temperature == 1.0:
             temp_path = self.pipeline_config.outputs_dir / "calibration" / "temperature.json"
@@ -58,15 +61,18 @@ class PostInferenceMonitoring:
                     calib_data = _json.loads(temp_path.read_text())
                     calibration_temperature = float(calib_data.get("temperature", 1.0))
                     if calibration_temperature != 1.0:
-                        logger.info("Loaded calibration temperature %.4f from %s", calibration_temperature, temp_path)
+                        logger.info(
+                            "Loaded calibration temperature %.4f from %s",
+                            calibration_temperature,
+                            temp_path,
+                        )
                 except Exception as _e:
                     logger.warning("Could not load calibration temperature: %s", _e)
 
         monitor = PostInferenceMonitor(calibration_temperature=calibration_temperature)
 
         predictions_csv = Path(
-            self.config.predictions_csv
-            or self.inference_artifact.predictions_csv_path
+            self.config.predictions_csv or self.inference_artifact.predictions_csv_path
         )
         production_npy = self.config.production_data_npy
         if production_npy is None and self.transformation_artifact:
@@ -76,11 +82,15 @@ class PostInferenceMonitoring:
         )
         # Only pass baseline if file actually exists
         if not Path(baseline_json).exists():
-            logger.warning("Baseline file not found: %s — drift analysis will skip baseline comparison", baseline_json)
+            logger.warning(
+                "Baseline file not found: %s — drift analysis will skip baseline comparison",
+                baseline_json,
+            )
             baseline_json = None
 
         # 6c — Baseline staleness guard
         import time as _time
+
         if baseline_json is not None:
             age_days = (_time.time() - Path(baseline_json).stat().st_mtime) / 86400
             if age_days > self.config.max_baseline_age_days:
@@ -88,7 +98,8 @@ class PostInferenceMonitoring:
                     "Baseline is %.0f days old (configured limit: %d days) — "
                     "drift scores may not reflect current sensor characteristics. "
                     "Consider running 'baseline_update' stage.",
-                    age_days, self.config.max_baseline_age_days,
+                    age_days,
+                    self.config.max_baseline_age_days,
                 )
 
         # 6g — Skip drift if production data IS the training data (self-comparison)
@@ -100,13 +111,9 @@ class PostInferenceMonitoring:
             baseline_json = None
 
         model_path = self.config.model_path or (
-            self.pipeline_config.models_pretrained_dir
-            / "fine_tuned_model_1dcnnbilstm.keras"
+            self.pipeline_config.models_pretrained_dir / "fine_tuned_model_1dcnnbilstm.keras"
         )
-        output_dir = Path(
-            self.config.output_dir
-            or self.pipeline_config.outputs_dir / "evaluation"
-        )
+        output_dir = Path(self.config.output_dir or self.pipeline_config.outputs_dir / "evaluation")
         output_dir.mkdir(parents=True, exist_ok=True)
 
         report = monitor.run(
@@ -120,10 +127,7 @@ class PostInferenceMonitoring:
         # Convert MonitoringReport → artifact
         report_dict = {}
         if hasattr(report, "__dict__"):
-            report_dict = {
-                k: v for k, v in report.__dict__.items()
-                if not k.startswith("_")
-            }
+            report_dict = {k: v for k, v in report.__dict__.items() if not k.startswith("_")}
 
         return PostInferenceMonitoringArtifact(
             monitoring_report=report_dict,

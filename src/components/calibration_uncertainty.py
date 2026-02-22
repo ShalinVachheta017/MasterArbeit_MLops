@@ -11,11 +11,11 @@ from typing import Optional
 
 import numpy as np
 
-from src.entity.config_entity import CalibrationUncertaintyConfig, PipelineConfig
 from src.entity.artifact_entity import (
-    ModelInferenceArtifact,
     CalibrationUncertaintyArtifact,
+    ModelInferenceArtifact,
 )
+from src.entity.config_entity import CalibrationUncertaintyConfig, PipelineConfig
 
 logger = logging.getLogger(__name__)
 
@@ -39,17 +39,16 @@ class CalibrationUncertainty:
         logger.info("STAGE 11 — Calibration & Uncertainty Quantification")
         logger.info("=" * 60)
 
+        from src.calibration import CalibrationConfig as _CalConfig
         from src.calibration import (
-            CalibrationConfig as _CalConfig,
-            TemperatureScaler,
             CalibrationEvaluator,
+            TemperatureScaler,
             UnlabeledCalibrationAnalyzer,
         )
 
         # Output directory
         output_dir = Path(
-            self.config.output_dir
-            or self.pipeline_config.outputs_dir / "calibration"
+            self.config.output_dir or self.pipeline_config.outputs_dir / "calibration"
         )
         output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -60,12 +59,15 @@ class CalibrationUncertainty:
         else:
             logger.warning("No probabilities found — using predictions CSV.")
             import pandas as pd
+
             csv_path = self.inference_artifact.predictions_csv_path
             df = pd.read_csv(csv_path)
             if "confidence" in df.columns:
                 # Reconstruct rough probs from confidence + predicted_label
                 n_classes = 11
-                probs = np.full((len(df), n_classes), (1 - df["confidence"].values[:, None]) / (n_classes - 1))
+                probs = np.full(
+                    (len(df), n_classes), (1 - df["confidence"].values[:, None]) / (n_classes - 1)
+                )
                 for i, row in df.iterrows():
                     probs[i, int(row.get("predicted_label", 0))] = row["confidence"]
             else:
@@ -83,10 +85,7 @@ class CalibrationUncertainty:
         scaler = TemperatureScaler(cal_cfg)
 
         # Load or fit temperature
-        temp_path = Path(
-            self.config.temperature_path
-            or output_dir / "temperature.json"
-        )
+        temp_path = Path(self.config.temperature_path or output_dir / "temperature.json")
         if temp_path.exists():
             scaler.load(temp_path)
             logger.info("Loaded existing temperature: T=%.4f", scaler.temperature)
@@ -119,6 +118,7 @@ class CalibrationUncertainty:
 
         # Save report
         import json
+
         report_path = output_dir / "calibration_report.json"
         report_data = {
             "temperature": scaler.temperature,

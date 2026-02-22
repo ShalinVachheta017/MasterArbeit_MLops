@@ -5,9 +5,9 @@ Creates a single logger with both console and file output.
 
 import logging
 import sys
-from pathlib import Path
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
+from pathlib import Path
 
 
 def get_pipeline_logger(

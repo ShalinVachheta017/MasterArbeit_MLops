@@ -112,7 +112,7 @@ def tent_adapt(
     # ── Safety: OOD guard ──────────────────────────────────────────────
     # Use model() instead of model.predict() to avoid tf.function retracing
     # caused by predict() receiving variable-length inputs across calls.
-    _eval_X = tf.constant(target_X[:min(256, len(target_X))].astype(np.float32))
+    _eval_X = tf.constant(target_X[: min(256, len(target_X))].astype(np.float32))
     init_probs = model(_eval_X, training=False).numpy()
     eps = 1e-9
     init_entropy = -(init_probs * np.log(init_probs + eps)).sum(axis=1)
@@ -126,7 +126,8 @@ def tent_adapt(
         logger.warning(
             "TENT skipped — initial mean normalised entropy %.3f > %.3f "
             "(target too far OOD; quarantine recommended).",
-            mean_norm_entropy, ood_entropy_threshold,
+            mean_norm_entropy,
+            ood_entropy_threshold,
         )
         meta["tent_ood_skipped"] = True
         meta["tent_entropy_after"] = mean_norm_entropy
@@ -135,7 +136,8 @@ def tent_adapt(
 
     logger.info(
         "TENT: initial mean normalised entropy=%.3f (threshold=%.3f). Adapting…",
-        mean_norm_entropy, ood_entropy_threshold,
+        mean_norm_entropy,
+        ood_entropy_threshold,
     )
 
     # ── Deep copy so original is untouched ────────────────────────────
@@ -148,7 +150,7 @@ def tent_adapt(
     for layer in model.layers:
         layer.trainable = False
         if isinstance(layer, keras.layers.BatchNormalization):
-            layer.trainable = True   # allows gradient flow to gamma/beta
+            layer.trainable = True  # allows gradient flow to gamma/beta
             bn_param_vars.extend([layer.gamma, layer.beta])
             bn_layers.append(layer)
 
@@ -179,10 +181,10 @@ def tent_adapt(
     logger.info("TENT: optimising %d BN affine tensors over %d steps.", len(bn_param_vars), n_steps)
 
     optimizer = keras.optimizers.Adam(learning_rate=learning_rate)
-    n_samples  = len(target_X)
+    n_samples = len(target_X)
 
     for step in range(n_steps):
-        idx   = np.random.choice(n_samples, size=min(batch_size, n_samples), replace=False)
+        idx = np.random.choice(n_samples, size=min(batch_size, n_samples), replace=False)
         batch = tf.constant(target_X[idx].astype(np.float32))
 
         with tf.GradientTape() as tape:
@@ -190,7 +192,7 @@ def tent_adapt(
             # gives more accurate gradients for gamma/beta than running stats.
             probs = model(batch, training=True)
             # Entropy: H(p) = -sum(p * log p)  — minimise mean entropy
-            ent  = -tf.reduce_sum(probs * tf.math.log(probs + eps), axis=-1)
+            ent = -tf.reduce_sum(probs * tf.math.log(probs + eps), axis=-1)
             loss = tf.reduce_mean(ent)
 
         grads = tape.gradient(loss, bn_param_vars)
@@ -209,34 +211,35 @@ def tent_adapt(
 
     # ── Evaluate post-adaptation entropy and confidence ────────────────
     # Reuse same tf.constant input to avoid retracing
-    final_probs    = model(_eval_X, training=False).numpy()
-    final_entropy  = -(final_probs * np.log(final_probs + eps)).sum(axis=1)
+    final_probs = model(_eval_X, training=False).numpy()
+    final_entropy = -(final_probs * np.log(final_probs + eps)).sum(axis=1)
     final_norm_ent = float((final_entropy / np.log(n_classes)).mean())
-    entropy_delta  = final_norm_ent - mean_norm_entropy
+    entropy_delta = final_norm_ent - mean_norm_entropy
 
-    mean_conf_after  = float(final_probs.max(axis=1).mean())
+    mean_conf_after = float(final_probs.max(axis=1).mean())
     mean_conf_before = meta["tent_confidence_before"]
-    conf_delta       = mean_conf_after - mean_conf_before
+    conf_delta = mean_conf_after - mean_conf_before
 
-    meta["tent_entropy_after"]     = final_norm_ent
-    meta["tent_entropy_delta"]     = entropy_delta
-    meta["tent_confidence_after"]  = mean_conf_after
-    meta["tent_confidence_delta"]  = conf_delta
+    meta["tent_entropy_after"] = final_norm_ent
+    meta["tent_entropy_delta"] = entropy_delta
+    meta["tent_confidence_after"] = mean_conf_after
+    meta["tent_confidence_delta"] = conf_delta
 
     logger.info(
         "TENT done — entropy: %.3f → %.3f (Δ=%+.3f) | confidence: %.3f → %.3f (Δ=%+.3f)",
-        mean_norm_entropy, final_norm_ent, entropy_delta,
-        mean_conf_before, mean_conf_after, conf_delta,
+        mean_norm_entropy,
+        final_norm_ent,
+        entropy_delta,
+        mean_conf_before,
+        mean_conf_after,
+        conf_delta,
     )
 
     # ── Safety rollback ───────────────────────────────────────────────
     # Gate 1: entropy increased beyond rollback_threshold
     # Gate 2: mean confidence dropped more than 1 pp (adaptation hurt the model)
     confidence_drop_threshold = 0.01
-    should_rollback = (
-        entropy_delta > rollback_threshold
-        or conf_delta < -confidence_drop_threshold
-    )
+    should_rollback = entropy_delta > rollback_threshold or conf_delta < -confidence_drop_threshold
 
     if should_rollback:
         reasons = []
@@ -260,7 +263,8 @@ def tent_adapt(
     else:
         logger.info(
             "TENT accepted — entropy Δ=%+.4f, confidence Δ=%+.4f (both within thresholds).",
-            entropy_delta, conf_delta,
+            entropy_delta,
+            conf_delta,
         )
 
     return model, meta
@@ -273,14 +277,14 @@ def tent_score(model, target_X: np.ndarray, batch_size: int = 64) -> dict:
     """
     probs = model.predict(target_X, batch_size=batch_size, verbose=0)
     n_classes = probs.shape[1]
-    eps         = 1e-9
-    entropy     = -(probs * np.log(probs + eps)).sum(axis=1)
+    eps = 1e-9
+    entropy = -(probs * np.log(probs + eps)).sum(axis=1)
     norm_entropy = entropy / np.log(n_classes)
-    confidence   = probs.max(axis=1)
+    confidence = probs.max(axis=1)
 
     return {
         "mean_normalised_entropy": float(norm_entropy.mean()),
-        "mean_confidence":         float(confidence.mean()),
-        "low_confidence_ratio":    float((confidence < 0.5).mean()),
-        "n_samples":               int(len(probs)),
+        "mean_confidence": float(confidence.mean()),
+        "low_confidence_ratio": float((confidence < 0.5).mean()),
+        "n_samples": int(len(probs)),
     }

@@ -8,11 +8,11 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-from src.entity.config_entity import TriggerEvaluationConfig, PipelineConfig
 from src.entity.artifact_entity import (
     PostInferenceMonitoringArtifact,
     TriggerEvaluationArtifact,
 )
+from src.entity.config_entity import PipelineConfig, TriggerEvaluationConfig
 
 logger = logging.getLogger(__name__)
 
@@ -37,9 +37,9 @@ class TriggerEvaluation:
         logger.info("=" * 60)
 
         from src.trigger_policy import (
+            CooldownConfig,
             TriggerPolicyEngine,
             TriggerThresholds,
-            CooldownConfig,
         )
 
         thresholds = TriggerThresholds(
@@ -51,9 +51,7 @@ class TriggerEvaluation:
         cooldown = CooldownConfig(
             retrain_cooldown_hours=self.config.cooldown_hours,
         )
-        state_dir = self.config.state_dir or (
-            self.pipeline_config.logs_dir / "trigger"
-        )
+        state_dir = self.config.state_dir or (self.pipeline_config.logs_dir / "trigger")
         state_file = Path(state_dir) / "trigger_state.json"
 
         engine = TriggerPolicyEngine(
@@ -102,13 +100,23 @@ class TriggerEvaluation:
 
         logger.info(
             "Trigger decision: action=%s  should_retrain=%s  alert=%s",
-            decision.action, decision.should_trigger, decision.alert_level,
+            decision.action,
+            decision.should_trigger,
+            decision.alert_level,
         )
 
         return TriggerEvaluationArtifact(
             should_retrain=decision.should_trigger,
-            action=str(decision.action.value) if hasattr(decision.action, "value") else str(decision.action),
-            alert_level=str(decision.alert_level.value) if hasattr(decision.alert_level, "value") else str(decision.alert_level),
+            action=(
+                str(decision.action.value)
+                if hasattr(decision.action, "value")
+                else str(decision.action)
+            ),
+            alert_level=(
+                str(decision.alert_level.value)
+                if hasattr(decision.alert_level, "value")
+                else str(decision.alert_level)
+            ),
             reasons=decision.recommendations if hasattr(decision, "recommendations") else [],
             cooldown_active=False,
         )

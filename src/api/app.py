@@ -32,13 +32,16 @@ from pydantic import BaseModel, Field
 # Single source of truth for monitoring thresholds — shared with the pipeline
 try:
     from src.entity.config_entity import PostInferenceMonitoringConfig as _MonCfg
+
     _MON_T = _MonCfg()  # defaults only; overridden per-request if needed
 except Exception:  # pragma: no cover — standalone startup without src/ on path
+
     class _MonCfg:  # type: ignore
         confidence_warn_threshold: float = 0.60
         uncertain_pct_threshold: float = 30.0
         transition_rate_threshold: float = 50.0
         drift_zscore_threshold: float = 2.0
+
     _MON_T = _MonCfg()
 
 # ---------------------------------------------------------------------------
@@ -61,10 +64,17 @@ OVERLAP = 0.5
 STEP_SIZE = int(WINDOW_SIZE * (1 - OVERLAP))
 
 ACTIVITY_CLASSES: Dict[int, str] = {
-    0: "ear_rubbing", 1: "forehead_rubbing", 2: "hair_pulling",
-    3: "hand_scratching", 4: "hand_tapping", 5: "knuckles_cracking",
-    6: "nail_biting", 7: "nape_rubbing", 8: "sitting",
-    9: "smoking", 10: "standing",
+    0: "ear_rubbing",
+    1: "forehead_rubbing",
+    2: "hair_pulling",
+    3: "hand_scratching",
+    4: "hand_tapping",
+    5: "knuckles_cracking",
+    6: "nail_biting",
+    7: "nape_rubbing",
+    8: "sitting",
+    9: "smoking",
+    10: "standing",
 }
 
 # Possible column-name patterns for the 6 sensor channels
@@ -92,12 +102,14 @@ _start_time = datetime.now()
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _load_model():
     """Load the Keras model (once)."""
     global _model, _model_info
     if _model is not None:
         return
     import tensorflow as tf
+
     tf.get_logger().setLevel("ERROR")
     if not MODEL_PATH.exists():
         logger.warning("Model file not found: %s", MODEL_PATH)
@@ -159,9 +171,7 @@ def _create_windows(values: np.ndarray) -> np.ndarray:
     n_samples, n_channels = values.shape
     n_windows = (n_samples - WINDOW_SIZE) // STEP_SIZE + 1
     if n_windows <= 0:
-        raise ValueError(
-            f"Not enough samples ({n_samples}) for window_size={WINDOW_SIZE}"
-        )
+        raise ValueError(f"Not enough samples ({n_samples}) for window_size={WINDOW_SIZE}")
     stride_s, stride_c = values.strides
     windows = as_strided(
         values,
@@ -190,7 +200,12 @@ def _run_monitoring(
     mean_conf = float(np.mean(max_probs))
     uncertain_mask = max_probs < 0.5
     uncertain_pct = float(np.sum(uncertain_mask) / n * 100)
-    l1_status = "PASS" if mean_conf >= _MON_T.confidence_warn_threshold and uncertain_pct <= _MON_T.uncertain_pct_threshold else "WARNING"
+    l1_status = (
+        "PASS"
+        if mean_conf >= _MON_T.confidence_warn_threshold
+        and uncertain_pct <= _MON_T.uncertain_pct_threshold
+        else "WARNING"
+    )
 
     # Layer 2: Temporal
     transitions = int(np.sum(predictions[1:] != predictions[:-1]))
@@ -212,9 +227,11 @@ def _run_monitoring(
             max_drift = float(np.max(drift))
             l3_status = "PASS" if max_drift < _MON_T.drift_zscore_threshold else "WARNING"
 
-    overall = "PASS" if all(
-        s in ("PASS", "SKIPPED") for s in [l1_status, l2_status, l3_status]
-    ) else "WARNING"
+    overall = (
+        "PASS"
+        if all(s in ("PASS", "SKIPPED") for s in [l1_status, l2_status, l3_status])
+        else "WARNING"
+    )
 
     return {
         "overall_status": overall,
@@ -234,7 +251,9 @@ def _run_monitoring(
         "layer3_drift": {
             "status": l3_status,
             "channel_drift": drift_scores,
-            "max_drift": round(float(np.max(list(drift_scores.values()))) if drift_scores else 0.0, 4),
+            "max_drift": round(
+                float(np.max(list(drift_scores.values()))) if drift_scores else 0.0, 4
+            ),
         },
     }
 
@@ -242,6 +261,7 @@ def _run_monitoring(
 # ---------------------------------------------------------------------------
 # Pydantic schemas
 # ---------------------------------------------------------------------------
+
 
 class UploadResult(BaseModel):
     filename: str
@@ -267,11 +287,13 @@ class HealthResponse(BaseModel):
 # FastAPI app
 # ---------------------------------------------------------------------------
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     _load_model()
     _load_baseline()
     yield
+
 
 app = FastAPI(
     title="HAR MLOps API",
@@ -289,6 +311,7 @@ app.add_middleware(
 
 
 # ========================== API Endpoints ==================================
+
 
 @app.get("/api/health", response_model=HealthResponse, tags=["System"])
 async def health():
@@ -335,8 +358,7 @@ async def upload_csv(file: UploadFile = File(...)):
     if len(df) < WINDOW_SIZE:
         raise HTTPException(
             400,
-            f"CSV has {len(df)} rows but at least {WINDOW_SIZE} are needed "
-            f"for one window.",
+            f"CSV has {len(df)} rows but at least {WINDOW_SIZE} are needed " f"for one window.",
         )
 
     # --- Detect columns ---
@@ -361,15 +383,18 @@ async def upload_csv(file: UploadFile = File(...)):
     predictions = []
     for i in range(len(predicted_classes)):
         cls_id = int(predicted_classes[i])
-        predictions.append({
-            "window": i,
-            "activity": ACTIVITY_CLASSES[cls_id],
-            "activity_id": cls_id,
-            "confidence": round(float(max_probs[i]), 4),
-        })
+        predictions.append(
+            {
+                "window": i,
+                "activity": ACTIVITY_CLASSES[cls_id],
+                "activity_id": cls_id,
+                "confidence": round(float(max_probs[i]), 4),
+            }
+        )
 
     # --- Summary ---
     from collections import Counter
+
     counts = Counter(ACTIVITY_CLASSES[int(c)] for c in predicted_classes)
     activity_summary = dict(sorted(counts.items(), key=lambda x: -x[1]))
 
@@ -397,6 +422,7 @@ async def upload_csv(file: UploadFile = File(...)):
 
 
 # ========================== Web UI =========================================
+
 
 @app.get("/", response_class=HTMLResponse, tags=["UI"])
 async def dashboard():
@@ -777,6 +803,7 @@ function renderResults(d) {
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(
         "src.api.app:app",
         host="127.0.0.1",

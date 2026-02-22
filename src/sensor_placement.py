@@ -40,7 +40,7 @@ Date: February 2026
 
 import logging
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -50,6 +50,7 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 # CONFIGURATION
 # ============================================================================
+
 
 @dataclass
 class SensorPlacementConfig:
@@ -68,9 +69,7 @@ class SensorPlacementConfig:
     dominant_accel_threshold: float = 1.2  # Dominant hand has ~20% higher variance
 
     # Sensor columns
-    sensor_columns: List[str] = field(
-        default_factory=lambda: ["Ax", "Ay", "Az", "Gx", "Gy", "Gz"]
-    )
+    sensor_columns: List[str] = field(default_factory=lambda: ["Ax", "Ay", "Az", "Gx", "Gy", "Gz"])
 
     # Accel-only column indices
     accel_indices: List[int] = field(default_factory=lambda: [0, 1, 2])
@@ -80,6 +79,7 @@ class SensorPlacementConfig:
 # ============================================================================
 # AXIS MIRRORING AUGMENTER
 # ============================================================================
+
 
 class AxisMirrorAugmenter:
     """
@@ -160,10 +160,12 @@ class AxisMirrorAugmenter:
         y_aug = y_aug[perm]
 
         logger.info(
-            "Axis mirroring: %d original + %d mirrored = %d total "
-            "(p=%.2f, axes=%s)",
-            len(X), len(X_mirrored), len(X_aug),
-            prob, self.config.mirror_axes,
+            "Axis mirroring: %d original + %d mirrored = %d total " "(p=%.2f, axes=%s)",
+            len(X),
+            len(X_mirrored),
+            len(X_aug),
+            prob,
+            self.config.mirror_axes,
         )
 
         return X_aug, y_aug
@@ -172,6 +174,7 @@ class AxisMirrorAugmenter:
 # ============================================================================
 # HAND DETECTION HEURISTIC
 # ============================================================================
+
 
 class HandDetector:
     """
@@ -278,6 +281,7 @@ class HandDetector:
 # ============================================================================
 # PER-HAND PERFORMANCE REPORTER
 # ============================================================================
+
 
 class HandPerformanceReporter:
     """

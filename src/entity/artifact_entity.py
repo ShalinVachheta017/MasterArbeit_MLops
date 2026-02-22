@@ -9,32 +9,35 @@ Stages 8-10 : retraining-cycle artifacts
 """
 
 from dataclasses import dataclass, field
-from typing import Optional, Dict, List, Any
 from pathlib import Path
-
+from typing import Any, Dict, List, Optional
 
 # ============================================================================
 # Stage 1 – Data Ingestion
 # ============================================================================
 
+
 @dataclass
 class DataIngestionArtifact:
     """Output of sensor-data ingestion (Excel/CSV → fused CSV)."""
+
     fused_csv_path: Path
     n_rows: int
     n_columns: int
     sampling_hz: int
     ingestion_timestamp: str
-    source_type: str = "excel"             # "excel" or "csv"
+    source_type: str = "excel"  # "excel" or "csv"
 
 
 # ============================================================================
 # Stage 2 – Data Validation
 # ============================================================================
 
+
 @dataclass
 class DataValidationArtifact:
     """Output of data validation."""
+
     is_valid: bool
     errors: List[str] = field(default_factory=list)
     warnings: List[str] = field(default_factory=list)
@@ -45,9 +48,11 @@ class DataValidationArtifact:
 # Stage 3 – Data Transformation
 # ============================================================================
 
+
 @dataclass
 class DataTransformationArtifact:
     """Output of preprocessing (CSV → windowed .npy)."""
+
     production_X_path: Path
     metadata_path: Path
     n_windows: int
@@ -62,9 +67,11 @@ class DataTransformationArtifact:
 # Stage 4 – Model Inference
 # ============================================================================
 
+
 @dataclass
 class ModelInferenceArtifact:
     """Output of model inference."""
+
     predictions_csv_path: Path
     predictions_npy_path: Path
     probabilities_npy_path: Optional[Path] = None
@@ -79,9 +86,11 @@ class ModelInferenceArtifact:
 # Stage 5 – Model Evaluation
 # ============================================================================
 
+
 @dataclass
 class ModelEvaluationArtifact:
     """Output of prediction evaluation."""
+
     report_json_path: Optional[Path] = None
     report_text_path: Optional[Path] = None
     distribution_summary: Dict = field(default_factory=dict)
@@ -94,11 +103,13 @@ class ModelEvaluationArtifact:
 # Stage 6 – Post-Inference Monitoring
 # ============================================================================
 
+
 @dataclass
 class PostInferenceMonitoringArtifact:
     """Output of post-inference monitoring (3-layer)."""
+
     monitoring_report: Dict = field(default_factory=dict)
-    overall_status: str = "UNKNOWN"        # HEALTHY / WARNING / CRITICAL
+    overall_status: str = "UNKNOWN"  # HEALTHY / WARNING / CRITICAL
     layer1_confidence: Dict = field(default_factory=dict)
     layer2_temporal: Dict = field(default_factory=dict)
     layer3_drift: Dict = field(default_factory=dict)
@@ -109,12 +120,14 @@ class PostInferenceMonitoringArtifact:
 # Stage 7 – Trigger Evaluation
 # ============================================================================
 
+
 @dataclass
 class TriggerEvaluationArtifact:
     """Output of retraining-trigger evaluation."""
+
     should_retrain: bool = False
-    action: str = "NONE"                   # NONE / MONITOR / QUEUE_RETRAIN / TRIGGER_RETRAIN / ROLLBACK
-    alert_level: str = "INFO"              # INFO / WARNING / CRITICAL
+    action: str = "NONE"  # NONE / MONITOR / QUEUE_RETRAIN / TRIGGER_RETRAIN / ROLLBACK
+    alert_level: str = "INFO"  # INFO / WARNING / CRITICAL
     reasons: List[str] = field(default_factory=list)
     cooldown_active: bool = False
 
@@ -123,13 +136,15 @@ class TriggerEvaluationArtifact:
 # Stage 8 – Model Retraining
 # ============================================================================
 
+
 @dataclass
 class ModelRetrainingArtifact:
     """Output of model retraining (standard or domain-adapted)."""
+
     retrained_model_path: Optional[Path] = None
-    scaler_config_path: Optional[Path] = None     # new scaler params
+    scaler_config_path: Optional[Path] = None  # new scaler params
     training_report: Dict = field(default_factory=dict)
-    adaptation_method: str = "none"               # adabn / pseudo_label / supervised / none
+    adaptation_method: str = "none"  # adabn / pseudo_label / supervised / none
     metrics: Dict[str, float] = field(default_factory=dict)
     n_source_samples: int = 0
     n_target_samples: int = 0
@@ -140,9 +155,11 @@ class ModelRetrainingArtifact:
 # Stage 9 – Model Registration
 # ============================================================================
 
+
 @dataclass
 class ModelRegistrationArtifact:
     """Output of model registration and validation."""
+
     registered_version: str = ""
     is_deployed: bool = False
     is_better_than_current: bool = False
@@ -155,9 +172,11 @@ class ModelRegistrationArtifact:
 # Stage 10 – Baseline Update
 # ============================================================================
 
+
 @dataclass
 class BaselineUpdateArtifact:
     """Output of baseline rebuild."""
+
     baseline_path: Optional[Path] = None
     normalized_baseline_path: Optional[Path] = None
     n_channels: int = 0
@@ -169,9 +188,11 @@ class BaselineUpdateArtifact:
 # Stage 11 – Calibration & Uncertainty Quantification
 # ============================================================================
 
+
 @dataclass
 class CalibrationUncertaintyArtifact:
     """Output of calibration and uncertainty quantification."""
+
     temperature: float = 1.0
     temperature_path: Optional[Path] = None
     ece: float = 0.0
@@ -190,9 +211,11 @@ class CalibrationUncertaintyArtifact:
 # Stage 12 – Wasserstein Drift Detection
 # ============================================================================
 
+
 @dataclass
 class WassersteinDriftArtifact:
     """Output of Wasserstein-based drift detection."""
+
     overall_status: str = "UNKNOWN"
     mean_wasserstein: float = 0.0
     max_wasserstein: float = 0.0
@@ -209,9 +232,11 @@ class WassersteinDriftArtifact:
 # Stage 13 – Curriculum Pseudo-Labeling
 # ============================================================================
 
+
 @dataclass
 class CurriculumPseudoLabelingArtifact:
     """Output of curriculum pseudo-labeling training."""
+
     retrained_model_path: Optional[Path] = None
     iterations_completed: int = 0
     total_pseudo_labeled: int = 0
@@ -226,9 +251,11 @@ class CurriculumPseudoLabelingArtifact:
 # Stage 14 – Sensor Placement Robustness
 # ============================================================================
 
+
 @dataclass
 class SensorPlacementArtifact:
     """Output of sensor placement analysis."""
+
     detected_hand: str = "UNKNOWN"
     detection_confidence: float = 0.0
     augmented_data_path: Optional[Path] = None
@@ -242,9 +269,11 @@ class SensorPlacementArtifact:
 # Pipeline Result (aggregated)
 # ============================================================================
 
+
 @dataclass
 class PipelineResult:
     """Aggregated result of the full pipeline run."""
+
     run_id: str = ""
     start_time: str = ""
     end_time: str = ""

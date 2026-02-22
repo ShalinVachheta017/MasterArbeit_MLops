@@ -12,12 +12,12 @@ from typing import Optional
 
 import numpy as np
 
-from src.entity.config_entity import ModelRetrainingConfig, PipelineConfig
 from src.entity.artifact_entity import (
-    TriggerEvaluationArtifact,
     DataTransformationArtifact,
     ModelRetrainingArtifact,
+    TriggerEvaluationArtifact,
 )
+from src.entity.config_entity import ModelRetrainingConfig, PipelineConfig
 
 logger = logging.getLogger(__name__)
 
@@ -54,10 +54,7 @@ class ModelRetraining:
         logger.info("STAGE 8 — Model Retraining")
         logger.info("=" * 60)
 
-        output_dir = Path(
-            self.config.output_dir
-            or self.pipeline_config.models_dir / "retrained"
-        )
+        output_dir = Path(self.config.output_dir or self.pipeline_config.models_dir / "retrained")
         output_dir.mkdir(parents=True, exist_ok=True)
 
         method = self.config.adaptation_method if self.config.enable_adaptation else "none"
@@ -84,7 +81,7 @@ class ModelRetraining:
     # ------------------------------------------------------------------ #
     def _run_adabn(self, output_dir: Path) -> ModelRetrainingArtifact:
         """Unsupervised domain adaptation via AdaBN (no labels needed)."""
-        from src.domain_adaptation.adabn import adapt_bn_statistics, adabn_score_confidence
+        from src.domain_adaptation.adabn import adabn_score_confidence, adapt_bn_statistics
 
         try:
             import tensorflow as tf
@@ -95,8 +92,7 @@ class ModelRetraining:
         # Load base model
         model_path = self.config.source_data_path  # repurposed or from pretrained
         base_model_path = (
-            self.pipeline_config.models_pretrained_dir
-            / "fine_tuned_model_1dcnnbilstm.keras"
+            self.pipeline_config.models_pretrained_dir / "fine_tuned_model_1dcnnbilstm.keras"
         )
         logger.info("Loading base model: %s", base_model_path)
         model = keras.models.load_model(base_model_path)
@@ -160,8 +156,7 @@ class ModelRetraining:
             raise ImportError("TensorFlow is required for TENT.")
 
         base_model_path = (
-            self.pipeline_config.models_pretrained_dir
-            / "fine_tuned_model_1dcnnbilstm.keras"
+            self.pipeline_config.models_pretrained_dir / "fine_tuned_model_1dcnnbilstm.keras"
         )
         logger.info("Loading base model: %s", base_model_path)
         model = keras.models.load_model(base_model_path)
@@ -176,36 +171,46 @@ class ModelRetraining:
         logger.info("Target data: %s", target_X.shape)
 
         before = tent_score(model, target_X)
-        logger.info("Before TENT — mean confidence: %.4f  norm_entropy: %.4f",
-                    before["mean_confidence"], before["mean_normalised_entropy"])
+        logger.info(
+            "Before TENT — mean confidence: %.4f  norm_entropy: %.4f",
+            before["mean_confidence"],
+            before["mean_normalised_entropy"],
+        )
 
         model, tent_meta = tent_adapt(
-            model, target_X,
+            model,
+            target_X,
             n_steps=self.config.adabn_n_batches or 10,
             learning_rate=self.config.learning_rate or 1e-4,
             batch_size=self.config.batch_size,
         )
 
         after = tent_score(model, target_X)
-        logger.info("After TENT  — mean confidence: %.4f  norm_entropy: %.4f",
-                    after["mean_confidence"], after["mean_normalised_entropy"])
+        logger.info(
+            "After TENT  — mean confidence: %.4f  norm_entropy: %.4f",
+            after["mean_confidence"],
+            after["mean_normalised_entropy"],
+        )
         if tent_meta["tent_rollback"]:
-            logger.warning("TENT rollback applied — affine weights reverted (entropy increased %.3f)",
-                           tent_meta["tent_entropy_delta"])
+            logger.warning(
+                "TENT rollback applied — affine weights reverted (entropy increased %.3f)",
+                tent_meta["tent_entropy_delta"],
+            )
 
         save_path = output_dir / "tent_adapted_model.keras"
         model.save(save_path)
         logger.info("TENT model saved: %s", save_path)
 
         metrics = {
-            "before_mean_confidence":   before["mean_confidence"],
-            "after_mean_confidence":    after["mean_confidence"],
-            "confidence_improvement":   after["mean_confidence"] - before["mean_confidence"],
-            "before_norm_entropy":      before["mean_normalised_entropy"],
-            "after_norm_entropy":       after["mean_normalised_entropy"],
-            "entropy_reduction":        before["mean_normalised_entropy"] - after["mean_normalised_entropy"],
-            "tent_rollback":            int(tent_meta["tent_rollback"]),
-            "tent_entropy_delta":       tent_meta["tent_entropy_delta"],
+            "before_mean_confidence": before["mean_confidence"],
+            "after_mean_confidence": after["mean_confidence"],
+            "confidence_improvement": after["mean_confidence"] - before["mean_confidence"],
+            "before_norm_entropy": before["mean_normalised_entropy"],
+            "after_norm_entropy": after["mean_normalised_entropy"],
+            "entropy_reduction": before["mean_normalised_entropy"]
+            - after["mean_normalised_entropy"],
+            "tent_rollback": int(tent_meta["tent_rollback"]),
+            "tent_entropy_delta": tent_meta["tent_entropy_delta"],
         }
 
         return ModelRetrainingArtifact(
@@ -220,7 +225,7 @@ class ModelRetraining:
     # ------------------------------------------------------------------ #
     def _run_adabn_then_tent(self, output_dir: Path) -> ModelRetrainingArtifact:
         """Two-stage: AdaBN (running stats) → TENT (affine fine-tuning)."""
-        from src.domain_adaptation.adabn import adapt_bn_statistics, adabn_score_confidence
+        from src.domain_adaptation.adabn import adabn_score_confidence, adapt_bn_statistics
         from src.domain_adaptation.tent import tent_adapt, tent_score
 
         try:
@@ -229,8 +234,7 @@ class ModelRetraining:
             raise ImportError("TensorFlow is required.")
 
         base_model_path = (
-            self.pipeline_config.models_pretrained_dir
-            / "fine_tuned_model_1dcnnbilstm.keras"
+            self.pipeline_config.models_pretrained_dir / "fine_tuned_model_1dcnnbilstm.keras"
         )
         model = keras.models.load_model(base_model_path)
 
@@ -247,36 +251,43 @@ class ModelRetraining:
 
         # Stage 1: AdaBN
         model = adapt_bn_statistics(
-            model, target_X,
+            model,
+            target_X,
             n_batches=self.config.adabn_n_batches,
             batch_size=self.config.batch_size,
         )
 
         # Stage 2: TENT — freeze BN running stats so AdaBN calibration is preserved
         model, tent_meta = tent_adapt(
-            model, target_X,
+            model,
+            target_X,
             n_steps=10,
             learning_rate=self.config.learning_rate or 1e-4,
             batch_size=self.config.batch_size,
         )
 
         after = tent_score(model, target_X)
-        logger.info("After AdaBN+TENT — mean confidence: %.4f  norm_entropy: %.4f",
-                    after["mean_confidence"], after["mean_normalised_entropy"])
+        logger.info(
+            "After AdaBN+TENT — mean confidence: %.4f  norm_entropy: %.4f",
+            after["mean_confidence"],
+            after["mean_normalised_entropy"],
+        )
         if tent_meta["tent_rollback"]:
-            logger.warning("TENT rollback applied — affine weights reverted (entropy increased %.3f)",
-                           tent_meta["tent_entropy_delta"])
+            logger.warning(
+                "TENT rollback applied — affine weights reverted (entropy increased %.3f)",
+                tent_meta["tent_entropy_delta"],
+            )
 
         save_path = output_dir / "adabn_tent_adapted_model.keras"
         model.save(save_path)
 
         metrics = {
             "before_mean_confidence": before["mean_confidence"],
-            "after_mean_confidence":  after["mean_confidence"],
+            "after_mean_confidence": after["mean_confidence"],
             "confidence_improvement": after["mean_confidence"] - before["mean_confidence"],
-            "after_norm_entropy":     after["mean_normalised_entropy"],
-            "tent_rollback":          int(tent_meta["tent_rollback"]),
-            "tent_entropy_delta":     tent_meta["tent_entropy_delta"],
+            "after_norm_entropy": after["mean_normalised_entropy"],
+            "tent_rollback": int(tent_meta["tent_rollback"]),
+            "tent_entropy_delta": tent_meta["tent_entropy_delta"],
         }
 
         return ModelRetrainingArtifact(
@@ -316,8 +327,9 @@ class ModelRetraining:
             self.pipeline_config.data_raw_dir.parent / "all_users_data_labeled.csv"
         )
         from src.train import DataLoader as _DataLoader
+
         data_loader = _DataLoader(train_cfg, logger)
-        
+
         # Load and prepare labeled data
         df_source = data_loader.load_training_data(Path(source_path))
         source_X, source_y = data_loader.prepare_data(df_source)
@@ -333,13 +345,15 @@ class ModelRetraining:
 
         # Base model
         base_model_path = (
-            self.pipeline_config.models_pretrained_dir
-            / "fine_tuned_model_1dcnnbilstm.keras"
+            self.pipeline_config.models_pretrained_dir / "fine_tuned_model_1dcnnbilstm.keras"
         )
         base_model = keras.models.load_model(base_model_path)
 
         model, metrics = trainer.retrain_with_adaptation(
-            source_X, source_y, target_X, base_model,
+            source_X,
+            source_y,
+            target_X,
+            base_model,
         )
 
         save_path = output_dir / "pseudo_label_model.keras"
@@ -348,8 +362,15 @@ class ModelRetraining:
         # DomainAdaptationTrainer returns final_accuracy / final_loss at top level
         artifact_metrics = {
             k: metrics[k]
-            for k in ("final_accuracy", "final_loss", "val_accuracy", "val_loss",
-                      "pseudo_labeled_samples", "confidence_threshold", "entropy_threshold")
+            for k in (
+                "final_accuracy",
+                "final_loss",
+                "val_accuracy",
+                "val_loss",
+                "pseudo_labeled_samples",
+                "confidence_threshold",
+                "entropy_threshold",
+            )
             if k in metrics
         }
         return ModelRetrainingArtifact(
@@ -383,8 +404,9 @@ class ModelRetraining:
         )
 
         from src.train import DataLoader as _DataLoader
+
         data_loader = _DataLoader(train_cfg, logger)
-        
+
         # Load and prepare labeled data
         df_source = data_loader.load_training_data(Path(source_path))
         X, y = data_loader.prepare_data(df_source)

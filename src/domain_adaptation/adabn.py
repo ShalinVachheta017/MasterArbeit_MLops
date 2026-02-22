@@ -23,6 +23,7 @@ Usage:
 """
 
 import logging
+
 import numpy as np
 
 logger = logging.getLogger(__name__)
@@ -92,7 +93,9 @@ def adapt_bn_statistics(
 
     logger.info(
         "AdaBN: adapting %d BN layers with %d batches of size %d",
-        len(bn_layers), n_batches, batch_size,
+        len(bn_layers),
+        n_batches,
+        batch_size,
     )
 
     # ── 1. Reset running statistics ────────────────────────────────────
@@ -126,8 +129,9 @@ def adapt_bn_statistics(
         _ = model(batch, training=True)
         total_used += len(idx)
 
-    logger.info("AdaBN: completed adaptation using %d samples across %d batches.",
-                total_used, n_batches)
+    logger.info(
+        "AdaBN: completed adaptation using %d samples across %d batches.", total_used, n_batches
+    )
 
     # ── 4. Restore original trainable flags ────────────────────────────
     for layer in model.layers:

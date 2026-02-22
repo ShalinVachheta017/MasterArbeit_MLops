@@ -11,11 +11,12 @@ from typing import Optional
 
 import numpy as np
 
-from src.entity.config_entity import SensorPlacementConfig as SPConfig, PipelineConfig
 from src.entity.artifact_entity import (
     DataTransformationArtifact,
     SensorPlacementArtifact,
 )
+from src.entity.config_entity import PipelineConfig
+from src.entity.config_entity import SensorPlacementConfig as SPConfig
 
 logger = logging.getLogger(__name__)
 
@@ -40,14 +41,13 @@ class SensorPlacement:
         logger.info("=" * 60)
 
         from src.sensor_placement import (
-            SensorPlacementConfig as _SPCfg,
             AxisMirrorAugmenter,
             HandDetector,
         )
+        from src.sensor_placement import SensorPlacementConfig as _SPCfg
 
         output_dir = Path(
-            self.config.output_dir
-            or self.pipeline_config.outputs_dir / "sensor_placement"
+            self.config.output_dir or self.pipeline_config.outputs_dir / "sensor_placement"
         )
         output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -85,6 +85,7 @@ class SensorPlacement:
 
         # Save hand detection results
         import json
+
         hand_report_path = output_dir / "hand_detection.json"
         with open(hand_report_path, "w") as f:
             json.dump(hand_info, f, indent=2, default=str)

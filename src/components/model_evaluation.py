@@ -8,8 +8,8 @@ import logging
 from pathlib import Path
 from typing import Optional
 
+from src.entity.artifact_entity import ModelEvaluationArtifact, ModelInferenceArtifact
 from src.entity.config_entity import ModelEvaluationConfig, PipelineConfig
-from src.entity.artifact_entity import ModelInferenceArtifact, ModelEvaluationArtifact
 
 logger = logging.getLogger(__name__)
 
@@ -33,19 +33,13 @@ class ModelEvaluation:
         logger.info("STAGE 5 — Model Evaluation")
         logger.info("=" * 60)
 
-        from src.evaluate_predictions import (
-            EvaluationPipeline as _EvalPipeline,
-            EvaluationConfig as _EvalConfig,
-        )
+        from src.evaluate_predictions import EvaluationConfig as _EvalConfig
+        from src.evaluate_predictions import EvaluationPipeline as _EvalPipeline
 
         predictions_csv = Path(
-            self.config.predictions_csv
-            or self.inference_artifact.predictions_csv_path
+            self.config.predictions_csv or self.inference_artifact.predictions_csv_path
         )
-        output_dir = Path(
-            self.config.output_dir
-            or self.pipeline_config.outputs_dir / "evaluation"
-        )
+        output_dir = Path(self.config.output_dir or self.pipeline_config.outputs_dir / "evaluation")
         output_dir.mkdir(parents=True, exist_ok=True)
 
         eval_cfg = _EvalConfig(

@@ -20,13 +20,14 @@ Date: 2025
 
 import os
 import sys
+from collections import Counter
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
-from pathlib import Path
-from sklearn.model_selection import StratifiedKFold
-from sklearn.preprocessing import StandardScaler, LabelEncoder
 import tensorflow as tf
-from collections import Counter
+from sklearn.model_selection import StratifiedKFold
+from sklearn.preprocessing import LabelEncoder, StandardScaler
 
 # Add src to path
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -56,7 +57,7 @@ print(f"✓ Users: {train_df['User'].nunique()} unique")
 print(f"✓ Activities: {train_df['activity'].nunique()} unique")
 
 print("\nActivity Distribution:")
-print(train_df['activity'].value_counts())
+print(train_df["activity"].value_counts())
 
 # ============================================================================
 # STEP 2: PREPARE DATA FOR CROSS-VALIDATION
@@ -66,9 +67,9 @@ print("STEP 2: PREPARING DATA FOR 5-FOLD CROSS-VALIDATION")
 print("=" * 70)
 
 # Feature columns (matching training order)
-feature_cols = ['Ax_w', 'Ay_w', 'Az_w', 'Gx_w', 'Gy_w', 'Gz_w']
+feature_cols = ["Ax_w", "Ay_w", "Az_w", "Gx_w", "Gy_w", "Gz_w"]
 X_raw = train_df[feature_cols].values
-y_raw = train_df['activity'].values
+y_raw = train_df["activity"].values
 
 # Encode labels
 label_encoder = LabelEncoder()
@@ -80,59 +81,58 @@ print(f"\nClasses: {classes}")
 WINDOW_SIZE = 200
 STEP_SIZE = 100  # 50% overlap
 
+
 def create_windows(X, y, window_size=200, step_size=100):
     """Create sliding windows from sensor data."""
     windows = []
     labels = []
-    
+
     for i in range(0, len(X) - window_size + 1, step_size):
-        window = X[i:i + window_size]
+        window = X[i : i + window_size]
         # Use majority label in window
-        window_labels = y[i:i + window_size]
+        window_labels = y[i : i + window_size]
         majority_label = Counter(window_labels).most_common(1)[0][0]
         windows.append(window)
         labels.append(majority_label)
-    
+
     return np.array(windows), np.array(labels)
+
 
 print(f"Creating windows: size={WINDOW_SIZE}, step={STEP_SIZE}")
 X_windows, y_windows = create_windows(X_raw, y_encoded, WINDOW_SIZE, STEP_SIZE)
 print(f"✓ Created {len(X_windows)} windows")
 print(f"✓ Window shape: {X_windows[0].shape}")
 
+
 # ============================================================================
 # STEP 3: DEFINE MODEL ARCHITECTURE (matching trained model)
 # ============================================================================
 def create_model(input_shape=(200, 6), num_classes=11):
     """Create 1D-CNN-BiLSTM model (same as trained model)."""
-    model = tf.keras.Sequential([
-        # CNN layers
-        tf.keras.layers.Conv1D(64, 3, activation='relu', input_shape=input_shape),
-        tf.keras.layers.Conv1D(64, 3, activation='relu'),
-        tf.keras.layers.MaxPooling1D(2),
-        tf.keras.layers.Dropout(0.25),
-        
-        tf.keras.layers.Conv1D(128, 3, activation='relu'),
-        tf.keras.layers.Conv1D(128, 3, activation='relu'),
-        tf.keras.layers.MaxPooling1D(2),
-        tf.keras.layers.Dropout(0.25),
-        
-        # BiLSTM layer
-        tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(64, return_sequences=False)),
-        tf.keras.layers.Dropout(0.5),
-        
-        # Dense layers
-        tf.keras.layers.Dense(128, activation='relu'),
-        tf.keras.layers.Dropout(0.5),
-        tf.keras.layers.Dense(num_classes, activation='softmax')
-    ])
-    
-    model.compile(
-        optimizer='adam',
-        loss='sparse_categorical_crossentropy',
-        metrics=['accuracy']
+    model = tf.keras.Sequential(
+        [
+            # CNN layers
+            tf.keras.layers.Conv1D(64, 3, activation="relu", input_shape=input_shape),
+            tf.keras.layers.Conv1D(64, 3, activation="relu"),
+            tf.keras.layers.MaxPooling1D(2),
+            tf.keras.layers.Dropout(0.25),
+            tf.keras.layers.Conv1D(128, 3, activation="relu"),
+            tf.keras.layers.Conv1D(128, 3, activation="relu"),
+            tf.keras.layers.MaxPooling1D(2),
+            tf.keras.layers.Dropout(0.25),
+            # BiLSTM layer
+            tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(64, return_sequences=False)),
+            tf.keras.layers.Dropout(0.5),
+            # Dense layers
+            tf.keras.layers.Dense(128, activation="relu"),
+            tf.keras.layers.Dropout(0.5),
+            tf.keras.layers.Dense(num_classes, activation="softmax"),
+        ]
     )
+
+    model.compile(optimizer="adam", loss="sparse_categorical_crossentropy", metrics=["accuracy"])
     return model
+
 
 # ============================================================================
 # STEP 4: RUN 5-FOLD CROSS-VALIDATION
@@ -153,53 +153,56 @@ for fold, (train_idx, val_idx) in enumerate(skf.split(X_windows, y_windows), 1):
     print(f"\n{'─' * 50}")
     print(f"FOLD {fold}/5")
     print(f"{'─' * 50}")
-    
+
     # Split data
     X_train, X_val = X_windows[train_idx], X_windows[val_idx]
     y_train, y_val = y_windows[train_idx], y_windows[val_idx]
-    
+
     print(f"Train: {len(X_train)} samples, Val: {len(X_val)} samples")
-    
+
     # Standardize (fit on train, apply to val)
     scaler = StandardScaler()
     X_train_flat = X_train.reshape(-1, 6)
     X_val_flat = X_val.reshape(-1, 6)
-    
+
     scaler.fit(X_train_flat)
     X_train_scaled = scaler.transform(X_train_flat).reshape(X_train.shape)
     X_val_scaled = scaler.transform(X_val_flat).reshape(X_val.shape)
-    
+
     # Create and train model
     model = create_model(input_shape=(200, 6), num_classes=11)
-    
+
     # Quick training (for validation purposes)
     history = model.fit(
-        X_train_scaled, y_train,
+        X_train_scaled,
+        y_train,
         validation_data=(X_val_scaled, y_val),
         epochs=10,  # Reduced for speed
         batch_size=64,
-        verbose=1
+        verbose=1,
     )
-    
+
     # Evaluate
     val_loss, val_acc = model.evaluate(X_val_scaled, y_val, verbose=0)
     fold_accuracies.append(val_acc)
-    
+
     # Predictions distribution
     predictions = model.predict(X_val_scaled, verbose=0)
     pred_classes = np.argmax(predictions, axis=1)
     pred_dist = Counter(pred_classes)
-    
+
     print(f"\n✓ Fold {fold} Accuracy: {val_acc:.4f} ({val_acc*100:.1f}%)")
     print(f"  Predictions distribution: {dict(pred_dist)}")
-    
-    fold_results.append({
-        'fold': fold,
-        'accuracy': val_acc,
-        'train_size': len(X_train),
-        'val_size': len(X_val),
-        'prediction_dist': dict(pred_dist)
-    })
+
+    fold_results.append(
+        {
+            "fold": fold,
+            "accuracy": val_acc,
+            "train_size": len(X_train),
+            "val_size": len(X_val),
+            "prediction_dist": dict(pred_dist),
+        }
+    )
 
 # ============================================================================
 # STEP 5: SUMMARY AND DIAGNOSIS
@@ -228,7 +231,8 @@ print("DIAGNOSIS")
 print("=" * 70)
 
 if mean_acc > 0.80:
-    print(f"""
+    print(
+        f"""
 ✅ MODEL WORKS CORRECTLY!
    Cross-validation accuracy: {mean_acc*100:.1f}% (comparable to ICTH_16 paper's 87%)
    
@@ -273,9 +277,11 @@ if mean_acc > 0.80:
    1. Pre-train on lab data (all_users_data_labeled.csv) ✓ Done
    2. Fine-tune on your labeled Garmin data
    3. Expected improvement: 49% → 87% (per paper)
-""")
+"""
+    )
 elif mean_acc > 0.50:
-    print(f"""
+    print(
+        f"""
 ⚠️  MODEL PARTIALLY WORKS
     Cross-validation accuracy: {mean_acc*100:.1f}%
     This is above random (9%) but below expected (87%)
@@ -284,9 +290,11 @@ elif mean_acc > 0.50:
     1. Training for more epochs
     2. Data augmentation
     3. Hyperparameter tuning
-""")
+"""
+    )
 else:
-    print(f"""
+    print(
+        f"""
 ❌ MODEL NEEDS IMPROVEMENT
    Cross-validation accuracy: {mean_acc*100:.1f}%
    
@@ -294,7 +302,8 @@ else:
    1. Check data preprocessing
    2. Adjust model architecture
    3. Increase training epochs
-""")
+"""
+    )
 
 print("\n" + "=" * 70)
 print("SCRIPT COMPLETE")

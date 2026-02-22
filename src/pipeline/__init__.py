@@ -1,4 +1,5 @@
 """Pipeline module — production pipeline orchestration."""
+
 from src.pipeline.production_pipeline import ProductionPipeline
 
 # Keep old import available for backwards compat (deferred to avoid circular)

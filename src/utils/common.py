@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 
 # ─── Directory helpers ────────────────────────────────────────────────
 
+
 def ensure_dir(path: Union[str, Path]) -> Path:
     """Create directory (and parents) if they don't exist. Returns the Path."""
     p = Path(path)
@@ -35,6 +36,7 @@ def ensure_dir(path: Union[str, Path]) -> Path:
 
 
 # ─── YAML I/O ────────────────────────────────────────────────────────
+
 
 def read_yaml(path: Union[str, Path]) -> Dict[str, Any]:
     """Read a YAML file and return its contents as a dictionary.
@@ -91,6 +93,7 @@ def write_yaml(path: Union[str, Path], data: Dict[str, Any]) -> Path:
 
 # ─── JSON I/O ────────────────────────────────────────────────────────
 
+
 def read_json(path: Union[str, Path]) -> Dict[str, Any]:
     """Read a JSON file and return its contents.
 
@@ -143,6 +146,7 @@ def write_json(
 
 # ─── NumPy I/O ───────────────────────────────────────────────────────
 
+
 def load_numpy(path: Union[str, Path]) -> np.ndarray:
     """Load a `.npy` file.
 
@@ -186,6 +190,7 @@ def save_numpy(path: Union[str, Path], arr: np.ndarray) -> Path:
 
 # ─── Timestamp ───────────────────────────────────────────────────────
 
+
 def get_timestamp(fmt: str = "%Y%m%d_%H%M%S") -> str:
     """Return current UTC-naive timestamp string.
 
@@ -203,6 +208,7 @@ def get_timestamp(fmt: str = "%Y%m%d_%H%M%S") -> str:
 
 
 # ─── File helpers ────────────────────────────────────────────────────
+
 
 def validate_file_exists(path: Union[str, Path], description: str = "File") -> None:
     """Raise ``FileNotFoundError`` if *path* does not exist.

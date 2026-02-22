@@ -35,7 +35,7 @@ Date: February 2026
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -45,6 +45,7 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 # CONFIGURATION
 # ============================================================================
+
 
 @dataclass
 class WassersteinDriftConfig:
@@ -59,23 +60,20 @@ class WassersteinDriftConfig:
     min_drifted_channels_critical: int = 4
 
     # Change-point detection
-    window_size_cpd: int = 50   # Rolling window for CPD
+    window_size_cpd: int = 50  # Rolling window for CPD
     cpd_threshold: float = 2.0  # Std devs above mean for change-point
 
     # Multi-resolution
     enable_multi_resolution: bool = True
 
     # Sensor channels
-    sensor_columns: List[str] = field(
-        default_factory=lambda: [
-            "Ax", "Ay", "Az", "Gx", "Gy", "Gz"
-        ]
-    )
+    sensor_columns: List[str] = field(default_factory=lambda: ["Ax", "Ay", "Az", "Gx", "Gy", "Gz"])
 
 
 # ============================================================================
 # WASSERSTEIN DISTANCE COMPUTATION
 # ============================================================================
+
 
 class WassersteinDriftDetector:
     """
@@ -105,6 +103,7 @@ class WassersteinDriftDetector:
         """
         try:
             from scipy.stats import wasserstein_distance
+
             return float(wasserstein_distance(baseline, production))
         except ImportError:
             # Fallback: sorted empirical CDF
@@ -193,6 +192,7 @@ class WassersteinDriftDetector:
 # CHANGE-POINT DETECTION ON WASSERSTEIN TIME SERIES
 # ============================================================================
 
+
 class WassersteinChangePointDetector:
     """
     Detect change points in a stream of Wasserstein distances.
@@ -257,11 +257,7 @@ class WassersteinChangePointDetector:
             "change_points": change_points,
             "scores": scores.tolist(),
             "n_change_points": len(change_points),
-            "status": (
-                "DRIFT_REGIME_CHANGE"
-                if change_points
-                else "STABLE"
-            ),
+            "status": ("DRIFT_REGIME_CHANGE" if change_points else "STABLE"),
             "mean_z_score": float(np.mean(scores[w:])),
             "max_z_score": float(np.max(scores[w:])) if T > w else 0.0,
         }
@@ -270,6 +266,7 @@ class WassersteinChangePointDetector:
 # ============================================================================
 # MULTI-RESOLUTION DRIFT ANALYSIS
 # ============================================================================
+
 
 class MultiResolutionDriftAnalyzer:
     """
@@ -350,6 +347,7 @@ class MultiResolutionDriftAnalyzer:
 # INTEGRATED DRIFT REPORT (PSI + KS + Wasserstein)
 # ============================================================================
 
+
 def compute_integrated_drift_report(
     baseline_data: np.ndarray,
     production_data: np.ndarray,
@@ -399,19 +397,11 @@ def compute_integrated_drift_report(
         "per_channel": per_channel,
         "summary": {
             "n_channels": n_channels,
-            "mean_wasserstein": float(
-                np.mean([v["wasserstein"] for v in per_channel.values()])
-            ),
-            "mean_psi": float(
-                np.mean([v["psi"] for v in per_channel.values()])
-            ),
-            "mean_ks_stat": float(
-                np.mean([v["ks_statistic"] for v in per_channel.values()])
-            ),
+            "mean_wasserstein": float(np.mean([v["wasserstein"] for v in per_channel.values()])),
+            "mean_psi": float(np.mean([v["psi"] for v in per_channel.values()])),
+            "mean_ks_stat": float(np.mean([v["ks_statistic"] for v in per_channel.values()])),
             "channels_with_drift": sum(
-                1
-                for v in per_channel.values()
-                if v["drift_consensus"] != "NORMAL"
+                1 for v in per_channel.values() if v["drift_consensus"] != "NORMAL"
             ),
         },
     }

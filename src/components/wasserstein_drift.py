@@ -11,12 +11,13 @@ from typing import Optional
 
 import numpy as np
 
-from src.entity.config_entity import WassersteinDriftConfig as WDConfig, PipelineConfig
 from src.entity.artifact_entity import (
-    PostInferenceMonitoringArtifact,
     DataTransformationArtifact,
+    PostInferenceMonitoringArtifact,
     WassersteinDriftArtifact,
 )
+from src.entity.config_entity import PipelineConfig
+from src.entity.config_entity import WassersteinDriftConfig as WDConfig
 
 logger = logging.getLogger(__name__)
 
@@ -42,15 +43,14 @@ class WassersteinDrift:
         logger.info("STAGE 12 — Wasserstein Drift Detection")
         logger.info("=" * 60)
 
+        from src.wasserstein_drift import WassersteinDriftConfig as _WDCfg
         from src.wasserstein_drift import (
-            WassersteinDriftConfig as _WDCfg,
             WassersteinDriftDetector,
             compute_integrated_drift_report,
         )
 
         output_dir = Path(
-            self.config.output_dir
-            or self.pipeline_config.outputs_dir / "wasserstein_drift"
+            self.config.output_dir or self.pipeline_config.outputs_dir / "wasserstein_drift"
         )
         output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -65,9 +65,7 @@ class WassersteinDrift:
         # Load baseline data
         baseline_path = self.config.baseline_data_path
         if baseline_path is None:
-            baseline_path = (
-                self.pipeline_config.data_prepared_dir / "baseline_X.npy"
-            )
+            baseline_path = self.pipeline_config.data_prepared_dir / "baseline_X.npy"
         if not Path(baseline_path).exists():
             logger.warning(
                 "No baseline data at %s — skipping Wasserstein drift detection.",
@@ -108,6 +106,7 @@ class WassersteinDrift:
 
         # Save report
         import json
+
         report_path = output_dir / "wasserstein_drift_report.json"
         with open(report_path, "w") as f:
             json.dump(

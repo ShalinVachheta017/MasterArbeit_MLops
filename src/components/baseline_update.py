@@ -10,11 +10,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from src.entity.config_entity import BaselineUpdateConfig, PipelineConfig
 from src.entity.artifact_entity import (
-    ModelRetrainingArtifact,
     BaselineUpdateArtifact,
+    ModelRetrainingArtifact,
 )
+from src.entity.config_entity import BaselineUpdateConfig, PipelineConfig
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +39,7 @@ class BaselineUpdate:
         logger.info("=" * 60)
 
         import sys
+
         scripts_dir = str(self.pipeline_config.scripts_dir)
         if scripts_dir not in sys.path:
             sys.path.insert(0, scripts_dir)
@@ -73,7 +74,7 @@ class BaselineUpdate:
         if promote:
             # Write to shared paths that monitoring reads at runtime.
             # Also save a versioned copy so the change is reversible.
-            save_baseline_path   = Path(output_baseline)
+            save_baseline_path = Path(output_baseline)
             save_normalized_path = Path(output_normalized)
 
             builder.save(str(save_baseline_path))
@@ -87,7 +88,7 @@ class BaselineUpdate:
             versioned_dir = save_baseline_path.parent / "baseline_versions"
             versioned_dir.mkdir(parents=True, exist_ok=True)
             for src_p, dst_name in [
-                (save_baseline_path,   f"training_baseline_{ts}.json"),
+                (save_baseline_path, f"training_baseline_{ts}.json"),
                 (save_normalized_path, f"normalized_baseline_{ts}.json"),
             ]:
                 shutil.copy2(str(src_p), versioned_dir / dst_name)
@@ -102,7 +103,7 @@ class BaselineUpdate:
         else:
             # Governance: write ONLY to the artifact dir — NEVER touch models/
             # so monitoring's shared baseline is not silently overwritten.
-            save_baseline_path   = artifact_models / Path(output_baseline).name
+            save_baseline_path = artifact_models / Path(output_baseline).name
             save_normalized_path = artifact_models / Path(output_normalized).name
 
             builder.save(str(save_baseline_path))
@@ -116,6 +117,7 @@ class BaselineUpdate:
         # Log baseline files as MLflow artifacts if a run is active
         try:
             import mlflow
+
             if mlflow.active_run():
                 mlflow.log_artifact(str(save_baseline_path), artifact_path="baseline")
                 mlflow.log_artifact(str(save_normalized_path), artifact_path="baseline")
@@ -128,7 +130,9 @@ class BaselineUpdate:
         stats = {
             "n_channels": baseline.get("n_channels", 6),
             "n_samples": baseline.get("n_samples", 0),
-            "activities": list(baseline.get("per_class", {}).keys()) if "per_class" in baseline else [],
+            "activities": (
+                list(baseline.get("per_class", {}).keys()) if "per_class" in baseline else []
+            ),
         }
 
         return BaselineUpdateArtifact(

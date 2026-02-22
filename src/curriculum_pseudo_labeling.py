@@ -40,7 +40,7 @@ Date: February 2026
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -50,6 +50,7 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 # CONFIGURATION
 # ============================================================================
+
 
 @dataclass
 class CurriculumConfig:
@@ -72,7 +73,7 @@ class CurriculumConfig:
     # EWC regularization
     use_ewc: bool = True
     ewc_lambda: float = 1000.0  # Regularization strength
-    ewc_n_samples: int = 200     # Samples for Fisher computation
+    ewc_n_samples: int = 200  # Samples for Fisher computation
 
     # Training
     epochs_per_iteration: int = 10
@@ -87,6 +88,7 @@ class CurriculumConfig:
 # ============================================================================
 # PSEUDO-LABEL SELECTOR
 # ============================================================================
+
 
 class PseudoLabelSelector:
     """
@@ -111,9 +113,8 @@ class PseudoLabelSelector:
                 ratio ** (iteration / max(c.n_iterations - 1, 1))
             )
         else:  # linear
-            step = (
-                (c.initial_confidence_threshold - c.final_confidence_threshold)
-                / max(c.n_iterations - 1, 1)
+            step = (c.initial_confidence_threshold - c.final_confidence_threshold) / max(
+                c.n_iterations - 1, 1
             )
             return c.initial_confidence_threshold - step * iteration
 
@@ -153,12 +154,16 @@ class PseudoLabelSelector:
         candidate_indices = np.where(mask)[0]
 
         if len(candidate_indices) == 0:
-            return np.array([], dtype=int), np.array([], dtype=int), {
-                "threshold": threshold,
-                "n_candidates": 0,
-                "n_selected": 0,
-                "per_class_selected": {},
-            }
+            return (
+                np.array([], dtype=int),
+                np.array([], dtype=int),
+                {
+                    "threshold": threshold,
+                    "n_candidates": 0,
+                    "n_selected": 0,
+                    "per_class_selected": {},
+                },
+            )
 
         # Class-balanced sampling
         selected = []
@@ -202,6 +207,7 @@ class PseudoLabelSelector:
 # ============================================================================
 # EWC REGULARIZATION
 # ============================================================================
+
 
 class EWCRegularizer:
     """
@@ -287,7 +293,7 @@ class EWCRegularizer:
             model.trainable_variables, self.old_params, self.fisher_diag
         ):
             diff = param.numpy() - old_param
-            penalty += np.sum(fisher * diff ** 2)
+            penalty += np.sum(fisher * diff**2)
 
         return float(self.config.ewc_lambda / 2.0 * penalty)
 
@@ -295,6 +301,7 @@ class EWCRegularizer:
 # ============================================================================
 # CURRICULUM TRAINER (main entry point)
 # ============================================================================
+
 
 class CurriculumTrainer:
     """
@@ -350,8 +357,12 @@ class CurriculumTrainer:
 
         logger.info("=" * 60)
         logger.info("CURRICULUM PSEUDO-LABELING")
-        logger.info("  Labeled: %d  |  Unlabeled: %d  |  Iterations: %d",
-                     len(labeled_X), len(unlabeled_X), self.config.n_iterations)
+        logger.info(
+            "  Labeled: %d  |  Unlabeled: %d  |  Iterations: %d",
+            len(labeled_X),
+            len(unlabeled_X),
+            self.config.n_iterations,
+        )
         logger.info("=" * 60)
 
         # Compute EWC Fisher on source data
@@ -428,7 +439,9 @@ class CurriculumTrainer:
             iteration_logs.append(iter_log)
             logger.info(
                 "  val_acc=%.4f  val_loss=%.4f  ewc=%.4f",
-                val_acc, val_loss, ewc_penalty,
+                val_acc,
+                val_loss,
+                ewc_penalty,
             )
 
             # Early stopping
@@ -458,8 +471,5 @@ class CurriculumTrainer:
         """Exponential Moving Average update: teacher ← decay*teacher + (1-decay)*student."""
         teacher_w = teacher.get_weights()
         student_w = student.get_weights()
-        new_w = [
-            decay * tw + (1 - decay) * sw
-            for tw, sw in zip(teacher_w, student_w)
-        ]
+        new_w = [decay * tw + (1 - decay) * sw for tw, sw in zip(teacher_w, student_w)]
         teacher.set_weights(new_w)

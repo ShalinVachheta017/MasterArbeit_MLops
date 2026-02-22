@@ -13,12 +13,12 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 
-from src.entity.config_entity import DataTransformationConfig, PipelineConfig
 from src.entity.artifact_entity import (
     DataIngestionArtifact,
-    DataValidationArtifact,
     DataTransformationArtifact,
+    DataValidationArtifact,
 )
+from src.entity.config_entity import DataTransformationConfig, PipelineConfig
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ class DataTransformation:
         logger.info("STAGE 3 — Data Transformation")
         logger.info("=" * 60)
 
-        from src.preprocess_data import UnifiedPreprocessor, PreprocessLogger
+        from src.preprocess_data import PreprocessLogger, UnifiedPreprocessor
 
         # Determine input CSV
         csv_path = self.config.input_csv or self.ingestion_artifact.fused_csv_path
@@ -58,9 +58,7 @@ class DataTransformation:
         df = pd.read_csv(csv_path)
 
         # Setup preprocessor
-        prep_logger = PreprocessLogger(
-            "preprocessing"
-        ).get_logger()
+        prep_logger = PreprocessLogger("preprocessing").get_logger()
         preprocessor = UnifiedPreprocessor(
             logger=prep_logger,
             window_size=self.config.window_size,
@@ -77,7 +75,11 @@ class DataTransformation:
         calibration_applied = False
 
         # Step 1: Unit conversion (milliG → m/s²) — independent of gravity removal
-        if self.config.enable_unit_conversion or self.config.enable_gravity_removal or self.config.enable_calibration:
+        if (
+            self.config.enable_unit_conversion
+            or self.config.enable_gravity_removal
+            or self.config.enable_calibration
+        ):
             from src.preprocess_data import UnitDetector
 
             detector = UnitDetector(prep_logger)
@@ -87,6 +89,7 @@ class DataTransformation:
         # Step 2: Gravity removal (only if explicitly enabled)
         if self.config.enable_gravity_removal:
             from src.preprocess_data import GravityRemover
+
             gravity = GravityRemover(prep_logger)
             df = gravity.remove_gravity(df, enable=True)
             gravity_removal_applied = True
@@ -94,6 +97,7 @@ class DataTransformation:
         # Step 3: Domain calibration (only if explicitly enabled)
         if self.config.enable_calibration:
             from src.preprocess_data import DomainCalibrator
+
             calibrator = DomainCalibrator(prep_logger)
             df = calibrator.calibrate(df, enable=True)
             calibration_applied = True
@@ -108,6 +112,7 @@ class DataTransformation:
         # Save
         np.save(output_dir / "production_X.npy", X)
         import json
+
         meta_path = output_dir / "production_metadata.json"
         serialisable_meta = []
         for m in metadata:

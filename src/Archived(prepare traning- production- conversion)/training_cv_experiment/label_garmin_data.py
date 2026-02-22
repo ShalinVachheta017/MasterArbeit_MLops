@@ -1,4 +1,4 @@
- #!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 GARMIN DATA LABELING SCRIPT
 ============================
@@ -19,10 +19,11 @@ Author: Thesis Project
 Date: 2025
 """
 
-import pandas as pd
-import numpy as np
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
 
 PROJECT_ROOT = Path(__file__).parent.parent
 
@@ -54,7 +55,6 @@ ACTIVITY_RANGES = {
         ("00:24:05", "00:25:35", "sitting"),
         ("00:25:52", "00:27:24", "standing"),
     ],
-    
     # User M - from your recordings
     "m": [
         ("09:10:35", "09:12:36", "ear_rubbing"),
@@ -69,7 +69,6 @@ ACTIVITY_RANGES = {
         ("09:29:55", "09:32:38", "smoking"),
         ("09:32:54", "09:34:32", "standing"),
     ],
-    
     # User G - from your recordings
     "g": [
         ("20:36:16", "20:38:16", "ear_rubbing"),
@@ -122,6 +121,7 @@ print("\n" + "=" * 70)
 print("STEP 2: PROCESSING AND LABELING DATA")
 print("=" * 70)
 
+
 def parse_time_ranges(ranges_list):
     """Convert time string ranges to datetime.time objects."""
     parsed = []
@@ -131,16 +131,17 @@ def parse_time_ranges(ranges_list):
         parsed.append((start_time, end_time, label))
     return parsed
 
+
 def label_data(df, activity_ranges):
     """Apply activity labels to dataframe based on timestamp."""
     # Parse time ranges
     parsed_ranges = parse_time_ranges(activity_ranges)
-    
+
     def get_label(timestamp):
         """Get activity label for a given timestamp."""
         if pd.isna(timestamp):
             return "unknown"
-        
+
         # Extract time from timestamp
         if isinstance(timestamp, str):
             try:
@@ -148,24 +149,25 @@ def label_data(df, activity_ranges):
             except:
                 return "unknown"
         else:
-            t = timestamp.time() if hasattr(timestamp, 'time') else timestamp
-        
+            t = timestamp.time() if hasattr(timestamp, "time") else timestamp
+
         # Check each range
         for start, end, label in parsed_ranges:
             if start <= t <= end:
                 return label
         return "unknown"
-    
+
     # Apply labeling
-    df['activity'] = df['timestamp'].apply(get_label)
+    df["activity"] = df["timestamp"].apply(get_label)
     return df
+
 
 def detect_user_from_timestamps(df):
     """Detect which user's time ranges match the data."""
     # Get sample timestamps
-    df['timestamp'] = pd.to_datetime(df['timestamp'])
-    sample_times = df['timestamp'].dt.time.head(100)
-    
+    df["timestamp"] = pd.to_datetime(df["timestamp"])
+    sample_times = df["timestamp"].dt.time.head(100)
+
     for user, ranges in ACTIVITY_RANGES.items():
         parsed = parse_time_ranges(ranges)
         for start, end, _ in parsed:
@@ -174,59 +176,60 @@ def detect_user_from_timestamps(df):
                     return user
     return None
 
+
 # Process each found file
 all_labeled_data = []
 
 for file_path in found_files:
     print(f"\nProcessing: {file_path.name}")
-    
+
     # Load data
     df = pd.read_csv(file_path)
     print(f"  Loaded {len(df)} rows")
     print(f"  Columns: {df.columns.tolist()}")
-    
+
     # Standardize column names (remove extra spaces)
     df.columns = df.columns.str.strip()
-    
+
     # Check for timestamp column
-    timestamp_cols = [c for c in df.columns if 'time' in c.lower()]
+    timestamp_cols = [c for c in df.columns if "time" in c.lower()]
     if timestamp_cols:
         # Rename to standard 'timestamp'
-        df = df.rename(columns={timestamp_cols[0]: 'timestamp'})
-    
-    if 'timestamp' not in df.columns:
+        df = df.rename(columns={timestamp_cols[0]: "timestamp"})
+
+    if "timestamp" not in df.columns:
         print(f"  ⚠️ No timestamp column found, skipping...")
         continue
-    
+
     # Detect user
     user = detect_user_from_timestamps(df)
     if user:
         print(f"  ✓ Detected user: {user}")
         df = label_data(df, ACTIVITY_RANGES[user])
-        df['User'] = user
+        df["User"] = user
     else:
         print(f"  ⚠️ Could not detect user from timestamps")
         # Try all users
         for user, ranges in ACTIVITY_RANGES.items():
             df_copy = df.copy()
             df_copy = label_data(df_copy, ranges)
-            labeled_count = (df_copy['activity'] != 'unknown').sum()
+            labeled_count = (df_copy["activity"] != "unknown").sum()
             if labeled_count > 0:
                 print(f"  → User {user}: {labeled_count} rows labeled")
-                df_copy['User'] = user
-                all_labeled_data.append(df_copy[df_copy['activity'] != 'unknown'])
+                df_copy["User"] = user
+                all_labeled_data.append(df_copy[df_copy["activity"] != "unknown"])
         continue
-    
+
     # Remove unknown labels
-    labeled_df = df[df['activity'] != 'unknown'].copy()
+    labeled_df = df[df["activity"] != "unknown"].copy()
     print(f"  ✓ Labeled {len(labeled_df)} rows (removed {len(df) - len(labeled_df)} unknown)")
-    
+
     if len(labeled_df) > 0:
         all_labeled_data.append(labeled_df)
-        
+
         # Show activity distribution
         print(f"\n  Activity distribution:")
-        for activity, count in labeled_df['activity'].value_counts().items():
+        for activity, count in labeled_df["activity"].value_counts().items():
             print(f"    {activity}: {count}")
 
 # ============================================================================
@@ -239,40 +242,55 @@ print("=" * 70)
 if all_labeled_data:
     # Combine all labeled data
     combined_df = pd.concat(all_labeled_data, ignore_index=True)
-    
+
     # Standardize column names to match training data format
     column_mapping = {
-        'Ax': 'Ax_w', 'Ay': 'Ay_w', 'Az': 'Az_w',
-        'Gx': 'Gx_w', 'Gy': 'Gy_w', 'Gz': 'Gz_w',
+        "Ax": "Ax_w",
+        "Ay": "Ay_w",
+        "Az": "Az_w",
+        "Gx": "Gx_w",
+        "Gy": "Gy_w",
+        "Gz": "Gz_w",
     }
-    
+
     for old_name, new_name in column_mapping.items():
         if old_name in combined_df.columns and new_name not in combined_df.columns:
             combined_df = combined_df.rename(columns={old_name: new_name})
-    
+
     # Ensure required columns exist
-    required_cols = ['timestamp', 'Ax_w', 'Ay_w', 'Az_w', 'Gx_w', 'Gy_w', 'Gz_w', 'activity', 'User']
+    required_cols = [
+        "timestamp",
+        "Ax_w",
+        "Ay_w",
+        "Az_w",
+        "Gx_w",
+        "Gy_w",
+        "Gz_w",
+        "activity",
+        "User",
+    ]
     available_cols = [c for c in required_cols if c in combined_df.columns]
-    
+
     # Save to file
     output_path = PROJECT_ROOT / "data" / "prepared" / "garmin_labeled.csv"
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    
+
     combined_df[available_cols].to_csv(output_path, index=False)
-    
+
     print(f"\n✓ Saved labeled data to: {output_path}")
     print(f"  Total rows: {len(combined_df)}")
     print(f"  Users: {combined_df['User'].nunique()}")
     print(f"  Activities: {combined_df['activity'].nunique()}")
-    
+
     print(f"\n  Activity summary:")
-    for activity, count in combined_df['activity'].value_counts().items():
+    for activity, count in combined_df["activity"].value_counts().items():
         print(f"    {activity}: {count}")
-    
+
     print("\n" + "=" * 70)
     print("SUCCESS! Your Garmin data is now labeled.")
     print("=" * 70)
-    print(f"""
+    print(
+        f"""
 NEXT STEPS:
 1. Use this labeled data for fine-tuning:
    python src/train_model.py --data data/prepared/garmin_labeled.csv
@@ -282,11 +300,13 @@ NEXT STEPS:
 
 3. For preprocessing into the model format:
    python src/preprocess_data.py --input data/prepared/garmin_labeled.csv
-""")
+"""
+    )
 
 else:
     print("\n❌ No data could be labeled!")
-    print("""
+    print(
+        """
 POSSIBLE ISSUES:
 1. Your Garmin data timestamps don't match the defined time ranges
 2. The data file format is different than expected
@@ -297,7 +317,8 @@ SOLUTIONS:
 3. Ensure your data has a 'timestamp' column
 
 To add your own time ranges, edit the ACTIVITY_RANGES dictionary at the top of this script.
-""")
+"""
+    )
 
 print("\n" + "=" * 70)
 print("SCRIPT COMPLETE")

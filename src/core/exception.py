@@ -10,7 +10,7 @@ import traceback
 class PipelineException(Exception):
     """
     Custom exception that captures the originating file and line number.
-    
+
     Usage:
         try:
             ...
@@ -28,8 +28,7 @@ class PipelineException(Exception):
                 tb = traceback.extract_tb(exc_tb)
                 last = tb[-1]
                 self.message = (
-                    f"[Stage: {stage}] Error in {last.filename} "
-                    f"line {last.lineno}: {error}"
+                    f"[Stage: {stage}] Error in {last.filename} " f"line {last.lineno}: {error}"
                 )
             else:
                 self.message = f"[Stage: {stage}] {error}"
