@@ -29,26 +29,26 @@ class TestTriggerThresholds:
     def test_default_thresholds(self):
         """Test that default thresholds are set correctly.
 
-        PSI defaults are data-driven (N=24 multi-channel aggregation):
-          psi_warn=0.75, psi_critical=1.50
-        NOT the textbook single-distribution 0.10/0.25.
+        Drift thresholds are z-scores of mean shift (NOT PSI):
+          drift_zscore_warn=2.0  (≈95th pct), drift_zscore_critical=3.0 (≈99.7th pct).
+        References: Gama et al. 2014 (DDM), Page 1954 (CUSUM).
         """
         thresholds = TriggerThresholds()
         
         assert thresholds.confidence_warn == 0.55
         assert thresholds.confidence_critical == 0.45
-        assert thresholds.psi_warn == 0.75
-        assert thresholds.psi_critical == 1.50
+        assert thresholds.drift_zscore_warn == 2.0
+        assert thresholds.drift_zscore_critical == 3.0
     
     def test_custom_thresholds(self):
         """Test custom threshold configuration."""
         thresholds = TriggerThresholds(
             confidence_warn=0.60,
-            psi_critical=0.30
+            drift_zscore_critical=0.30
         )
         
         assert thresholds.confidence_warn == 0.60
-        assert thresholds.psi_critical == 0.30
+        assert thresholds.drift_zscore_critical == 0.30
 
 
 class TestTriggerPolicyEngine:

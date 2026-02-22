@@ -203,8 +203,10 @@ class TriggerEvaluationConfig:
 
     confidence_warn: float = 0.65
     confidence_critical: float = 0.50
-    drift_psi_warn: float = 0.75
-    drift_psi_critical: float = 1.50
+    # Drift metric is a z-score of mean-shift per channel, NOT PSI.
+    # 2.0σ ≈ 95th percentile (warn), 3.0σ ≈ 99.7th percentile (critical).
+    drift_zscore_warn: float = 2.0
+    drift_zscore_critical: float = 3.0
     temporal_flip_warn: float = 0.35
     temporal_flip_critical: float = 0.50
     cooldown_hours: int = 24

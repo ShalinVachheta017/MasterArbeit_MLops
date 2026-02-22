@@ -86,7 +86,8 @@ class TriggerThresholds:
     Thresholds for triggering retraining decisions.
 
     Based on literature and pipeline documentation:
-    - PSI thresholds from MLOps monitoring papers (0.10, 0.25)
+    - Drift thresholds: z-score of mean shift (Gama et al. 2014; Page 1954 CUSUM)
+      2.0σ warn (95th pct), 3.0σ critical (99.7th pct, 3-sigma rule)
     - Confidence/entropy from OOD detection research
     - Temporal metrics from HAR-specific studies
     """
@@ -104,9 +105,14 @@ class TriggerThresholds:
     flip_rate_critical: float = 0.40  # Above this triggers CRITICAL
 
     # Layer 3: Drift thresholds (per channel)
+    # NOTE: the metric computed by post_inference_monitoring is a z-score of
+    # mean shift per channel:  |prod_mean - base_mean| / (base_std + 1e-8)
+    # NOT the Population Stability Index (PSI). Thresholds are therefore on a
+    # standard-normal scale:  2.0σ ≈ 95th-pct, 3.0σ ≈ 99.7th-pct (3-sigma rule).
+    # References: Gama et al. 2014 (DDM), Page 1954 (CUSUM), Wald 1947 (SPRT).
     ks_pvalue_threshold: float = 0.01  # Below this = significant drift
-    psi_warn: float = 0.75  # Above this triggers WARNING (data-driven, N=24)
-    psi_critical: float = 1.50  # Above this triggers CRITICAL
+    drift_zscore_warn: float = 2.0  # Above this triggers WARNING  (≈95th pct)
+    drift_zscore_critical: float = 3.0  # Above this triggers CRITICAL (≈99.7th pct)
     wasserstein_warn: float = 0.3  # Above this triggers WARNING
     wasserstein_critical: float = 0.5  # Above this triggers CRITICAL
 
@@ -385,35 +391,35 @@ class TriggerPolicyEngine:
         channel_metrics = metrics.get("channel_metrics", {})
         aggregate_drift = metrics.get("aggregate_drift_score", 0.0)
 
-        # Count channels with significant PSI
-        psi_warn_count = 0
-        psi_critical_count = 0
+        # Count channels exceeding z-score drift thresholds
+        drift_zscore_warn_count = 0
+        drift_zscore_critical_count = 0
 
         for channel, ch_metrics in channel_metrics.items():
-            psi = ch_metrics.get("psi", 0.0)
-            if psi > self.thresholds.psi_critical:
-                psi_critical_count += 1
-            elif psi > self.thresholds.psi_warn:
-                psi_warn_count += 1
+            zscore = ch_metrics.get("psi", 0.0)  # field named 'psi' but holds z-score
+            if zscore > self.thresholds.drift_zscore_critical:
+                drift_zscore_critical_count += 1
+            elif zscore > self.thresholds.drift_zscore_warn:
+                drift_zscore_warn_count += 1
 
         # Evaluate based on number of drifted channels
-        if psi_critical_count >= self.thresholds.min_drifted_channels_critical:
+        if drift_zscore_critical_count >= self.thresholds.min_drifted_channels_critical:
             level = AlertLevel.CRITICAL
-            issues.append(f"{psi_critical_count} channels with critical PSI drift")
-        elif psi_warn_count >= self.thresholds.min_drifted_channels_warn:
+            issues.append(f"{drift_zscore_critical_count} channels with critical drift (z>{self.thresholds.drift_zscore_critical}σ)")
+        elif drift_zscore_warn_count >= self.thresholds.min_drifted_channels_warn:
             level = max(level, AlertLevel.WARNING, key=lambda x: x.value)
-            issues.append(f"{psi_warn_count} channels with elevated PSI")
+            issues.append(f"{drift_zscore_warn_count} channels with elevated drift (z>{self.thresholds.drift_zscore_warn}σ)")
 
         # Check aggregate drift score (z-score based)
-        if aggregate_drift > self.thresholds.psi_critical:
+        if aggregate_drift > self.thresholds.drift_zscore_critical:
             level = AlertLevel.CRITICAL
             issues.append(
-                f"Aggregate drift {aggregate_drift:.3f} exceeds critical threshold {self.thresholds.psi_critical}"
+                f"Aggregate drift z={aggregate_drift:.3f} exceeds critical threshold {self.thresholds.drift_zscore_critical}σ"
             )
-        elif aggregate_drift > self.thresholds.psi_warn:
+        elif aggregate_drift > self.thresholds.drift_zscore_warn:
             level = max(level, AlertLevel.WARNING, key=lambda x: x.value)
             issues.append(
-                f"Aggregate drift {aggregate_drift:.3f} exceeds warning threshold {self.thresholds.psi_warn}"
+                f"Aggregate drift z={aggregate_drift:.3f} exceeds warning threshold {self.thresholds.drift_zscore_warn}σ"
             )
 
         # Also check overall drift score
@@ -427,8 +433,8 @@ class TriggerPolicyEngine:
             "reason": "; ".join(issues) if issues else "Drift metrics normal",
             "metrics": {
                 "n_drifted_channels": n_drifted,
-                "psi_warn_count": psi_warn_count,
-                "psi_critical_count": psi_critical_count,
+                "drift_zscore_warn_count": drift_zscore_warn_count,
+                "drift_zscore_critical_count": drift_zscore_critical_count,
                 "aggregate_drift_score": aggregate_drift,
             },
         }

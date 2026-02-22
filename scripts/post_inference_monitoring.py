@@ -48,15 +48,15 @@ class PostInferenceMonitor:
         self,
         confidence_threshold: float = 0.5,
         uncertain_threshold_pct: float = 10.0,
-        drift_threshold: float = 0.75,
+        drift_threshold: float = 2.0,
         calibration_temperature: float = 1.0,
     ):
         """
         Args:
             confidence_threshold: Minimum confidence for valid predictions
             uncertain_threshold_pct: Max % of uncertain predictions allowed
-            drift_threshold: Max z-score drift allowed (data-driven, N=24 sessions,
-                           median=0.748; see docs/MONITORING_AND_RETRAINING_GUIDE.md §1)
+            drift_threshold: Max z-score drift allowed (2σ ≈ 95th pct null;
+                           Gama et al. 2014 DDM, Page 1954 CUSUM)
             calibration_temperature: Temperature T from Stage 11 (CalibrationUncertainty).
                 When T != 1.0, confidence scores are re-scaled via:
                   p_cal ≈ p^(1/T) / (p^(1/T) + (1-p)^(1/T))
