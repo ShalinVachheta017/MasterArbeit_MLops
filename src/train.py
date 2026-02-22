@@ -114,10 +114,10 @@ class TrainingConfig:
     model_version: str = "v1"
 
     # Regularization — defaults match the deployed pretrained model (v1)
-    dropout_cnn_1: float = 0.1   # after 1st Conv block
-    dropout_cnn_2: float = 0.2   # after 2nd Conv block
-    dropout_lstm: float = 0.2    # after each BiLSTM layer
-    dropout_dense: float = 0.5   # after Dense hidden layer
+    dropout_cnn_1: float = 0.1  # after 1st Conv block
+    dropout_cnn_2: float = 0.2  # after 2nd Conv block
+    dropout_lstm: float = 0.2  # after each BiLSTM layer
+    dropout_dense: float = 0.5  # after Dense hidden layer
 
     # Domain adaptation (for retraining)
     enable_domain_adaptation: bool = False
