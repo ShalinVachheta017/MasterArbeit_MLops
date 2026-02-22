@@ -50,14 +50,17 @@ RUN pip install --upgrade pip && \
 COPY src/ /app/src/
 COPY config/ /app/config/
 
-# Copy the inference API
-COPY docker/api/ /app/api/
+# Copy legacy lightweight API (kept for reference/debugging, but do not place it
+# at /app/api because that shadows src/api and breaks `uvicorn api.app:app`)
+COPY docker/api/ /app/docker_api/
 
 # Create directories
 RUN mkdir -p /app/models /app/logs
 
 # Set Python path
-ENV PYTHONPATH=/app/src:/app/api:$PYTHONPATH
+# Include /app so `src.api.app` imports reliably; avoid adding /app/api to
+# PYTHONPATH because it shadows the production API package in /app/src/api.
+ENV PYTHONPATH=/app:/app/src:$PYTHONPATH
 
 # Expose API port
 EXPOSE 8000
@@ -66,5 +69,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/api/health || exit 1
 
-# Run the production FastAPI app (src/api/app.py) via PYTHONPATH=/app/src
-CMD ["uvicorn", "api.app:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run the production FastAPI app (`src/api/app.py`)
+CMD ["uvicorn", "src.api.app:app", "--host", "0.0.0.0", "--port", "8000"]
