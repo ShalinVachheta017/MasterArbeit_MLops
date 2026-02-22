@@ -42,6 +42,10 @@ from src.entity.config_entity import (
     ModelRetrainingConfig,
     ModelRegistrationConfig,
     BaselineUpdateConfig,
+    CalibrationUncertaintyConfig,
+    WassersteinDriftConfig,
+    CurriculumPseudoLabelingConfig,
+    SensorPlacementConfig,
 )
 from src.entity.artifact_entity import PipelineResult
 
@@ -52,8 +56,10 @@ ALL_STAGES = [
     "ingestion", "validation", "transformation",
     "inference", "evaluation", "monitoring", "trigger",
     "retraining", "registration", "baseline_update",
+    "calibration", "wasserstein_drift", "curriculum_pseudo_labeling", "sensor_placement",
 ]
 RETRAIN_STAGES = {"retraining", "registration", "baseline_update"}
+ADVANCED_STAGES = {"calibration", "wasserstein_drift", "curriculum_pseudo_labeling", "sensor_placement"}
 
 
 class ProductionPipeline:
@@ -73,10 +79,10 @@ class ProductionPipeline:
         retraining_config: Optional[ModelRetrainingConfig] = None,
         registration_config: Optional[ModelRegistrationConfig] = None,
         baseline_config: Optional[BaselineUpdateConfig] = None,
-        calibration_config=None,  # Accept but ignore for now
-        wasserstein_config=None,  # Accept but ignore for now
-        curriculum_config=None,  # Accept but ignore for now
-        sensor_placement_config=None,  # Accept but ignore for now
+        calibration_config: Optional[CalibrationUncertaintyConfig] = None,
+        wasserstein_config: Optional[WassersteinDriftConfig] = None,
+        curriculum_config: Optional[CurriculumPseudoLabelingConfig] = None,
+        sensor_placement_config: Optional[SensorPlacementConfig] = None,
     ):
         self.pipeline_config = pipeline_config
         self.ingestion_config = ingestion_config or DataIngestionConfig()
@@ -89,6 +95,10 @@ class ProductionPipeline:
         self.retraining_config = retraining_config or ModelRetrainingConfig()
         self.registration_config = registration_config or ModelRegistrationConfig()
         self.baseline_config = baseline_config or BaselineUpdateConfig()
+        self.calibration_config = calibration_config or CalibrationUncertaintyConfig()
+        self.wasserstein_config = wasserstein_config or WassersteinDriftConfig()
+        self.curriculum_config = curriculum_config or CurriculumPseudoLabelingConfig()
+        self.sensor_placement_config = sensor_placement_config or SensorPlacementConfig()
         
         # Initialize artifacts manager
         self.artifacts_manager = ArtifactsManager()
@@ -101,6 +111,7 @@ class ProductionPipeline:
         skip_validation: bool = False,
         continue_on_failure: bool = False,
         enable_retrain: bool = False,
+        enable_advanced: bool = False,
         update_baseline: bool = False,
     ) -> PipelineResult:
         """
@@ -119,6 +130,9 @@ class ProductionPipeline:
             Log errors and continue to next stage instead of aborting.
         enable_retrain : bool
             Include stages 8-10 even when `stages` is None.
+        enable_advanced : bool
+            Include stages 11-14 (calibration, wasserstein_drift,
+            curriculum_pseudo_labeling, sensor_placement).
         update_baseline : bool
             When True, promote the rebuilt baseline to the shared models/ path
             that monitoring reads.  Default False: baseline is written only as
@@ -133,9 +147,11 @@ class ProductionPipeline:
         if stages is not None:
             run_stages = [s for s in ALL_STAGES if s in stages]
         else:
-            run_stages = [s for s in ALL_STAGES if s not in RETRAIN_STAGES]
+            run_stages = [s for s in ALL_STAGES if s not in RETRAIN_STAGES and s not in ADVANCED_STAGES]
             if enable_retrain:
                 run_stages.extend(s for s in ALL_STAGES if s in RETRAIN_STAGES)
+            if enable_advanced:
+                run_stages.extend(s for s in ALL_STAGES if s in ADVANCED_STAGES)
 
         if skip_ingestion and "ingestion" in run_stages:
             run_stages.remove("ingestion")
@@ -366,6 +382,64 @@ class ProductionPipeline:
                     )
                     baseline_art = comp.initiate_baseline_update()
                     result.baseline_update = baseline_art
+
+                elif stage == "calibration":
+                    if inference_art is None:
+                        raise ValueError("No inference artifact — run inference first.")
+                    from src.components.calibration_uncertainty import CalibrationUncertainty
+                    comp = CalibrationUncertainty(
+                        self.pipeline_config, self.calibration_config, inference_art,
+                    )
+                    calibration_art = comp.initiate_calibration()
+                    result.calibration = calibration_art
+                    self.artifacts_manager.log_stage_completion("calibration", "SUCCESS", {
+                        "overall_status": calibration_art.overall_status,
+                        "n_warnings": len(calibration_art.calibration_warnings),
+                    })
+
+                elif stage == "wasserstein_drift":
+                    if transformation_art is None:
+                        transformation_art = self._make_fallback_transformation_artifact()
+                    from src.components.wasserstein_drift import WassersteinDrift
+                    comp = WassersteinDrift(
+                        self.pipeline_config, self.wasserstein_config,
+                        transformation_art, monitoring_art,
+                    )
+                    wasserstein_art = comp.initiate_wasserstein_drift()
+                    result.wasserstein_drift = wasserstein_art
+                    self.artifacts_manager.log_stage_completion("wasserstein_drift", "SUCCESS", {
+                        "overall_status": wasserstein_art.overall_status,
+                        "n_channels_warn": wasserstein_art.n_channels_warn,
+                        "n_channels_critical": wasserstein_art.n_channels_critical,
+                    })
+
+                elif stage == "curriculum_pseudo_labeling":
+                    if transformation_art is None:
+                        transformation_art = self._make_fallback_transformation_artifact()
+                    from src.components.curriculum_pseudo_labeling import CurriculumPseudoLabeling
+                    comp = CurriculumPseudoLabeling(
+                        self.pipeline_config, self.curriculum_config, transformation_art,
+                    )
+                    curriculum_art = comp.initiate_curriculum_training()
+                    result.curriculum_pseudo_labeling = curriculum_art
+                    self.artifacts_manager.log_stage_completion("curriculum_pseudo_labeling", "SUCCESS", {
+                        "total_pseudo_labeled": curriculum_art.total_pseudo_labeled,
+                        "best_val_accuracy": curriculum_art.best_val_accuracy,
+                    })
+
+                elif stage == "sensor_placement":
+                    if transformation_art is None:
+                        transformation_art = self._make_fallback_transformation_artifact()
+                    from src.components.sensor_placement import SensorPlacement
+                    comp = SensorPlacement(
+                        self.pipeline_config, self.sensor_placement_config, transformation_art,
+                    )
+                    sensor_art = comp.initiate_sensor_placement()
+                    result.sensor_placement = sensor_art
+                    self.artifacts_manager.log_stage_completion("sensor_placement", "SUCCESS", {
+                        "detected_hand": sensor_art.detected_hand,
+                        "detection_confidence": sensor_art.detection_confidence,
+                    })
 
                 result.stages_completed.append(stage)
                 logger.info("✓ Stage '%s' completed.", stage)

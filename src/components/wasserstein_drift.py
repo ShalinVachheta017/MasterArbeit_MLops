@@ -70,12 +70,11 @@ class WassersteinDrift:
             )
         if not Path(baseline_path).exists():
             logger.warning(
-                "No baseline data at %s — using production data as self-baseline.",
+                "No baseline data at %s — skipping Wasserstein drift detection.",
                 baseline_path,
             )
             return WassersteinDriftArtifact(
                 overall_status="NO_BASELINE",
-                calibration_warnings=["No baseline data available for drift detection."],
             )
 
         baseline_data = np.load(baseline_path)

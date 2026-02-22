@@ -49,6 +49,7 @@ class PostInferenceMonitor:
         confidence_threshold: float = 0.5,
         uncertain_threshold_pct: float = 10.0,
         drift_threshold: float = 0.75,
+        calibration_temperature: float = 1.0,
     ):
         """
         Args:
@@ -56,10 +57,16 @@ class PostInferenceMonitor:
             uncertain_threshold_pct: Max % of uncertain predictions allowed
             drift_threshold: Max z-score drift allowed (data-driven, N=24 sessions,
                            median=0.748; see docs/MONITORING_AND_RETRAINING_GUIDE.md §1)
+            calibration_temperature: Temperature T from Stage 11 (CalibrationUncertainty).
+                When T != 1.0, confidence scores are re-scaled via:
+                  p_cal ≈ p^(1/T) / (p^(1/T) + (1-p)^(1/T))
+                This sharpens (T>1) or dampens (T<1) overconfident predictions before
+                monitoring thresholds are applied.
         """
         self.confidence_threshold = confidence_threshold
         self.uncertain_threshold_pct = uncertain_threshold_pct
         self.drift_threshold = drift_threshold
+        self.calibration_temperature = float(calibration_temperature)
         self.logger = logging.getLogger(__name__)
     
     def run(
@@ -94,6 +101,19 @@ class PostInferenceMonitor:
         # Load predictions
         self.logger.info(f"Loading predictions: {predictions_path}")
         predictions_df = pd.read_csv(predictions_path)
+
+        # 6b — Apply post-hoc temperature scaling when T != 1.0
+        # (approximation from max-confidence only; Stage 11 provides the temperature)
+        if self.calibration_temperature != 1.0 and 'confidence' in predictions_df.columns:
+            T = self.calibration_temperature
+            p = predictions_df['confidence'].clip(1e-10, 1.0 - 1e-10).values
+            p_cal = p ** (1.0 / T) / (p ** (1.0 / T) + (1.0 - p) ** (1.0 / T))
+            predictions_df = predictions_df.copy()
+            predictions_df['confidence'] = p_cal
+            self.logger.info(
+                "Temperature scaling applied: T=%.3f — mean confidence %.4f → %.4f",
+                T, float(p.mean()), float(p_cal.mean()),
+            )
         
         # Layer 1: Confidence Analysis
         self.logger.info("\n" + "=" * 60)
@@ -175,8 +195,17 @@ class PostInferenceMonitor:
         
         results['uncertain_count'] = int(uncertain_count)
         results['uncertain_percentage'] = float(uncertain_pct)
-        
-        self.logger.info(f"Mean confidence: {mean_conf:.3f} ({100*mean_conf:.1f}%)")
+
+        # Entropy (approximated from confidence: multinomial, K=11 HAR classes)
+        # H = -c*log(c) - (1-c)*log((1-c)/(K-1))  where K=11
+        K = 11
+        eps = 1e-10
+        confs = df['confidence'].clip(eps, 1.0 - eps).values
+        entropy_vals = -(confs * np.log(confs) + (1 - confs) * np.log((1 - confs) / (K - 1) + eps))
+        mean_entropy = float(np.mean(entropy_vals))
+        results['mean_entropy'] = mean_entropy
+        self.logger.info(f"Mean entropy (approx): {mean_entropy:.4f}")
+
         self.logger.info(f"Uncertain predictions: {uncertain_count}/{len(df)} ({uncertain_pct:.1f}%)")
         
         # Check thresholds
@@ -209,8 +238,9 @@ class PostInferenceMonitor:
         results['transitions'] = int(transitions)
         results['transition_rate'] = float(transition_rate)
         
-        # Find longest sequences
+        # Find longest sequences AND collect all dwell lengths
         sequences = {}
+        dwell_lengths = []
         current_activity = activities[0]
         current_length = 1
         
@@ -218,6 +248,7 @@ class PostInferenceMonitor:
             if activities[i] == current_activity:
                 current_length += 1
             else:
+                dwell_lengths.append(current_length)
                 if current_activity not in sequences:
                     sequences[current_activity] = 0
                 sequences[current_activity] = max(sequences[current_activity], current_length)
@@ -225,13 +256,30 @@ class PostInferenceMonitor:
                 current_length = 1
         
         # Don't forget the last sequence
+        dwell_lengths.append(current_length)
         if current_activity not in sequences:
             sequences[current_activity] = 0
         sequences[current_activity] = max(sequences[current_activity], current_length)
         
         results['longest_sequences'] = sequences
-        
-        self.logger.info(f"Total windows: {len(df)}")
+
+        # Dwell-time metrics (window duration = 200 samples @ 25 Hz = 8 s)
+        WINDOW_DURATION_SECS = 8.0
+        SHORT_DWELL_WINDOWS = 2  # <= 2 windows (16 s) is "short"
+        if dwell_lengths:
+            mean_dwell_secs = float(np.mean(dwell_lengths) * WINDOW_DURATION_SECS)
+            short_dwell_ratio = float(
+                sum(1 for d in dwell_lengths if d <= SHORT_DWELL_WINDOWS) / len(dwell_lengths)
+            )
+        else:
+            mean_dwell_secs = 0.0
+            short_dwell_ratio = 0.0
+        results['mean_dwell_time_seconds'] = mean_dwell_secs
+        results['short_dwell_ratio'] = short_dwell_ratio
+        self.logger.info(
+            f"Mean dwell time: {mean_dwell_secs:.1f}s  short_dwell_ratio: {short_dwell_ratio:.3f}"
+        )
+
         self.logger.info(f"Activity transitions: {transitions} ({transition_rate:.1f}%)")
         self.logger.info(f"Longest sequences: {sequences}")
         
@@ -290,7 +338,13 @@ class PostInferenceMonitor:
                 results['baseline_std'] = baseline_std.tolist()
                 results['max_drift'] = max_drift
                 
-                self.logger.info(f"Max drift (normalized): {max_drift:.3f}")
+                # Count drifted channels (drift > 1 sigma from baseline)
+                DRIFT_CHANNEL_THRESHOLD = 1.0  # normalised Z-score units
+                n_drifted_channels = int(np.sum(mean_diff > DRIFT_CHANNEL_THRESHOLD))
+                results['n_drifted_channels'] = n_drifted_channels
+                self.logger.info(
+                    f"Max drift: {max_drift:.3f}  drifted channels: {n_drifted_channels}"
+                )
                 
                 if max_drift > self.drift_threshold:
                     alert = f"Distribution drift detected: {max_drift:.3f} > {self.drift_threshold}"

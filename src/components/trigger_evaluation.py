@@ -69,11 +69,16 @@ class TriggerEvaluation:
         layer3 = raw_report.get("layer3_drift", {})
 
         # Map monitoring keys → trigger-policy expected structure
+        # Use direct artifact fields (populated from the monitoring component)
+        layer1 = self.monitoring_artifact.layer1_confidence or layer1
+        layer2 = self.monitoring_artifact.layer2_temporal or layer2
+        layer3 = self.monitoring_artifact.layer3_drift or layer3
+
         trigger_report = {
             "confidence_report": {
                 "metrics": {
                     "mean_confidence": layer1.get("mean_confidence", 0.0),
-                    "mean_entropy": 0.0,  # not computed by layer1
+                    "mean_entropy": layer1.get("mean_entropy", 0.0),
                     "uncertain_ratio": layer1.get("uncertain_percentage", 0.0) / 100.0,
                     "std_confidence": layer1.get("std_confidence", 0.0),
                 }
@@ -81,13 +86,13 @@ class TriggerEvaluation:
             "temporal_report": {
                 "metrics": {
                     "flip_rate": layer2.get("transition_rate", 0.0) / 100.0,
-                    "mean_dwell_time_seconds": 0.0,
-                    "short_dwell_ratio": 0.0,
+                    "mean_dwell_time_seconds": layer2.get("mean_dwell_time_seconds", 0.0),
+                    "short_dwell_ratio": layer2.get("short_dwell_ratio", 0.0),
                 }
             },
             "drift_report": {
                 "per_channel_metrics": {},
-                "n_drifted_channels": 0,
+                "n_drifted_channels": layer3.get("n_drifted_channels", 0),
                 "aggregate_drift_score": layer3.get("max_drift", 0.0),
                 "overall_status": layer3.get("status", "UNKNOWN"),
             },

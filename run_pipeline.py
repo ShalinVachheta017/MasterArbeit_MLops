@@ -397,6 +397,7 @@ def main():
         skip_validation=args.skip_validation,
         continue_on_failure=args.continue_on_failure,
         enable_retrain=args.retrain,
+        enable_advanced=args.advanced,
         update_baseline=args.update_baseline,
     )
 

@@ -23,7 +23,18 @@ logger = logging.getLogger(__name__)
 
 
 class ModelRetraining:
-    """Retrain the model — standard, AdaBN, or pseudo-label adaptation."""
+    """Retrain the model — standard, AdaBN, TENT, AdaBN+TENT, or pseudo-label adaptation.
+
+    Implemented adaptation methods:
+        adabn         — Unsupervised BN statistics adaptation (no labels needed).
+        tent          — TENT entropy minimisation of BN affine parameters.
+        adabn_tent    — Two-stage: AdaBN then TENT fine-tuning.
+        pseudo_label  — Self-training with confidence-filtered pseudo-labels.
+
+    NOTE: DANN (domain-adversarial) and MMD (maximum mean discrepancy) are referenced
+    in literature but are NOT implemented in this codebase.  Passing those strings
+    will raise a NotImplementedError.
+    """
 
     def __init__(
         self,
@@ -61,6 +72,12 @@ class ModelRetraining:
             return self._run_adabn_then_tent(output_dir)
         elif method == "pseudo_label":
             return self._run_pseudo_label(output_dir)
+        elif method in ("mmd", "dann"):
+            raise NotImplementedError(
+                f"Adaptation method '{method}' (MMD / DANN) is referenced in literature "
+                f"but is NOT implemented in this pipeline.  "
+                f"Use one of: adabn | tent | adabn_tent | pseudo_label."
+            )
         else:
             return self._run_standard(output_dir)
 

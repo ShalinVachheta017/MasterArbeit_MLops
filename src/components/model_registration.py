@@ -67,9 +67,29 @@ class ModelRegistration:
             current = registry.get_current_version()
             if current:
                 logger.info("Current deployed version: %s", current)
-                # Simple proxy: compare mean_confidence or accuracy if available
-                # (the user expands this with real validation later)
-                is_better = True  # placeholder — always deploy for thesis
+                # Find metrics for the current deployed version
+                all_versions = registry.list_versions()
+                current_metrics = next(
+                    (v["metrics"] for v in all_versions if v["version"] == current),
+                    {},
+                )
+                # Compare using val_accuracy or accuracy
+                new_acc = metrics.get("val_accuracy", metrics.get("accuracy"))
+                cur_acc = current_metrics.get("val_accuracy", current_metrics.get("accuracy"))
+                if new_acc is not None and cur_acc is not None:
+                    is_better = float(new_acc) >= float(cur_acc)
+                    logger.info(
+                        "Model comparison: new_acc=%.4f vs current_acc=%.4f → is_better=%s",
+                        float(new_acc), float(cur_acc), is_better,
+                    )
+                else:
+                    logger.warning(
+                        "Cannot compare models: accuracy key missing. "
+                        "New metrics keys: %s | Current metrics keys: %s. "
+                        "Defaulting to is_better=True.",
+                        list(metrics.keys()), list(current_metrics.keys()),
+                    )
+                    is_better = True  # safe fallback when accuracy unavailable
 
         # Deploy if auto_deploy is on and model is better (or first time)
         deployed = False

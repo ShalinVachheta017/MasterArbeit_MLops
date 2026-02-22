@@ -29,6 +29,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field
 
+# Single source of truth for monitoring thresholds — shared with the pipeline
+try:
+    from src.entity.config_entity import PostInferenceMonitoringConfig as _MonCfg
+    _MON_T = _MonCfg()  # defaults only; overridden per-request if needed
+except Exception:  # pragma: no cover — standalone startup without src/ on path
+    class _MonCfg:  # type: ignore
+        confidence_warn_threshold: float = 0.60
+        uncertain_pct_threshold: float = 30.0
+        transition_rate_threshold: float = 50.0
+        drift_zscore_threshold: float = 2.0
+    _MON_T = _MonCfg()
+
 # ---------------------------------------------------------------------------
 # Logging
 # ---------------------------------------------------------------------------
@@ -178,12 +190,12 @@ def _run_monitoring(
     mean_conf = float(np.mean(max_probs))
     uncertain_mask = max_probs < 0.5
     uncertain_pct = float(np.sum(uncertain_mask) / n * 100)
-    l1_status = "PASS" if mean_conf >= 0.6 and uncertain_pct <= 30 else "WARNING"
+    l1_status = "PASS" if mean_conf >= _MON_T.confidence_warn_threshold and uncertain_pct <= _MON_T.uncertain_pct_threshold else "WARNING"
 
     # Layer 2: Temporal
     transitions = int(np.sum(predictions[1:] != predictions[:-1]))
     transition_rate = float(transitions / max(n - 1, 1) * 100)
-    l2_status = "PASS" if transition_rate <= 50 else "WARNING"
+    l2_status = "PASS" if transition_rate <= _MON_T.transition_rate_threshold else "WARNING"
 
     # Layer 3: Drift
     l3_status = "SKIPPED"
@@ -198,7 +210,7 @@ def _run_monitoring(
             for i, d in enumerate(drift):
                 drift_scores[f"channel_{i}"] = round(float(d), 4)
             max_drift = float(np.max(drift))
-            l3_status = "PASS" if max_drift < 2.0 else "WARNING"
+            l3_status = "PASS" if max_drift < _MON_T.drift_zscore_threshold else "WARNING"
 
     overall = "PASS" if all(
         s in ("PASS", "SKIPPED") for s in [l1_status, l2_status, l3_status]
@@ -210,8 +222,8 @@ def _run_monitoring(
             "status": l1_status,
             "mean_confidence": round(mean_conf, 4),
             "uncertain_pct": round(uncertain_pct, 2),
-            "threshold_conf": 0.6,
-            "threshold_uncertain": 30,
+            "threshold_conf": _MON_T.confidence_warn_threshold,
+            "threshold_uncertain": _MON_T.uncertain_pct_threshold,
         },
         "layer2_temporal": {
             "status": l2_status,

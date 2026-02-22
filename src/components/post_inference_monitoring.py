@@ -47,7 +47,22 @@ class PostInferenceMonitoring:
 
         from post_inference_monitoring import PostInferenceMonitor
 
-        monitor = PostInferenceMonitor()
+        # 6b — Load calibration temperature from previous Stage 11 run (if available).
+        # Subsequent pipeline runs benefit from the temperature fitted during Stage 11.
+        import json as _json
+        calibration_temperature = self.config.calibration_temperature  # default 1.0
+        if calibration_temperature == 1.0:
+            temp_path = self.pipeline_config.outputs_dir / "calibration" / "temperature.json"
+            if temp_path.exists():
+                try:
+                    calib_data = _json.loads(temp_path.read_text())
+                    calibration_temperature = float(calib_data.get("temperature", 1.0))
+                    if calibration_temperature != 1.0:
+                        logger.info("Loaded calibration temperature %.4f from %s", calibration_temperature, temp_path)
+                except Exception as _e:
+                    logger.warning("Could not load calibration temperature: %s", _e)
+
+        monitor = PostInferenceMonitor(calibration_temperature=calibration_temperature)
 
         predictions_csv = Path(
             self.config.predictions_csv
@@ -63,6 +78,27 @@ class PostInferenceMonitoring:
         if not Path(baseline_json).exists():
             logger.warning("Baseline file not found: %s — drift analysis will skip baseline comparison", baseline_json)
             baseline_json = None
+
+        # 6c — Baseline staleness guard
+        import time as _time
+        if baseline_json is not None:
+            age_days = (_time.time() - Path(baseline_json).stat().st_mtime) / 86400
+            if age_days > self.config.max_baseline_age_days:
+                logger.warning(
+                    "Baseline is %.0f days old (configured limit: %d days) — "
+                    "drift scores may not reflect current sensor characteristics. "
+                    "Consider running 'baseline_update' stage.",
+                    age_days, self.config.max_baseline_age_days,
+                )
+
+        # 6g — Skip drift if production data IS the training data (self-comparison)
+        if self.config.is_training_session and baseline_json is not None:
+            logger.warning(
+                "is_training_session=True: skipping Layer 3 drift comparison to avoid "
+                "self-referential drift scores (production data = training data)."
+            )
+            baseline_json = None
+
         model_path = self.config.model_path or (
             self.pipeline_config.models_pretrained_dir
             / "fine_tuned_model_1dcnnbilstm.keras"

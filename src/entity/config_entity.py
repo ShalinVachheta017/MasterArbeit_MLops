@@ -160,6 +160,27 @@ class PostInferenceMonitoringConfig:
     model_path: Optional[Path] = None
     output_dir: Optional[Path] = None
 
+    # ── Thresholds (single source of truth — also read by src/api/app.py) ──
+    # Layer 1 — confidence
+    confidence_warn_threshold: float = 0.60      # mean confidence below this → WARNING
+    uncertain_pct_threshold: float = 30.0        # % of low-confidence windows → WARNING
+    # Layer 2 — temporal
+    transition_rate_threshold: float = 50.0      # % transition rate above this → WARNING
+    # Layer 3 — drift
+    drift_zscore_threshold: float = 2.0          # per-channel z-score above this → WARNING
+
+    # Temperature-scaling calibration (applied before Layer 1/3 analysis)
+    # Set to the temperature T from Stage 11 (CalibrationUncertainty) output;
+    # 1.0 means no rescaling.
+    calibration_temperature: float = 1.0
+
+    # Baseline quality guard
+    max_baseline_age_days: int = 90              # warn if baseline file is older than this
+
+    # Drift exclusion: skip Layer 3 when production data IS the training data
+    # (self-comparison would give artificially low drift scores).
+    is_training_session: bool = False
+
 
 # ============================================================================
 # Stage 7 – Trigger Evaluation
@@ -199,7 +220,8 @@ class ModelRetrainingConfig:
 
     # Domain adaptation
     enable_adaptation: bool = False
-    adaptation_method: str = "adabn"               # adabn | tent | adabn_tent | pseudo_label | mmd | dann
+    adaptation_method: str = "adabn"               # adabn | tent | adabn_tent | pseudo_label
+                                                    # NOTE: mmd and dann are NOT implemented.
     adabn_n_batches: int = 10                      # batches for AdaBN / TENT steps
 
     # Output
