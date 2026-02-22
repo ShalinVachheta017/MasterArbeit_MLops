@@ -45,8 +45,8 @@ class TriggerEvaluation:
         thresholds = TriggerThresholds(
             confidence_warn=self.config.confidence_warn,
             confidence_critical=self.config.confidence_critical,
-            psi_warn=self.config.drift_psi_warn,
-            psi_critical=self.config.drift_psi_critical,
+            drift_zscore_warn=self.config.drift_zscore_warn,
+            drift_zscore_critical=self.config.drift_zscore_critical,
         )
         cooldown = CooldownConfig(
             retrain_cooldown_hours=self.config.cooldown_hours,
