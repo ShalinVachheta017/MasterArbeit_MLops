@@ -152,3 +152,9 @@ generate_summary_report.py
 data/raw_backup/
 docs/figures/
 
+
+
+# ============================================================================
+# Thesis report folder (local LaTeX writing — not pushed to Git)
+# ============================================================================
+Thesis_report/

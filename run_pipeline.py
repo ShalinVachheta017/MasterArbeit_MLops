@@ -145,6 +145,18 @@ Examples:
         help="Path to fused CSV (your own recording, ABCD cases)",
     )
     parser.add_argument(
+        "--accel-file",
+        type=str,
+        default=None,
+        help="Path to raw accelerometer CSV/XLSX (targets one specific session)",
+    )
+    parser.add_argument(
+        "--gyro-file",
+        type=str,
+        default=None,
+        help="Path to raw gyroscope CSV/XLSX (targets one specific session)",
+    )
+    parser.add_argument(
         "--model",
         type=str,
         default=None,
@@ -335,6 +347,8 @@ def main():
 
     ingestion_cfg = DataIngestionConfig(
         input_csv=Path(args.input_csv) if args.input_csv else None,
+        accel_file=Path(args.accel_file) if args.accel_file else None,
+        gyro_file=Path(args.gyro_file) if args.gyro_file else None,
     )
 
     transformation_cfg = DataTransformationConfig(
