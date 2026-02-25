@@ -426,9 +426,11 @@ class HARTrainer:
 
             # Start nested MLflow run for this fold
             with self.tracker.start_run(run_name=f"cv_fold_{fold}", nested=True):
-                self.tracker.log_params(
-                    {"fold": fold, "train_samples": len(X_train), "val_samples": len(X_val)}
-                )
+                fold_params: dict = {"fold": fold, "train_samples": len(X_train), "val_samples": len(X_val)}
+                if fold == 1:
+                    # Log architecture param count once — verifies the ~499 K assumption
+                    fold_params["model_total_params"] = model.count_params()
+                self.tracker.log_params(fold_params)
 
                 # Train
                 history = model.fit(
