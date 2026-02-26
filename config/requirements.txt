@@ -2,7 +2,6 @@
 # Requirements for HAR MLOps Pipeline
 # ============================================================================
 # For Docker builds, use: pip install -r requirements.txt
-# For local GPU: uncomment the PyTorch CUDA lines
 # ============================================================================
 
 # ===== Core data wrangling =====

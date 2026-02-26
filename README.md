@@ -9,16 +9,16 @@
 [![CI/CD](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-success.svg)](.github/workflows/ci-cd.yml)
 
 **Master's Thesis Project** | January 2026 - May 2026  
-**Last Updated:** February 22, 2026  
+**Last Updated:** February 26, 2026  
 **Status:** Pipeline complete (14 stages, 225/225 tests passing) — experiments + thesis writing in progress
 
 ---
 
 ## 📊 Current Status
 
-> **🎯 PROGRESS OVERVIEW:** See [things to do/01_REMAINING_WORK.md](things%20to%20do/01_REMAINING_WORK.md) for the authoritative task list. See [things to do/CHATGPT_2_PIPELINE_WORK_DONE.md](things%20to%20do/CHATGPT_2_PIPELINE_WORK_DONE.md) for a complete log of what was built.
+> **🎯 PROGRESS OVERVIEW:** See [Thesis_report/things to do/01_REMAINING_WORK.md](Thesis_report/things%20to%20do/01_REMAINING_WORK.md) for the authoritative task list. See [Thesis_report/things to do/CHATGPT_2_PIPELINE_WORK_DONE.md](Thesis_report/things%20to%20do/CHATGPT_2_PIPELINE_WORK_DONE.md) for a complete log of what was built.
 
-**Completed (as of Feb 22, 2026):**
+**Completed (as of Feb 26, 2026):**
 - ✅ **14-stage pipeline** fully orchestrated (`--advanced` flag enables all 14 stages)
 - ✅ **All 225 tests passing** (unit + integration + slow, 0 failures)
 - ✅ **FastAPI inference service** with CSV upload & health check endpoints
@@ -35,8 +35,10 @@
 **Quick Links:**
 - 🚀 [Examiner Quickstart](#-examiner-quickstart-3-commands): Reproduce results in 3 commands
 - 🧪 [Run Tests](#-testing): `pytest tests/`
-- 🔧 [Pipeline Runbook](docs/19_Feb/PIPELINE_RUNBOOK.md): Full pipeline operations guide
-- 📋 [Remaining Work](things%20to%20do/CHATGPT_3_REMAINING_WORK.md): What's left to do
+- 🔧 [Pipeline Runbook](Thesis_report/docs/19_Feb/PIPELINE_RUNBOOK.md): Full pipeline operations guide
+- 📋 [Remaining Work](Thesis_report/things%20to%20do/CHATGPT_3_REMAINING_WORK.md): What's left to do
+- 📚 [Stage Index](Thesis_report/docs/stages/00_STAGE_INDEX.md): All 14 stages documented
+- 🔍 [22-Feb Audit](Thesis_report/docs/22Feb_Opus_Understanding/00_README.md): Comprehensive Feb 2026 code audit
 
 ---
 
@@ -44,13 +46,19 @@
 
 | Document | Purpose |
 |----------|---------|
-| [Thesis Status & Plan](docs/thesis/FINAL_Thesis_Status_and_Plan_Jan_to_Jun_2026.md) | **Main document** - Current status, achievements, timeline |
-| [What's Remaining](docs/WHATS_REMAINING.md) | **Quick view** - What's left to complete (5% remaining) |
-| [CI/CD Beginner's Guide](docs/GITHUB_ACTIONS_CICD_BEGINNER_GUIDE.md) | Complete GitHub Actions tutorial from scratch |
-| [Thesis Plan (Original)](Thesis_Plan.md) | Original 6-month roadmap (Oct 2025 - Apr 2026) |
-| [Pipeline Operations](docs/PIPELINE_OPERATIONS_AND_ARCHITECTURE.md) | Complete pipeline documentation & architecture |
-| [API Documentation](docs/DATA_INGESTION_AND_INFERENCE_GUIDE.md) | FastAPI endpoints and usage |
-| [Research Papers Analysis](docs/HAR_MLOps_QnA_With_Papers.md) | Insights from 77+ research papers |
+| [Thesis Structure Outline](Thesis_report/docs/thesis/THESIS_STRUCTURE_OUTLINE.md) | **Main document** - Thesis structure, objectives, chapter plan |
+| [Remaining Work](Thesis_report/things%20to%20do/01_REMAINING_WORK.md) | **Authoritative task list** — what is done, what is left |
+| [Work Done Log](Thesis_report/things%20to%20do/CHATGPT_2_PIPELINE_WORK_DONE.md) | Complete log of everything built |
+| [CI/CD Beginner's Guide](Thesis_report/docs/technical/guide-cicd-beginner.md) | Complete GitHub Actions tutorial from scratch |
+| [Thesis Plan (Original)](Thesis_report/Thesis_Plan.md) | Original 6-month roadmap (Oct 2025 - Apr 2026) |
+| [Pipeline Operations](Thesis_report/docs/technical/guide-pipeline-operations-architecture.md) | Complete pipeline documentation & architecture |
+| [Pipeline Runbook](Thesis_report/docs/19_Feb/PIPELINE_RUNBOOK.md) | Step-by-step pipeline operations guide |
+| [API Documentation](Thesis_report/docs/technical/guide-data-ingestion-inference.md) | FastAPI endpoints and usage |
+| [Research Papers Analysis](Thesis_report/docs/research/qna-har-mlops-papers.md) | Insights from 77+ research papers |
+| [Stage Index](Thesis_report/docs/stages/00_STAGE_INDEX.md) | All 14 pipeline stages documented |
+| [22-Feb Audit](Thesis_report/docs/22Feb_Opus_Understanding/00_README.md) | Comprehensive 28-file repo audit from Feb 2026 |
+| [Monitoring Deep Dive](Thesis_report/docs/22Feb_Opus_Understanding/12_STAGE_MONITORING_3_LAYER_DEEP_DIVE.md) | 3-layer monitoring architecture detail |
+| [Retraining & Rollback](Thesis_report/docs/22Feb_Opus_Understanding/14_STAGE_RETRAINING_TRIGGER_GOVERNANCE_ROLLBACK.md) | Retraining trigger, governance & rollback |
 
 ---
 
@@ -350,18 +358,22 @@ pytest tests/ -m "not slow"
 
 | Document | Purpose |
 |----------|---------|
-| **[PROJECT_GUIDE.md](PROJECT_GUIDE.md)** | Complete folder/file structure with visuals |
-| **[docs/PIPELINE_RERUN_GUIDE.md](docs/PIPELINE_RERUN_GUIDE.md)** | Step-by-step pipeline execution |
-| **[docs/SRC_FOLDER_ANALYSIS.md](docs/SRC_FOLDER_ANALYSIS.md)** | Detailed source code analysis |
-| **[docs/CONCEPTS_EXPLAINED.md](docs/CONCEPTS_EXPLAINED.md)** | Technical concepts & formulas |
-| **[docs/RESEARCH_PAPERS_ANALYSIS.md](docs/RESEARCH_PAPERS_ANALYSIS.md)** | Reference papers & summaries |
-| **[docs/FILE_ORGANIZATION_SUMMARY.md](docs/FILE_ORGANIZATION_SUMMARY.md)** | Doc organization & archive info |
+| **[src/README.md](src/README.md)** | Source code inventory & pipeline flow |
+| **[Thesis_report/docs/technical/guide-pipeline-rerun.md](Thesis_report/docs/technical/guide-pipeline-rerun.md)** | Step-by-step pipeline execution |
+| **[Thesis_report/docs/technical/guide-pipeline-operations-architecture.md](Thesis_report/docs/technical/guide-pipeline-operations-architecture.md)** | Full pipeline operations & architecture |
+| **[Thesis_report/docs/technical/guide-monitoring-retraining.md](Thesis_report/docs/technical/guide-monitoring-retraining.md)** | Monitoring & retraining guide |
+| **[Thesis_report/docs/technical/guide-cicd-github-actions.md](Thesis_report/docs/technical/guide-cicd-github-actions.md)** | GitHub Actions CI/CD reference |
+| **[Thesis_report/docs/thesis/CONCEPTS_EXPLAINED.md](Thesis_report/docs/thesis/CONCEPTS_EXPLAINED.md)** | Technical concepts & formulas |
+| **[Thesis_report/docs/research/RESEARCH_PAPERS_ANALYSIS.md](Thesis_report/docs/research/RESEARCH_PAPERS_ANALYSIS.md)** | Reference papers & summaries |
+| **[Thesis_report/docs/stages/00_STAGE_INDEX.md](Thesis_report/docs/stages/00_STAGE_INDEX.md)** | All 14 pipeline stage docs |
+| **[docs/PRODUCT_REVIEW.md](docs/PRODUCT_REVIEW.md)** | Project product review |
 
-### 📦 Archived Documentation
+### 📦 Archived / Historical Documentation
 
-Old/outdated docs moved to [docs/archived/](docs/archived/):
-- **DELETE_\*.md** (26 files) - Can be safely deleted
-- **KEEP_LATER_\*.md** (3 files) - Reference for future
+Old/outdated docs archived under [archive/](archive/) and [Thesis_report/](Thesis_report/):
+- Pipeline work logs: `Thesis_report/things to do/CHATGPT_*.md`
+- 19 Feb sprint docs: `Thesis_report/docs/19_Feb/`
+- Comprehensive Feb 2026 audit: `Thesis_report/docs/22Feb_Opus_Understanding/` (28 files)
 
 ---
 
@@ -399,27 +411,66 @@ MasterArbeit_MLops/
 │
 ├── 📂 src/                         # Source code
 │   ├── config.py                   # Path configurations
-│   ├── sensor_data_pipeline.py     # Main preprocessing pipeline
-│   ├── data_validator.py           # Input data validation
-│   ├── mlflow_tracking.py          # MLflow integration
+│   ├── sensor_data_pipeline.py     # Raw sensor fusion & resampling (50 Hz)
+│   ├── preprocess_data.py          # CSV → windowed .npy arrays
+│   ├── data_validator.py           # Input data schema validation
+│   ├── mlflow_tracking.py          # MLflow experiment logging
 │   ├── run_inference.py            # Batch inference script
-│   ├── evaluate_predictions.py     # Model evaluation
-│   └── preprocess_data.py          # Data preparation
+│   ├── evaluate_predictions.py     # Model evaluation & metrics
+│   ├── train.py                    # Model training (1D-CNN-BiLSTM)
+│   ├── calibration.py              # Temperature scaling calibration
+│   ├── trigger_policy.py           # Retraining trigger logic (17 params)
+│   ├── model_rollback.py           # Model rollback & registry management
+│   ├── deployment_manager.py       # Deployment lifecycle manager
+│   ├── prometheus_metrics.py       # Prometheus metrics export
+│   ├── ood_detection.py            # Out-of-distribution detection
+│   ├── robustness.py               # Robustness evaluation utilities
+│   ├── sensor_placement.py         # Sensor placement analysis (Stage 14)
+│   ├── active_learning_export.py   # Active learning sample export (Stage 11)
+│   ├── curriculum_pseudo_labeling.py # Curriculum pseudo-labeling (Stage 13)
+│   ├── wasserstein_drift.py        # Wasserstein distance drift detection
+│   ├── diagnostic_pipeline_check.py # Pipeline diagnostics
+│   ├── api/
+│   │   └── app.py                  # FastAPI inference service (port 8000)
+│   ├── components/                 # Stage-level components
+│   ├── core/                       # Core ML utilities
+│   ├── domain_adaptation/          # AdaBN / TENT / Pseudo-label adaptors
+│   ├── entity/                     # Dataclass artifacts & configs
+│   ├── pipeline/
+│   │   ├── production_pipeline.py  # 14-stage orchestrator
+│   │   └── inference_pipeline.py   # Inference-only pipeline
+│   └── utils/                      # Shared utility helpers
 │
 ├── 📂 docker/                      # Docker configurations
 │   ├── Dockerfile.training         # Training container
 │   ├── Dockerfile.inference        # Inference API container
-│   └── api/
-│       ├── __init__.py
-│       └── main.py                 # FastAPI application
+│   └── api/                        # API support files for Docker build
 │
 ├── 📂 notebooks/                   # Jupyter notebooks
-│   └── exploration/
-│       └── gravity_removal_demo.ipynb  # Gravity removal analysis
+│   ├── data_preprocessing_step1.ipynb
+│   ├── production_preprocessing.ipynb
+│   └── exploration/                # EDA notebooks
 │
-├── 📂 research_papers/             # Reference datasets & papers (DVC tracked)
-│   ├── anxiety_dataset.csv         # Anxiety study dataset
-│   └── all_users_data_labeled.csv  # Labeled training data
+├── 📂 scripts/                     # Standalone utility scripts
+│   ├── train.py / preprocess.py    # CLI scripts for pipeline steps
+│   ├── export_mlflow_runs.py       # Export MLflow run data
+│   ├── generate_thesis_figures.py  # Figure generation for thesis
+│   ├── inference_smoke.py          # CI smoke test script
+│   ├── post_inference_monitoring.py # Post-inference monitoring runner
+│   ├── build_normalized_baseline.py # Build monitoring baseline
+│   └── analyze_drift_across_datasets.py # Cross-dataset drift analysis
+│
+├── 📂 Thesis_report/               # All thesis-related docs & plans
+│   ├── chapters/                   # LaTeX chapter files (ch1–ch6)
+│   ├── things to do/               # Task tracking & remaining work
+│   ├── docs/
+│   │   ├── 19_Feb/                 # Feb 19 sprint documentation
+│   │   ├── 22Feb_Opus_Understanding/ # 28-file comprehensive audit
+│   │   ├── stages/                 # Per-stage documentation (00–10)
+│   │   ├── technical/              # Technical how-to guides
+│   │   ├── research/               # Paper analysis & QnA
+│   │   └── thesis/                 # Thesis-specific docs & plans
+│   └── thesis_main.tex             # Main LaTeX thesis entry point
 │
 ├── 📂 mlruns/                      # MLflow tracking data (git-ignored)
 ├── 📂 logs/                        # Application logs
@@ -1116,5 +1167,5 @@ This project is part of a Master's Thesis at [University Name].
 
 ---
 
-**Last Updated:** February 22, 2026  
-**Version:** 3.0.0
+**Last Updated:** February 26, 2026  
+**Version:** 3.1.0
