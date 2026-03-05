@@ -60,6 +60,12 @@ from src.entity.config_entity import (
     ModelInferenceConfig,
     ModelRetrainingConfig,
 )
+from src.utils.config_loader import (
+    load_yaml_overrides,
+    apply_overrides,
+    load_monitoring_config,
+    load_trigger_config,
+)
 
 # Logging is already configured in src.logger module - no need for basicConfig here
 
@@ -178,6 +184,18 @@ Examples:
         "--no-unit-conversion",
         action="store_true",
         help="Disable unit conversion milliG→m/s² (overrides config file)",
+    )
+    parser.add_argument(
+        "--no-normalization",
+        action="store_true",
+        help="Disable data normalization (overrides config file) — for comparison experiments",
+    )
+    parser.add_argument(
+        "--normalization-variant",
+        type=str,
+        default=None,
+        choices=["zscore", "robust", "none"],
+        help="Normalization variant to use (overrides config file): zscore | robust | none",
     )
     parser.add_argument(
         "--calibrate",
@@ -324,9 +342,11 @@ def main():
     yaml_preproc = load_preprocessing_config(args.config)
 
     # Resolve preprocessing toggles: CLI flags override YAML config
-    enable_unit_conversion = yaml_preproc.get('enable_unit_conversion', True)
-    enable_gravity_removal = yaml_preproc.get('enable_gravity_removal', False)
-    enable_calibration = yaml_preproc.get('enable_calibration', False)
+    enable_unit_conversion   = yaml_preproc.get('enable_unit_conversion', True)
+    enable_gravity_removal   = yaml_preproc.get('enable_gravity_removal', False)
+    enable_calibration       = yaml_preproc.get('enable_calibration', False)
+    enable_normalization     = yaml_preproc.get('enable_normalization', True)
+    normalization_variant    = yaml_preproc.get('normalization_variant', 'zscore')
 
     # CLI overrides
     if args.no_unit_conversion:
@@ -335,15 +355,24 @@ def main():
         enable_gravity_removal = True
     if args.calibrate:
         enable_calibration = True
+    if args.no_normalization:
+        enable_normalization = False
+    if args.normalization_variant:
+        normalization_variant = args.normalization_variant
 
     # Show what's active using logger
     logger.info("Preprocessing configuration (from %s):", args.config)
-    logger.info("  Unit Conversion (milliG→m/s²): %s", 'ON' if enable_unit_conversion else 'OFF')
+    logger.info("  Unit Conversion (milliG\u2192m/s\u00b2): %s", 'ON' if enable_unit_conversion else 'OFF')
     logger.info("  Gravity Removal:               %s", 'ON' if enable_gravity_removal else 'OFF')
     logger.info("  Domain Calibration:            %s", 'ON' if enable_calibration else 'OFF')
+    logger.info("  Normalization:                 %s  (variant=%s)",
+                'ON' if enable_normalization else 'OFF', normalization_variant)
 
     # ── Build configs ─────────────────────────────────────────────────
     pipeline_cfg = PipelineConfig()
+
+    # Load runtime threshold overrides from YAML (or HAR_PIPELINE_OVERRIDES env var)
+    _overrides = load_yaml_overrides()
 
     ingestion_cfg = DataIngestionConfig(
         input_csv=Path(args.input_csv) if args.input_csv else None,
@@ -355,6 +384,8 @@ def main():
         enable_unit_conversion=enable_unit_conversion,
         enable_gravity_removal=enable_gravity_removal,
         enable_calibration=enable_calibration,
+        enable_normalization=enable_normalization,
+        normalization_variant=normalization_variant,
     )
 
     inference_cfg = ModelInferenceConfig(
@@ -391,6 +422,15 @@ def main():
     )
     sensor_cfg = SensorPlacementConfig()
 
+    # ── Apply YAML overrides to all threshold-bearing configs ─────────
+    monitoring_cfg = load_monitoring_config()
+    trigger_cfg = load_trigger_config()
+    if _overrides:
+        apply_overrides(registration_cfg, _overrides.get("registration", {}))
+        apply_overrides(calibration_cfg, _overrides.get("calibration", {}))
+        apply_overrides(curriculum_cfg, _overrides.get("curriculum", {}))
+        logger.info("YAML overrides applied from config/pipeline_overrides.yaml")
+
     # ── Build and run pipeline ────────────────────────────────────────
     pipeline = ProductionPipeline(
         pipeline_config=pipeline_cfg,
@@ -399,6 +439,8 @@ def main():
         inference_config=inference_cfg,
         retraining_config=retraining_cfg,
         registration_config=registration_cfg,
+        monitoring_config=monitoring_cfg,
+        trigger_config=trigger_cfg,
         calibration_config=calibration_cfg,
         wasserstein_config=wasserstein_cfg,
         curriculum_config=curriculum_cfg,

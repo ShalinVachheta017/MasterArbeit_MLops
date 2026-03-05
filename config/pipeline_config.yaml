@@ -32,7 +32,6 @@ preprocessing:
   #      - all_users_data_labeled accel magnitude = 9.83 m/s2 (=1g)
   #      - ADAMSense wrist magnitude = 0.995 (approx 1g in g-units)
   #      - Paper says "NO gravity removal mentioned"
-  # RISK: Setting true creates domain shift -> hand_tapping dominance
   enable_gravity_removal: false
 
   # Domain Calibration  (experimental)
@@ -40,6 +39,14 @@ preprocessing:
   # WHY: Not part of original training pipeline.
   #      Only enable for domain adaptation experiments.
   enable_calibration: false
+
+  # Data Normalization  (StandardScaler / RobustScaler z-score)
+  # RECOMMENDED: true
+  # WHY: Model was trained on z-score normalized data.
+  #      Turn OFF only for experiments — accuracy WILL drop without normalization.
+  #      normalization_variant controls WHICH scaler: "zscore" | "robust" | "none"
+  enable_normalization: true
+  normalization_variant: "zscore"   # zscore | robust | none
 
   # Gravity removal filter parameters (only used if enable_gravity_removal: true)
   gravity_filter:

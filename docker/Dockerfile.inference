@@ -44,6 +44,7 @@ RUN pip install --upgrade pip && \
     scipy \
     pyyaml \
     pydantic \
+    prometheus-client \
     python-multipart
 
 # Copy source code

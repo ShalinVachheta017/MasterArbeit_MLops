@@ -1,190 +1,144 @@
-# HAR Pipeline Alert Rules
-# =========================
-# 
-# Prometheus alert rules for the HAR MLOps pipeline.
-# Triggers alerts when metrics exceed thresholds.
+﻿# HAR Pipeline Alert Rules — LIVE RULES ONLY
+# ==============================================
+#
+# ╔══════════════════════════════════════════════════════════════════╗
+# ║  ALL rules in this file reference metrics ACTUALLY exported    ║
+# ║  by src/api/app.py at GET /metrics.                            ║
+# ║                                                                 ║
+# ║  Verified metric inventory (app.py lines 44-76):              ║
+# ║    Counter:   har_api_requests_total                           ║
+# ║    Gauge:     har_confidence_mean                              ║
+# ║    Gauge:     har_entropy_mean                                 ║
+# ║    Gauge:     har_flip_rate                                    ║
+# ║    Gauge:     har_drift_detected  (0.0=PASS, 1.0=WARNING)     ║
+# ║    Gauge:     har_baseline_age_days  (-1 = file missing)      ║
+# ║    Histogram: har_inference_latency_ms  (_bucket/_sum/_count) ║
+# ║                                                                 ║
+# ║  Rules for metrics not yet exported → har_alerts_pending.yml  ║
+# ╚══════════════════════════════════════════════════════════════════╝
+#
+# Threshold alignment (single source of truth → config_entity.py):
+#   confidence_warn_threshold = 0.60  (PostInferenceMonitoringConfig)
+#   trigger confidence_warn   = 0.65  (TriggerEvaluationConfig — higher tier)
+#   entropy_warn              = 1.8   (TriggerThresholds)
+#   flip_rate_warn            = 0.25  (TriggerThresholds — fraction not %)
+#   baseline_max_age_days     = 90    (PostInferenceMonitoringConfig)
 
 groups:
-  - name: har_model_performance
+
+  # --------------------------------------------------------------------------
+  # Group 1: Model health — per-batch monitoring gauges
+  # Updated on every /api/upload call via _run_monitoring()
+  # --------------------------------------------------------------------------
+  - name: har_model_health
     interval: 1m
     rules:
-      # Low confidence alert
       - alert: HARLowConfidence
-        expr: har_confidence_mean < 0.75
+        expr: har_confidence_mean < 0.65
         for: 5m
         labels:
           severity: warning
           team: ml-ops
         annotations:
           summary: "HAR model confidence is low"
-          description: "Mean prediction confidence {{ $value | printf \"%.2f\" }} is below 0.75 threshold for 5 minutes."
-          runbook: "Check for data drift or model degradation. Consider retraining."
+          description: "Mean confidence {{ $value | printf \"%.3f\" }} < 0.65 for 5m. (PostInferenceMonitoringConfig.confidence_warn_threshold=0.60; trigger fires at 0.65)"
+          runbook: "Check for data drift or model degradation. Consider --retrain."
 
-      # High entropy alert
       - alert: HARHighEntropy
-        expr: har_entropy_mean > 1.5
+        expr: har_entropy_mean > 1.8
         for: 5m
         labels:
           severity: warning
           team: ml-ops
         annotations:
-          summary: "HAR model entropy is high"
-          description: "Mean prediction entropy {{ $value | printf \"%.2f\" }} exceeds 1.5 threshold."
+          summary: "HAR model prediction entropy is high"
+          description: "Mean normalised entropy {{ $value | printf \"%.3f\" }} > 1.8 (TriggerThresholds.entropy_warn). Model is uncertain across activity classes."
 
-      # High flip rate alert
       - alert: HARHighFlipRate
-        expr: har_flip_rate > 0.15
+        # har_flip_rate is stored as fraction (transition_rate / 100). Threshold 0.25 = 25%
+        expr: har_flip_rate > 0.25
         for: 10m
         labels:
           severity: warning
           team: ml-ops
         annotations:
           summary: "HAR prediction flip rate is high"
-          description: "Prediction flip rate {{ $value | printf \"%.2f\" }} exceeds 15% threshold. Model may be unstable."
+          description: "Activity flip rate {{ $value | printf \"%.3f\" }} > 0.25 for 10m. Model may be oscillating between classes."
 
+  # --------------------------------------------------------------------------
+  # Group 2: Drift detection — Layer 3 z-score result
+  # har_drift_detected is a label-free Gauge: 0.0=PASS, 1.0=WARNING
+  # Bug fix: removed {drift_type="overall"} filter — gauge has no labels
+  # --------------------------------------------------------------------------
   - name: har_drift_detection
     interval: 1m
     rules:
-      # Data drift detected
-      - alert: HARDataDriftDetected
-        expr: har_drift_detected{drift_type="overall"} == 1
-        for: 5m
-        labels:
-          severity: critical
-          team: ml-ops
-        annotations:
-          summary: "Data drift detected in HAR pipeline"
-          description: "Significant data drift has been detected. Model performance may degrade."
-          runbook: "1. Check PSI scores 2. Compare feature distributions 3. Consider retraining"
-
-      # High PSI on specific feature
-      - alert: HARFeatureDrift
-        expr: har_drift_psi > 0.25
+      - alert: HARDriftDetected
+        expr: har_drift_detected == 1
         for: 5m
         labels:
           severity: warning
           team: ml-ops
         annotations:
-          summary: "Feature drift detected: {{ $labels.feature }}"
-          description: "PSI score {{ $value | printf \"%.3f\" }} for feature {{ $labels.feature }} indicates significant drift."
+          summary: "HAR Layer 3 z-score drift WARNING raised"
+          description: "At least one sensor channel exceeds drift_zscore_threshold=2.0 std deviations from the training baseline for 5m."
+          runbook: "1. Review Stage 6 monitoring_report.json for drifted channels. 2. Consider --retrain --update-baseline."
 
-      # High KS statistic
-      - alert: HARDistributionShift
-        expr: har_drift_ks_stat > 0.1
-        for: 5m
-        labels:
-          severity: warning
-          team: ml-ops
-        annotations:
-          summary: "Distribution shift detected: {{ $labels.feature }}"
-          description: "KS statistic {{ $value | printf \"%.3f\" }} indicates distribution shift in {{ $labels.feature }}."
-
-  - name: har_ood_detection
-    interval: 1m
-    rules:
-      # High OOD ratio
-      - alert: HARHighOODRatio
-        expr: har_ood_ratio > 0.2
-        for: 10m
-        labels:
-          severity: warning
-          team: ml-ops
-        annotations:
-          summary: "High out-of-distribution sample ratio"
-          description: "{{ $value | printf \"%.1f\" }}% of samples are detected as OOD. Check for environment changes."
-
-      # Critical OOD situation
-      - alert: HARCriticalOOD
-        expr: har_ood_ratio > 0.4
-        for: 5m
-        labels:
-          severity: critical
-          team: ml-ops
-        annotations:
-          summary: "Critical OOD ratio - model unreliable"
-          description: "Over 40% of samples are OOD. Model predictions may be unreliable."
-
-  - name: har_trigger_policy
+  # --------------------------------------------------------------------------
+  # Group 3: Service availability
+  # har_api_requests_total (Counter), har_inference_latency_ms (Histogram)
+  # --------------------------------------------------------------------------
+  - name: har_service_health
     interval: 30s
     rules:
-      # Retraining triggered
-      - alert: HARRetrainingTriggered
-        expr: har_trigger_state{trigger_type="overall"} == 2
-        labels:
-          severity: info
-          team: ml-ops
-        annotations:
-          summary: "HAR model retraining has been triggered"
-          description: "Automatic retraining has been initiated based on trigger policy."
-
-      # Multiple consecutive warnings
-      - alert: HARConsecutiveWarnings
-        expr: har_consecutive_warnings >= 3
-        for: 1m
-        labels:
-          severity: warning
-          team: ml-ops
-        annotations:
-          summary: "Multiple consecutive monitoring warnings"
-          description: "{{ $value }} consecutive warning states. Retraining may be imminent."
-
-  - name: har_system_health
-    interval: 30s
-    rules:
-      # High inference latency
+      # histogram_quantile needs the _bucket time series; unit = milliseconds
       - alert: HARHighLatency
-        expr: histogram_quantile(0.95, rate(har_inference_latency_seconds_bucket[5m])) > 0.5
+        expr: histogram_quantile(0.95, sum by (le) (rate(har_inference_latency_ms_bucket[5m]))) > 500
         for: 5m
         labels:
           severity: warning
           team: ml-ops
         annotations:
-          summary: "HAR inference latency is high"
-          description: "95th percentile latency {{ $value | printf \"%.2f\" }}s exceeds 500ms threshold."
+          summary: "HAR inference p95 latency exceeds 500ms SLA"
+          description: "p95 latency = {{ $value | printf \"%.1f\" }}ms (> 500ms). Check CPU load, batch size, and preprocessing cost."
 
-      # No predictions (service may be down)
       - alert: HARNoPredictions
-        expr: rate(har_predictions_total[5m]) == 0
+        expr: rate(har_api_requests_total[5m]) == 0
         for: 10m
         labels:
           severity: critical
           team: ml-ops
         annotations:
-          summary: "HAR inference service not processing predictions"
-          description: "No predictions processed in the last 10 minutes. Service may be down."
+          summary: "HAR inference service idle — no requests for 10 minutes"
+          description: "rate(har_api_requests_total[5m]) == 0 for 10m. Service may be down or scrape target unreachable."
+          runbook: "curl http://inference:8000/health — verify service UP and Prometheus target is green."
 
-      # High batch processing time
-      - alert: HARSlowBatchProcessing
-        expr: histogram_quantile(0.95, rate(har_batch_processing_seconds_bucket[5m])) > 60
+  # --------------------------------------------------------------------------
+  # Group 4: Baseline governance
+  # har_baseline_age_days Gauge: -1=missing, 0+=fractional days since mtime
+  # Updated on every /api/upload call in _run_monitoring()
+  # --------------------------------------------------------------------------
+  - name: har_baseline_governance
+    interval: 1h
+    rules:
+      - alert: HARStaleDriftBaseline
+        expr: har_baseline_age_days > 90
+        for: 1h
+        labels:
+          severity: warning
+          team: ml-ops
+        annotations:
+          summary: "HAR drift baseline is stale ({{ $value | printf \"%.0f\" }} days old)"
+          description: "models/normalized_baseline.json is {{ $value | printf \"%.0f\" }}d old. Limit: PostInferenceMonitoringConfig.max_baseline_age_days=90. Layer 3 scores computed vs stale reference."
+          runbook: "Run: python run_pipeline.py --retrain --update-baseline"
+
+      - alert: HARMissingDriftBaseline
+        expr: har_baseline_age_days == -1
         for: 5m
         labels:
-          severity: warning
-          team: ml-ops
-        annotations:
-          summary: "HAR batch processing is slow"
-          description: "95th percentile batch processing time exceeds 60 seconds."
-
-  - name: har_model_quality
-    interval: 5m
-    rules:
-      # F1 score dropped
-      - alert: HARF1ScoreDropped
-        expr: har_model_f1_score < 0.85
-        for: 10m
-        labels:
-          severity: warning
-          team: ml-ops
-        annotations:
-          summary: "HAR model F1 score has dropped"
-          description: "F1 score {{ $value | printf \"%.3f\" }} is below 0.85 threshold. Model may need retraining."
-
-      # Accuracy dropped significantly
-      - alert: HARAccuracyDropped
-        expr: har_model_accuracy < 0.80
-        for: 10m
-        labels:
           severity: critical
           team: ml-ops
         annotations:
-          summary: "HAR model accuracy critically low"
-          description: "Accuracy {{ $value | printf \"%.3f\" }} is below 0.80. Immediate attention required."
+          summary: "HAR drift baseline file missing — Layer 3 silently disabled"
+          description: "models/normalized_baseline.json not found. Layer 3 z-score drift check is skipped on every request."
+          runbook: "Run: python run_pipeline.py --stages baseline_update --update-baseline"

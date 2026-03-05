@@ -19,7 +19,7 @@ alerting:
   alertmanagers:
     - static_configs:
         - targets:
-          # - alertmanager:9093
+          - alertmanager:9093
 
 # Load rules once and periodically evaluate them
 rule_files:
@@ -32,25 +32,25 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:9090']
 
-  # HAR Inference Service
+  # HAR Inference Service  (docker-compose service name = inference)
   - job_name: 'har_inference'
     static_configs:
-      - targets: ['localhost:8000']
+      - targets: ['inference:8000']
     metrics_path: '/metrics'
     scrape_interval: 10s
     scrape_timeout: 5s
 
-  # HAR Training Pipeline (when running)
+  # HAR Training Pipeline (when running — docker-compose service name = training)
   - job_name: 'har_training'
     static_configs:
-      - targets: ['localhost:8001']
+      - targets: ['training:8001']
     metrics_path: '/metrics'
     scrape_interval: 30s
 
   # HAR Monitoring Service
   - job_name: 'har_monitoring'
     static_configs:
-      - targets: ['localhost:8002']
+      - targets: ['inference:8002']
     metrics_path: '/metrics'
 
   # Node Exporter (optional - system metrics)

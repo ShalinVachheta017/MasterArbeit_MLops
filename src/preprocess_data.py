@@ -25,7 +25,7 @@ from typing import Dict, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 from scipy.signal import butter, filtfilt
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import RobustScaler, StandardScaler
 
 # Add src to path for imports
 sys.path.append(str(Path(__file__).parent))
@@ -468,7 +468,12 @@ class UnifiedPreprocessor:
         self, df: pd.DataFrame, sensor_cols: List[str], mode: str = "transform"
     ) -> pd.DataFrame:
         """
-        Normalize sensor values using pre-fitted StandardScaler
+        Normalize sensor values using the scaler that was fit on training data.
+
+        Reads ``normalization_variant`` from ``data/prepared/config.json``:
+          - ``"zscore"``  → StandardScaler (default; backward-compatible)
+          - ``"robust"``  → RobustScaler (median / IQR)
+          - ``"none"``    → passthrough — no amplitude normalization applied
 
         Args:
             df: DataFrame with sensor data
@@ -481,8 +486,7 @@ class UnifiedPreprocessor:
         self.logger.info("=" * 80)
 
         df_normalized = df.copy()
-
-        # Check and handle NaN values
+        variant: str = "zscore"  # overwritten below; keeps linters happy
         nan_count = df[sensor_cols].isna().sum().sum()
         if nan_count > 0:
             self.logger.warning(f"  Found {nan_count} NaN values in sensor data")
@@ -499,10 +503,7 @@ class UnifiedPreprocessor:
             self.logger.info(f"  After NaN handling: {len(df_normalized):,} samples")
 
         if mode == "transform":
-            # Production: use pre-fitted scaler
-            self.logger.info("  Mode: TRANSFORM (production data with saved scaler)")
-
-            # Load scaler config
+            # Load scaler config (written by the training pipeline)
             config_path = DATA_PREPARED / "config.json"
             if not config_path.exists():
                 raise FileNotFoundError(
@@ -513,26 +514,52 @@ class UnifiedPreprocessor:
             with open(config_path, "r") as f:
                 config = json.load(f)
 
-            self.scaler.mean_ = np.array(config["scaler_mean"])
-            self.scaler.scale_ = np.array(config["scaler_scale"])
+            # Determine which variant was used during training (default: zscore for
+            # backward compatibility with configs that pre-date this field)
+            variant = config.get("normalization_variant", "zscore")
+            self.logger.info(f"  Mode: TRANSFORM (production data with saved scaler)")
+            self.logger.info(f"  Normalization variant: {variant}")
 
-            self.logger.info("  Loaded scaler from training:")
-            self.logger.info(f"    Mean:  {self.scaler.mean_}")
-            self.logger.info(f"    Scale: {self.scaler.scale_}")
-
-            # BUG FIX: transform df_normalized (NaN-handled), not df (original)
-            df_normalized[sensor_cols] = self.scaler.transform(df_normalized[sensor_cols])
+            if variant == "none":
+                # Variant B — no amplitude normalization
+                self.logger.info("  Skipping normalization (variant=none)")
+            elif variant == "zscore":
+                # Variant A — StandardScaler (z-score)
+                self.scaler = StandardScaler()
+                self.scaler.mean_ = np.array(config["scaler_mean"])
+                self.scaler.scale_ = np.array(config["scaler_scale"])
+                self.scaler.n_features_in_ = len(sensor_cols)
+                self.logger.info("  Loaded z-score scaler from training:")
+                self.logger.info(f"    Mean:  {self.scaler.mean_}")
+                self.logger.info(f"    Scale: {self.scaler.scale_}")
+                df_normalized[sensor_cols] = self.scaler.transform(df_normalized[sensor_cols])
+            elif variant == "robust":
+                # Variant C — RobustScaler (median / IQR)
+                robust_scaler = RobustScaler()
+                robust_scaler.center_ = np.array(config["scaler_center"])
+                robust_scaler.scale_ = np.array(config["scaler_scale"])
+                robust_scaler.n_features_in_ = len(sensor_cols)
+                self.logger.info("  Loaded robust scaler from training:")
+                self.logger.info(f"    Center (median): {robust_scaler.center_}")
+                self.logger.info(f"    Scale (IQR):     {robust_scaler.scale_}")
+                df_normalized[sensor_cols] = robust_scaler.transform(df_normalized[sensor_cols])
+            else:
+                raise ValueError(
+                    f"Unknown normalization_variant '{variant}' in config. "
+                    f"Expected 'zscore', 'robust', or 'none'."
+                )
         else:
             raise ValueError(f"Invalid mode: {mode}. Only 'transform' (production) is supported.")
 
-        # Log statistics
-        self.logger.info("  After normalization:")
-        self.logger.info(
-            f"    Range: [{df_normalized[sensor_cols].values.min():.3f}, "
-            f"{df_normalized[sensor_cols].values.max():.3f}]"
-        )
-        self.logger.info(f"    Mean:  {df_normalized[sensor_cols].values.mean():.3f}")
-        self.logger.info(f"    Std:   {df_normalized[sensor_cols].values.std():.3f}")
+        # Log statistics (skipped for 'none' since data is unchanged)
+        if variant != "none":
+            self.logger.info("  After normalization:")
+            self.logger.info(
+                f"    Range: [{df_normalized[sensor_cols].values.min():.3f}, "
+                f"{df_normalized[sensor_cols].values.max():.3f}]"
+            )
+            self.logger.info(f"    Mean:  {df_normalized[sensor_cols].values.mean():.3f}")
+            self.logger.info(f"    Std:   {df_normalized[sensor_cols].values.std():.3f}")
         self.logger.info("=" * 80)
 
         return df_normalized

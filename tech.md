@@ -134,6 +134,7 @@ For each term you get: **What**, **Where**, **When**, **How**, and **Input/Outpu
 - **Where used**: Monitoring stage after window predictions.
 - **When used**: Per session/file.
 - **How used**: Count how often consecutive window labels change → compare to threshold.
+- **Strict definition**: flip_rate(session) = (# label changes between adjacent windows in timestamp order) / (n_session_windows - 1). Aggregate across sessions with median/p95.
 - **Input**: Sequence of predicted labels.  
 - **Output**: Transition rate + flag if too high.
 
@@ -491,7 +492,7 @@ This is a simple stage‑by‑stage map of how the pipeline works and where the 
 - **When**: After each session/file (or over rolling windows).
 - **How**:  
   - Layer 1: mean confidence, entropy, % uncertain.  
-  - Layer 2: activity transition rate.  
+  - Layer 2: activity transition rate using adjacent windows in timestamp order per session; report median/p95 across sessions.  
   - Layer 3: PSI / z‑score / Wasserstein / (optional MMD) on features.
 - **Input**: Probabilities, labels, feature summaries.  
 - **Output**: Monitoring metrics + per‑layer OK/WARNING/CRITICAL flags.

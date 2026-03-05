@@ -275,11 +275,15 @@ class InferencePipeline:
             elif cfg.enable_calibration:
                 df = calibrator.calibrate(df, enable=True)
 
-            # Normalize
-            df_norm = preprocessor.normalize_data(df, sensor_cols, mode="transform")
+            # Normalize (respects enable_normalization toggle)
+            if cfg.enable_normalization:
+                df = preprocessor.normalize_data(df, sensor_cols, mode="transform")
+                logger.info("Normalization applied: %s", cfg.normalization_variant)
+            else:
+                logger.warning("Normalization DISABLED — raw values passed to windowing.")
 
             # Create windows
-            X, _, metadata = preprocessor.create_windows(df_norm, sensor_cols, data_format)
+            X, _, metadata = preprocessor.create_windows(df, sensor_cols, data_format)
 
             # Save
             data = {"X": X}

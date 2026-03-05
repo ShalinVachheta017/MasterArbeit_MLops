@@ -52,7 +52,7 @@ from sklearn.metrics import (
     f1_score,
 )
 from sklearn.model_selection import StratifiedKFold, train_test_split
-from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.preprocessing import LabelEncoder, RobustScaler, StandardScaler
 from tensorflow import keras
 
 # Add src to path
@@ -124,6 +124,12 @@ class TrainingConfig:
     adaptation_method: str = "dann"  # dann, mmd, pseudo_label
     adaptation_weight: float = 0.1  # Weight for adaptation loss
 
+    # Normalization variant (A/B/C comparison)
+    # "zscore"  → StandardScaler fit on training data (Variant A, default)
+    # "none"    → no amplitude normalization, model trained on raw m/s² values (Variant B)
+    # "robust"  → RobustScaler (median/IQR) fit on training data (Variant C)
+    normalization_variant: str = "zscore"
+
     # MLflow
     experiment_name: str = "har-training"
     run_name: Optional[str] = None
@@ -141,6 +147,22 @@ class TrainingConfig:
 # ============================================================================
 
 
+def _make_scaler(variant: str):
+    """Return a fresh scaler instance for the given normalization variant.
+
+    Args:
+        variant: "zscore" → StandardScaler, "robust" → RobustScaler, "none" → None
+    """
+    if variant == "zscore":
+        return StandardScaler()
+    elif variant == "robust":
+        return RobustScaler()
+    elif variant == "none":
+        return None
+    else:
+        raise ValueError(f"Unknown normalization_variant '{variant}'. Use 'zscore', 'robust', or 'none'.")
+
+
 class DataLoader:
     """Load and prepare training data for HAR model."""
 
@@ -148,7 +170,7 @@ class DataLoader:
         self.config = config
         self.logger = logger
         self.label_encoder = LabelEncoder()
-        self.scaler = StandardScaler()
+        self.scaler = _make_scaler(config.normalization_variant)
 
     def load_training_data(self, data_path: Optional[Path] = None) -> pd.DataFrame:
         """Load labeled training data."""
@@ -212,9 +234,21 @@ class DataLoader:
 
         return X_windows, y_windows
 
-    def get_scaler_config(self) -> Dict[str, List[float]]:
+    def get_scaler_config(self) -> Dict[str, Any]:
         """Get scaler parameters for inference."""
-        return {"mean": self.scaler.mean_.tolist(), "scale": self.scaler.scale_.tolist()}
+        variant = self.config.normalization_variant
+        cfg: Dict[str, Any] = {"normalization_variant": variant}
+        if variant == "zscore" and isinstance(self.scaler, StandardScaler):
+            cfg["mean"] = self.scaler.mean_.tolist()
+            cfg["scale"] = self.scaler.scale_.tolist()
+            # mirror the keys expected by preprocess_data.py config.json
+            cfg["scaler_mean"] = cfg["mean"]
+            cfg["scaler_scale"] = cfg["scale"]
+        elif variant == "robust" and isinstance(self.scaler, RobustScaler):
+            cfg["scaler_center"] = self.scaler.center_.tolist()
+            cfg["scaler_scale"] = self.scaler.scale_.tolist()
+        # variant == "none": nothing extra to save
+        return cfg
 
     def get_label_mapping(self) -> Dict[int, str]:
         """Get label index to activity name mapping."""
@@ -411,14 +445,19 @@ class HARTrainer:
 
             self.logger.info(f"Train: {len(X_train):,} samples, Val: {len(X_val):,} samples")
 
-            # Standardize (fit on train, transform both)
-            scaler = StandardScaler()
+            # Normalize (fit on train, transform both) — variant-aware
+            fold_scaler = _make_scaler(self.config.normalization_variant)
             X_train_flat = X_train.reshape(-1, self.config.n_sensors)
             X_val_flat = X_val.reshape(-1, self.config.n_sensors)
 
-            scaler.fit(X_train_flat)
-            X_train_scaled = scaler.transform(X_train_flat).reshape(X_train.shape)
-            X_val_scaled = scaler.transform(X_val_flat).reshape(X_val.shape)
+            if fold_scaler is not None:
+                fold_scaler.fit(X_train_flat)
+                X_train_scaled = fold_scaler.transform(X_train_flat).reshape(X_train.shape)
+                X_val_scaled = fold_scaler.transform(X_val_flat).reshape(X_val.shape)
+            else:
+                # Variant B: no amplitude normalization
+                X_train_scaled = X_train.copy()
+                X_val_scaled = X_val.copy()
 
             # Create and train model
             model = self.model_builder.create_1dcnn_bilstm()
@@ -495,13 +534,22 @@ class HARTrainer:
         self.logger.info("TRAINING FINAL MODEL ON 100% DATA")
         self.logger.info("=" * 70)
 
-        # Standardize all data
+        # Normalize all data — variant-aware
         X_flat = X.reshape(-1, self.config.n_sensors)
-        self.data_loader.scaler.fit(X_flat)
-        X_scaled = self.data_loader.scaler.transform(X_flat).reshape(X.shape)
+        if self.data_loader.scaler is not None:
+            self.data_loader.scaler.fit(X_flat)
+            X_scaled = self.data_loader.scaler.transform(X_flat).reshape(X.shape)
+        else:
+            # Variant B: passthrough — no amplitude normalization
+            X_scaled = X.copy()
 
         scaler_config = self.data_loader.get_scaler_config()
-        self.logger.info(f"Scaler fitted: mean={scaler_config['mean'][:3]}...")
+        variant = self.config.normalization_variant
+        self.logger.info(f"Normalization variant: {variant}")
+        if variant == "zscore":
+            self.logger.info(f"Scaler fitted: mean={scaler_config['mean'][:3]}...")
+        elif variant == "robust":
+            self.logger.info(f"RobustScaler fitted: center={scaler_config['scaler_center'][:3]}...")
 
         # Create model
         model = self.model_builder.create_1dcnn_bilstm()

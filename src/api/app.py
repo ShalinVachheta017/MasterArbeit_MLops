@@ -26,23 +26,71 @@ import numpy as np
 import pandas as pd
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 from pydantic import BaseModel, Field
 
-# Single source of truth for monitoring thresholds — shared with the pipeline
+# ---------------------------------------------------------------------------
+# Prometheus metrics
+# ---------------------------------------------------------------------------
 try:
-    from src.entity.config_entity import PostInferenceMonitoringConfig as _MonCfg
+    from prometheus_client import (
+        Counter, Gauge, Histogram, generate_latest, CONTENT_TYPE_LATEST
+    )
+    _PROM_AVAILABLE = True
+except ImportError:  # pragma: no cover
+    _PROM_AVAILABLE = False
 
-    _MON_T = _MonCfg()  # defaults only; overridden per-request if needed
-except Exception:  # pragma: no cover — standalone startup without src/ on path
+if _PROM_AVAILABLE:
+    _prom_requests_total = Counter(
+        "har_api_requests_total",
+        "Total /api/upload requests",
+    )
+    _prom_confidence_mean = Gauge(
+        "har_confidence_mean",
+        "Mean prediction confidence of last batch",
+    )
+    _prom_entropy_mean = Gauge(
+        "har_entropy_mean",
+        "Mean normalised prediction entropy of last batch",
+    )
+    _prom_flip_rate = Gauge(
+        "har_flip_rate",
+        "Activity transition rate (flip rate) of last batch",
+    )
+    _prom_drift_detected = Gauge(
+        "har_drift_detected",
+        "1 if Layer 3 drift WARNING was raised, else 0",
+    )
+    _prom_baseline_age_days = Gauge(
+        "har_baseline_age_days",
+        "Age of the drift baseline file in days (-1 = file missing, 0+ = days old)",
+    )
+    _prom_latency_ms = Histogram(
+        "har_inference_latency_ms",
+        "End-to-end /api/upload latency in milliseconds",
+        buckets=[10, 25, 50, 100, 250, 500, 1000, 2500, 5000],
+    )
 
-    class _MonCfg:  # type: ignore
-        confidence_warn_threshold: float = 0.60
-        uncertain_pct_threshold: float = 30.0
-        transition_rate_threshold: float = 50.0
-        drift_zscore_threshold: float = 2.0
+# Single source of truth for monitoring thresholds — shared with the pipeline.
+def _load_monitoring_thresholds():
+    try:
+        from src.utils.config_loader import load_monitoring_config
 
-    _MON_T = _MonCfg()
+        return load_monitoring_config()
+    except Exception:  # pragma: no cover — standalone startup without src/ on path
+
+        class _MonCfg:  # type: ignore
+            confidence_warn_threshold: float = 0.60
+            uncertain_pct_threshold: float = 30.0
+            uncertain_window_threshold: float = 0.50
+            transition_rate_threshold: float = 50.0
+            drift_zscore_threshold: float = 2.0
+            max_baseline_age_days: int = 90
+
+        return _MonCfg()
+
+
+_MON_T = _load_monitoring_thresholds()
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -198,7 +246,7 @@ def _run_monitoring(
     # Layer 1: Confidence
     max_probs = probabilities.max(axis=1)
     mean_conf = float(np.mean(max_probs))
-    uncertain_mask = max_probs < 0.5
+    uncertain_mask = max_probs < _MON_T.uncertain_window_threshold
     uncertain_pct = float(np.sum(uncertain_mask) / n * 100)
     l1_status = (
         "PASS"
@@ -232,6 +280,23 @@ def _run_monitoring(
         if all(s in ("PASS", "SKIPPED") for s in [l1_status, l2_status, l3_status])
         else "WARNING"
     )
+
+    # ---- Update Prometheus gauges (best-effort) ----
+    if _PROM_AVAILABLE:
+        _prom_confidence_mean.set(mean_conf)
+        n_classes = probabilities.shape[1]
+        probs_clipped = np.clip(probabilities, 1e-9, 1.0)
+        entropy = -np.sum(probs_clipped * np.log(probs_clipped), axis=1) / np.log(n_classes)
+        _prom_entropy_mean.set(float(np.mean(entropy)))
+        _prom_flip_rate.set(transition_rate / 100.0)
+        _prom_drift_detected.set(0.0 if l3_status in ("PASS", "SKIPPED") else 1.0)
+        # Baseline age gauge: -1 = file missing, else age in fractional days
+        if BASELINE_PATH.exists():
+            _prom_baseline_age_days.set(
+                (time.time() - BASELINE_PATH.stat().st_mtime) / 86400
+            )
+        else:
+            _prom_baseline_age_days.set(-1)
 
     return {
         "overall_status": overall,
@@ -331,6 +396,14 @@ async def model_info():
     return {**_model_info, "activity_classes": ACTIVITY_CLASSES}
 
 
+@app.get("/metrics", tags=["System"], include_in_schema=False)
+async def metrics():
+    """Prometheus metrics endpoint — scraped by config/prometheus.yml."""
+    if not _PROM_AVAILABLE:
+        raise HTTPException(503, "prometheus_client not installed")
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+
 @app.post("/api/upload", response_model=UploadResult, tags=["Inference"])
 async def upload_csv(file: UploadFile = File(...)):
     """
@@ -402,6 +475,11 @@ async def upload_csv(file: UploadFile = File(...)):
     monitoring = _run_monitoring(predicted_classes, probabilities, windows)
 
     elapsed = (time.perf_counter() - t0) * 1000
+
+    # ---- Update Prometheus request counters ----
+    if _PROM_AVAILABLE:
+        _prom_requests_total.inc()
+        _prom_latency_ms.observe(elapsed)
 
     return UploadResult(
         filename=file.filename or "unknown.csv",

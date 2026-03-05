@@ -27,6 +27,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from src.entity.artifact_entity import PipelineResult
+from src.exceptions import DataValidationError
 from src.entity.config_entity import (
     BaselineUpdateConfig,
     CalibrationUncertaintyConfig,
@@ -199,6 +200,11 @@ class ProductionPipeline:
             "  - Calibration: %s",
             "ENABLED" if self.transformation_config.enable_calibration else "DISABLED",
         )
+        logger.info(
+            "  - Normalization: %s (%s)",
+            "ENABLED" if self.transformation_config.enable_normalization else "DISABLED",
+            self.transformation_config.normalization_variant,
+        )
         logger.info("Pipeline stages: %s", run_stages)
         logger.info("=" * 70)
 
@@ -269,10 +275,13 @@ class ProductionPipeline:
                     )
 
                     if not validation_art.is_valid:
-                        logger.warning("Validation FAILED — errors: %s", validation_art.errors)
-                        if not continue_on_failure:
-                            result.stages_failed.append("validation")
-                            break
+                        result.stages_failed.append("validation")
+                        raise DataValidationError(
+                            f"Data validation failed with {len(validation_art.errors)} "
+                            f"error(s): {validation_art.errors}. Pipeline aborted to prevent "
+                            f"invalid data from reaching Stage 3. Fix the source data or "
+                            f"relax DataValidationConfig thresholds."
+                        )
 
                 elif stage == "transformation":
                     if ingestion_art is None:
@@ -347,11 +356,23 @@ class ProductionPipeline:
                         )
 
                     # Save inference summary as JSON
+                    n_pred = inference_art.n_predictions
+                    t_sec = inference_art.inference_time_seconds
+                    avg_ms = round((t_sec / n_pred) * 1000, 4) if n_pred > 0 else 0.0
+                    throughput_wps = round(n_pred / t_sec, 2) if t_sec > 0 else 0.0
+                    act_dist = inference_art.activity_distribution or {}
+                    per_activity_share = {
+                        act: round(cnt / n_pred, 4) if n_pred > 0 else 0.0
+                        for act, cnt in act_dist.items()
+                    }
                     self.artifacts_manager.save_json(
                         {
-                            "n_predictions": inference_art.n_predictions,
-                            "inference_time_seconds": inference_art.inference_time_seconds,
-                            "activity_distribution": inference_art.activity_distribution,
+                            "n_predictions": n_pred,
+                            "inference_time_seconds": t_sec,
+                            "throughput_windows_per_sec": throughput_wps,
+                            "avg_ms_per_window": avg_ms,
+                            "activity_distribution": act_dist,
+                            "activity_share": per_activity_share,
                             "confidence_stats": inference_art.confidence_stats,
                             "model_version": inference_art.model_version,
                         },
@@ -363,8 +384,10 @@ class ProductionPipeline:
                         "inference",
                         "SUCCESS",
                         {
-                            "n_predictions": inference_art.n_predictions,
-                            "inference_time": inference_art.inference_time_seconds,
+                            "n_predictions": n_pred,
+                            "inference_time_sec": t_sec,
+                            "throughput_windows_per_sec": throughput_wps,
+                            "avg_ms_per_window": avg_ms,
                         },
                     )
 
@@ -468,6 +491,29 @@ class ProductionPipeline:
                     )
                     trigger_art = comp.initiate_trigger_evaluation()
                     result.trigger = trigger_art
+
+                    # Save trigger artifacts
+                    self.artifacts_manager.save_json(
+                        {
+                            "should_retrain": trigger_art.should_retrain,
+                            "action": trigger_art.action,
+                            "alert_level": trigger_art.alert_level,
+                            "reasons": trigger_art.reasons,
+                            "cooldown_active": trigger_art.cooldown_active,
+                        },
+                        "trigger",
+                        "trigger_decision.json",
+                    )
+                    self.artifacts_manager.log_stage_completion(
+                        "trigger",
+                        "SUCCESS",
+                        {
+                            "should_retrain": trigger_art.should_retrain,
+                            "action": trigger_art.action,
+                            "alert_level": trigger_art.alert_level,
+                            "n_reasons": len(trigger_art.reasons),
+                        },
+                    )
 
                 elif stage == "retraining":
                     from src.components.model_retraining import ModelRetraining
@@ -600,6 +646,11 @@ class ProductionPipeline:
                 # Log stage metrics to MLflow
                 if mlflow_tracker:
                     self._log_stage_to_mlflow(mlflow_tracker, stage, result)
+
+            except DataValidationError:
+                # Data-quality errors are always fatal — never swallow, never continue.
+                # stages_failed was already appended inside the validation block.
+                raise
 
             except Exception as e:
                 logger.error("✗ Stage '%s' FAILED: %s", stage, e)

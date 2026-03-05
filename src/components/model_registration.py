@@ -71,31 +71,51 @@ class ModelRegistration:
                 # Compare using val_accuracy or accuracy
                 new_acc = metrics.get("val_accuracy", metrics.get("accuracy"))
                 cur_acc = current_metrics.get("val_accuracy", current_metrics.get("accuracy"))
+                tol = getattr(self.config, "degradation_tolerance", 0.005)
                 if new_acc is not None and cur_acc is not None:
-                    is_better = float(new_acc) >= float(cur_acc)
-                    logger.info(
-                        "Model comparison: new_acc=%.4f vs current_acc=%.4f → is_better=%s",
-                        float(new_acc),
-                        float(cur_acc),
-                        is_better,
-                    )
+                    is_better = float(new_acc) >= float(cur_acc) - tol
+                    if not is_better:
+                        logger.warning(
+                            "Model REGRESSION detected: new_acc=%.4f < cur_acc=%.4f - tol=%.4f "
+                            "(%s). Model registered but NOT deployed.",
+                            float(new_acc), float(cur_acc), tol,
+                            "use --degradation-tolerance to adjust",
+                        )
+                    else:
+                        logger.info(
+                            "Model comparison: new_acc=%.4f vs current_acc=%.4f (tol=%.4f) "
+                            "→ is_better=%s",
+                            float(new_acc),
+                            float(cur_acc),
+                            tol,
+                            is_better,
+                        )
                 else:
-                    logger.warning(
-                        "Cannot compare models: accuracy key missing. "
-                        "New metrics keys: %s | Current metrics keys: %s. "
-                        "Defaulting to is_better=True.",
-                        list(metrics.keys()),
-                        list(current_metrics.keys()),
-                    )
-                    # Expected for TTA/unsupervised adaptation (AdaBN/TENT produce no
-                    # labeled val_accuracy — they operate on unlabeled target data only).
-                    # Governance is enforced at the deployment gate (auto_deploy=False
-                    # by default), NOT here — so registering as is_better=True is safe:
-                    # the model is versioned in the registry but NOT auto-deployed.
-                    # An explicit --deploy flag or manual promotion is required to ship
-                    # an adaptation-updated model, consistent with the TFX/rollback
-                    # philosophy (Baylor et al. 2017; Sculley et al. 2015 Hidden Debt).
-                    is_better = True
+                    # Unsupervised TTA (AdaBN/TENT) — no labeled val_accuracy.
+                    # Governance is enforced at the deploy gate (auto_deploy=False
+                    # by default). If block_if_no_metrics=True, block deployment.
+                    block = getattr(self.config, "block_if_no_metrics", False)
+                    if block:
+                        is_better = False
+                        logger.warning(
+                            "block_if_no_metrics=True and accuracy key missing. "
+                            "New metrics keys: %s | Current metrics keys: %s. "
+                            "Model registered but deployment BLOCKED.",
+                            list(metrics.keys()),
+                            list(current_metrics.keys()),
+                        )
+                    else:
+                        is_better = True
+                        logger.info(
+                            "Accuracy key missing (unsupervised TTA). "
+                            "New metrics keys: %s | Current metrics keys: %s. "
+                            "Registering as is_better=True; deployment gate controls shipping "
+                            "(auto_deploy=%s). "
+                            "Set block_if_no_metrics=True for strict mode.",
+                            list(metrics.keys()),
+                            list(current_metrics.keys()),
+                            self.config.auto_deploy,
+                        )
 
         # Deploy if auto_deploy is on and model is better (or first time)
         deployed = False

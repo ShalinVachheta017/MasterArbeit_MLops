@@ -102,8 +102,13 @@ class DataTransformation:
             df = calibrator.calibrate(df, enable=True)
             calibration_applied = True
 
-        # Normalize
-        df = preprocessor.normalize_data(df, sensor_cols, mode="transform")
+        # Normalize (only if enabled — matches enable_gravity_removal pattern)
+        if self.config.enable_normalization:
+            df = preprocessor.normalize_data(df, sensor_cols, mode="transform")
+            logger.info("Normalization applied: variant=%s", self.config.normalization_variant)
+        else:
+            logger.warning("Normalization DISABLED — raw (unit-converted) values will be windowed.")
+            logger.warning("Model was trained on normalized data — accuracy may be degraded.")
 
         # Create windows
         X, y, metadata = preprocessor.create_windows(df, sensor_cols, data_format)
