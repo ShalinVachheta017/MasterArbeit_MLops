@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       image_tag:
-        description: "Optional image tag (defaults to current ref name)"
+        description: "Optional image tag to deploy/smoke-test (defaults to current ref name)"
         required: false
         type: string
 
@@ -29,6 +29,7 @@ jobs:
     timeout-minutes: 30
     outputs:
       image_tag: ${{ steps.vars.outputs.image_tag }}
+
     steps:
       - uses: actions/checkout@v4
 
@@ -61,6 +62,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: build-and-push
+
     steps:
       - name: Pull image by tag
         run: docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.image_tag }}
@@ -70,10 +72,10 @@ jobs:
           docker run -d --name har-test -p 8000:8000 \
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.image_tag }}
 
-      - name: Verify /api/health
+      - name: Verify /health
         run: |
           for i in $(seq 1 30); do
-            if curl -fsS http://localhost:8000/api/health > /dev/null; then
+            if curl -fsS http://localhost:8000/health > /dev/null; then
               echo "Health OK"
               exit 0
             fi
