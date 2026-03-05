@@ -1,0 +1,1865 @@
+--- PAGE 1 ---
+Domain Adaptation for Inertial Measurement Unit-based Human
+Activity Recognition: A Survey
+Avijoy Chakma, Abu Zaher Md Faridee, Indrajeet Ghosh, Nirmalya Roy
+(achakma1, faridee1, indrajeetghosh, nroy)@umbc.edu
+Department of Information Systems
+University of Maryland Baltimore County; Baltimore; USA
+Abstract
+Machine learning-based wearable human activity recognition (WHAR) models enable the de-
+velopment of various smart and connected community applications such as sleep pattern moni-
+toring, medication reminders, cognitive health assessment, sports analytics, etc. However, the
+widespread adoption of these WHAR models is impeded by their degraded performance in the
+presence of data distribution heterogeneities caused by the sensor placement at diﬀerent body
+positions, inherent biases and heterogeneities across devices, and personal and environmental
+diversities. Various traditional machine learning algorithms and transfer learning techniques
+have been proposed in the literature to address the underpinning challenges of handling such
+data heterogeneities.
+Domain adaptation is one such transfer learning techniques that has
+gained signiﬁcant popularity in recent literature. In this paper, we survey the recent progress of
+domain adaptation techniques in the Inertial Measurement Unit (IMU)-based human activity
+recognition area, discuss potential future directions.
+1. Introduction
+The swift development and exceptional user-feasibility of commercial oﬀ-the-shelf (COTS)
+inertial measurement unit (IMU) devices have created a tremendous surge in smart device
+applications that aim to make our everyday lives easier and more automated. Most IMU devices
+are equipped with multi-sensors, i.e. (accelerometer, magnetometer, and gyroscope), muscle,
+tactile, etc.) that enable us to accumulate massive temporal data simultaneously. As a result,
+the compiled multi-sensors have contributed to the development of novel data-driven machine-
+learning techniques in wearable human activity recognition (WHAR). In addition, the collected
+multi-sensor data often contains the latent characteristics of our everyday personal events and
+activities, which can be eﬀortlessly learned and predicted by sophisticated machine learning
+algorithms. This results in the development of various ubiquitous computing applications such
+Preprint submitted to Elsevier
+April 14, 2023
+arXiv:2304.06489v1  [eess.SP]  7 Apr 2023
+
+--- PAGE 2 ---
+as elder caring [1], monitoring and predicting diseases [2, 3], analyzing sports activities [4, 5, 6],
+developing smart home environments [7], and many more.
+Because of privacy concerns, IMU-based sensors have proven trustworthy compared to other
+modalities for human activity recognition and learning the distinctive and generalized patterns of
+human actions and behaviors. Human activity recognition (HAR) recently has been a heavily
+investigated topic in the past decade, especially after transfer learning, deep learning, etc.
+techniques gained popularity due to their ability to learn the representation from the high-
+dimension sparse dataset. However, the explosion in the amount of collectable data and their
+potential application in ubiquitous applications has raised concerns about the scalability of the
+machine learning (more recently, deep learning) approaches used to build such applications.
+Furthermore, the performance of most machine learning models is heavily reliant on how much
+the data samples during the inference phase (i.e. test samples) match the distribution of the
+training samples used initially to train the machine learning model, and more often than not,
+the distributions diﬀer considerably.
+Transfer learning is a machine learning mechanism that aims to leverage a labeled dataset
+to learn a model for a task (i.e. classiﬁcation, regression) and leverage the learned model for
+a similar but diﬀerent task.
+There are many state-of-the-art methodologies through which
+transfer learning can be accomplished. Still, before we prospect down on the hierarchy of the
+transfer learning mechanism, we need to deﬁne two core notions: Domain and Task. The
+term domain collectively refers to the input data samples and the underlying distribution that
+generates them. Task is deﬁned by a tuple that consists of a label space and the predictor
+function [8]. The label space deﬁnes the number of classes the associated predictor function
+attempts to predict/classify. Formally, [8] refers the domain to as a two-tuple ⟨X, P(X)⟩where
+X and P represent feature space and a marginal probability distribution of X respectively.
+Feature space, X consists of the data samples x1, x2, ...xn ∈X. A task is formally deﬁned
+by two-tuple
+⟨Y, P(y|x)⟩, where Y and P(y|x) represents the label space and the predictor
+function.
+The predictor function is learned in a conditional probability distribution where
+y ∈Y and x ∈X. In the predictor function P(y|x), y, and x present a single label and data
+sample respectively. In short, we refer to the data samples (labeled or unlabeled)
+and the inherent data distribution as the domain. As transfer learning leverages the
+learned knowledge of the existing labeled data source to accomplish a similar but diﬀerent task
+on a new data source. The existing labeled and new data sources are colloquially referred to
+as the source and target datasets. Throughout this survey, we refer to the source and target
+2
+
+--- PAGE 3 ---
+Settings
+Domain Similarity
+Task Similarity
+“Usual” Learning
+Setting
+(XS == XT ) and
+P(XS) == P(XT )
+(YS == YT ) and
+P(YS|XS) == P(YT |XT )
+Inductive TL
+XS == XT and
+P(XS) == P(XT )
+YS ! = YT or
+P(YS|XS) ! = P(YT |XT )
+Transductive TL
+XS ! = XT or
+P(XS) ! = P(XT )
+YS == YT and
+P(YS|XS) == P(YT |XT )
+Unsupervised TL
+XS ! = XT or
+P(XS) ! = P(XT )
+YS ! = YT or
+P(YS|XS) ! = P(YT |XT )
+Table 1: Notational tabulation of diﬀerent transfer learning settings. (TL refers Transfer Learning)
+datasets as the source and target domain (respectively) [9, 10, 11]. Depending on the domain
+and task similarity between two domains, diﬀerent transfer learning settings emerge that are
+categorized as depicted in Figure 1 [12]. Table 1 tabulates the notation for diﬀerent transfer
+learning settings.
+Deep learning methods often result in a drop in performance under such heterogeneous data
+distribution scenarios. To mitigate this shortcoming, researchers have started to increasingly
+rely on transfer learning techniques that leverage the learned knowledge (which is learned to
+accomplish a speciﬁc task, often referred to as the source task) to accomplish a similar but
+diﬀerent task (referred to as the target task). Here, the machine learning model that is trained
+for the source task is referred to as the “Pre-trained model”. In a typical transfer learning
+scenario, a pre-trained model is either partially or fully ﬁne-tuned or re-trained, respectively [13,
+14].
+In the deep learning-based pre-trained model, the earlier feature extracting layers are
+assumed to capture the generic features embedding (consider the lines, curves, colors in object
+recognition task in Computer Vision) that helps in the layer layers to perform the task (example:
+classiﬁcation/regression). Often, these approaches require a small fraction of labeled data1 for
+re-training the pre-trained model such that it performs well for the target task. However, data
+annotation might not always be ideal, and annotating even a fraction of data labels can be costly
+and cumbersome. To circumvent the data labeling problem, a particular branch of the transfer
+learning approach known as “Domain Adaptation” is widely practiced in literature. According
+to the categorization, domain adaptation is a transfer learning setting where the marginal
+distributions of two domains are diﬀerent even though the intended task is identical. However,
+1https://cs231n.github.io/transfer-learning/
+3
+
+--- PAGE 4 ---
+we also acknowledge that diﬀerent assumptions [15, 16] on the source and target domain label
+space and target domain label availability have generated diﬀerent domain adaptation variants,
+which we enumerate in Table 2. While not comprehensive, these variations demonstrate the
+challenging scenarios arising from heterogeneity in the feature and label embedding spaces.
+Same
+Source and Target Marginal Distribution 
+on X
+Same Task
+on Source and Target 
+Domains
+"Usual" 
+Learning Setting
+Inductive 
+Transfer Learning
+Transductive
+Transfer Learning
+Unsupervised
+Transfer Learning
+Transfer Learning
+Domain Adaptation
+YES
+NO
+NO
+NO
+YES
+YES
+Same Task
+on Source and Target 
+Domains
+Figure 1: Marginal distribution and task similarity-based transfer learning hierarchy [12]
+IMU-based activity recognition introduces more real-life practical scenarios that engender
+data distribution heterogeneity due to (i) device-placement variations (e.g., hand, chest, an-
+kle), (ii) user behavioral traits (e.g., activity execution manner, diﬀerent age groups), and (iii)
+sensor-data acquisition methodology diﬀerences among diﬀerent device manufacturers. To com-
+prehend the overall development of the domain adaptation approaches in IMU-based human
+activity recognition, we survey the existing IMU-based domain adaptation techniques, identify
+the existing gaps, and provide guidelines for future exploration. In addition, we also discover
+a few potential challenges within IMU-based activity recognition. The contributions of this
+survey are as follows:
+• We systematically categorize the domain adaptation literature centered on human activity
+recognition according to a few consequential criteria, such as the mechanism of hetero-
+geneity reduction and the heterogeneity being addressed.
+For the convenience of the
+readers, we have summarized the approaches, and datasets, and addressed heterogeneities
+in tabular form.
+4
+
+--- PAGE 5 ---
+DA Type
+Assumption
+Closed-set DA [15]
+All the domains have the same set of classes [15]
+Open-set DA [15]
+Presence of classes in the target domain that are absent
+in the source domain
+Partial DA [16]
+Target label space is a subset of the source label space [16]
+Universal DA [17]
+- Source label set and a target label set may contain a
+common label set and hold a private label set respec-
+tively [17]
+- UDA requires a model to either (1) classify the target
+sample correctly if it is associated with a label in the com-
+mon label set, or (2) mark it as “unknown” otherwise [17]
+Zero shot DA [18]
+Neither target data sample nor label is available for pa-
+rameter learning [18]
+Semi-supervised DA [19]
+A small amount of labeled data from the target domain
+is available [19]
+Weakly Supervised DA [20]
+Source domain carries coarse labeling or corrupted data
+One shot DA [21]
+Only one unlabeled target data sample is available [21]
+Few shot DA [22]
+Only a few labeled target domain data samples are avail-
+able
+Incremental DA [23]
+Target data samples usually arrive in an online and con-
+tinually evolving manner
+Heterogeneous DA
+Source and target domain feature representation is het-
+erogeneous or dissimilar
+Federated DA [24]
+Aims to align the representations learned among the dif-
+ferent source nodes with the data distribution of the tar-
+get node where each node represents a domain (feature
+space) [24]
+Source Free DA [25]
+Only unlabeled target data is available for adaptation of
+source prediction model and Source data is unavailable
+during adaptation
+Table 2: Diﬀerent variants of domain adaptation. (DA refers to Domain Adaptation)
+5
+
+--- PAGE 6 ---
+• We highlight the existing limitations of domain adaptation approaches with respect to the
+datasets, evaluation process, scalability, real-time adaptation and lay out the guidelines
+for future improvements. We also discuss the research challenges that are inherent from
+the application perspective such as cross-modality adaptation, heterogeneous label, and
+task adaptation. We remark that a large majority of these challenging scenarios are yet to
+be thoroughly explored, and have the potential to drive innovative new research endeavors
+in sensor-based activity recognition if taken up by the research community.
+The survey paper is organized as follows - in section 2, we discuss the current progress in
+sensor-based domain adaptation approaches based on data distribution alignment techniques
+and scenarios that generate heterogeneity. We provide the future guidelines and challenges of
+domain adaptation from an IMU-based activity recognition perspective in section 3 . Finally,
+we conclude the survey in Section 4.
+2. Survey
+In this section, we discuss the literature of IMU-based domain adaptation based on the
+adopted methodology and the considered heterogeneous environment in detail.
+2.1. Methodology
+Several categories of domain adaptation techniques have been proposed in the IMU-based
+domain adaptation literature, and these approaches mostly fall under aligning domain features,
+leveraging statistical normalization, inter-domain transformation of the data samples, and en-
+sembling mechanisms. In the following sections, we discuss each of these categories and the
+literature associated with them.
+2.1.1. Domain Invariant Feature Learning
+The goal of the domain invariant feature learning technique is to align the data distribution
+of both source and target domains as a means of reducing the domain gap. Domain invariant
+feature refers to the common features from the source and target domain that are robust to the
+data distribution heterogeneity and the features contain task-relevant (classiﬁcation/regression)
+information. A very common approach is to train a model using the labeled source domain and
+adapt the trained model using the target domain. This adaptation is guided via measuring
+the distribution divergence using a divergence metric, enforcing the model to learn the domain
+invariant features as well is maintaining the class boundaries among diﬀerent classes, reducing
+the distribution gap through statistical normalization.
+6
+
+--- PAGE 7 ---
+Divergence: Divergence is a statistical scoring mechanism of how one data distribution is
+similar to or diﬀerent from another distribution. In domain adaptation problem scenario, diver-
+gence is used to measure how the target domain data distribution is diﬀerent from the source do-
+main data distribution. Statistically diﬀerent divergence measures such as KL-Divergence [26],
+and JSD-Divergence [27] are used. Similar to the divergence, another approach to measuring
+the distribution diﬀerence is MMD distance [28]. Here, note that MMD distance can be con-
+sidered a means of divergence, but not all the divergence measures are considered as distance
+because the divergence measures do not always satisfy the condition of symmetry and triangle
+equality. KL-Divergence [26] is not symmetric, where one data distribution acts as a reference
+data distribution and the distribution diﬀerence against it by the second data distribution,
+not the other way around. In divergence minimization-based approaches, domain adaptation
+is achieved by reducing the calculated divergence score between the source and target domain
+features [29, 30, 31, 32, 33, 34, 34, 35]. TNNAR [29] reduces the domain gap by adapting fully
+connected layer via reducing the (MMD) distance between the fully-connected layer computed
+features of the source and target domain data whereas HDCNN [31] deploys separate feature
+extractors for the source and target domain and adapts both the Convolutional Neural Network
+(CNN) layers and the fully connected layer by reducing the KL-divergence. STL [30], minimizes
+MMD distance between the feature distribution of the source domain and pseuo-labeled target
+domain features (more on pseudo-labeling in subsection 2.1.3). Whereas AugToAct [32] deploys
+diﬀerent feature extractors for the source and target domain and achieves the adaptation via
+minimizing the Jensen-Shannon Divergence [27] between extracted features of the pre-trained
+source network and target domain dedicated network. AugToAct [32] performs better than
+HDCNN [31] which deploys a KL-Divergence metric. Jensen-Shannon Divergence should re-
+sult in stable performance for both the source and target domains because it measures the
+divergence of one probability distribution (P) from another (Q) in a bi-directional manner. In
+aligning CNN layers for domain adaptation, we believe that as the earlier CNN layers capture
+the domain-invariant features, the later layers should be aligned.
+Adversarial: The adversarial learning mechanism attempts to align the feature distribu-
+tion of the source and target domains using a domain discriminator component. The domain
+discriminator component can be viewed as a 2-class classiﬁer that processes the deep extracted
+features from both the source and target domains and aims to predict the domain origin of
+the incoming features [36, 37, 38, 39, 40]. The goal of the domain discriminator is to correctly
+predict the feature origin whereas the feature extractor aims to negate the domain discrimina-
+7
+
+--- PAGE 8 ---
+tor’s capability by generating a domain invariant feature representation [41, 42]. Contrast to
+the general adversarial training in using the feature extractor as the feature generator, Genera-
+tive Adversarial Networks (GAN), attempts to generate targeted domain data samples from a
+ﬁxed-length random vector as input [43, 44, 45]. The proposed XHAR distance [37] performs
+better than MMD and CORAL loss. [40] aims to boost adversarial-based domain alignment by
+utilizing pseudo-labeled target domain samples. MotionTransformer [43] employs a generative
+adversarial training mechanism to generate target domain IMU data of the walking activity.
+SA-GAN [46] interestingly generated fake target domain samples by adding noise to the source
+data samples. The key diﬀerence between MotionTransformer [43] and SA-GAN [46] is that
+the former does not generate samples from a random noise data distribution whereas the latter
+utilizes noise data to generate fake data samples. [44, 45] both deploys Bi-GAN architecture
+to accommodate the source and target sample transformation, [44] combines non-parametric
+distribution matching mechanism and
+[45] deploy a contrastive learning-base mechanism for
+better performance.
+2.1.2. Normalization Statistics
+Normalization is a statistical scaling tool that serves the purpose of removing systematic
+variation and reducing noise in the data. The normalization layer is often used in the deep
+learning network. In deep learning networks, the batch normalization [47] technique standard-
+izes the batch input in the deep learning network training process, which subsequently helps
+the network to converge faster [47] and increases network parameter sensitivity [47]. Such a
+mechanism has been explored to reduce the domain gap in domain adaptation [48, 49, 50]. In
+batch normalization, mean and variance are computed over the input batch for the respective
+layer during each training iteration. An exponential average of these statistics over subsequent
+batches is computed to be used as a global estimate for mean and variance in the testing
+phase [50]. Instead of applying the global estimates of mean and variance, [50] proposes to
+compute target-domain speciﬁc estimates using the fully available unlabeled target test data.
+Therefore, both the source and target domains are normalized using their domain-speciﬁc statis-
+tics, imposing the same target distribution on the features. The intuitive idea is that diﬀerent
+datasets have diﬀerent means and variances, and if the datasets are standardized with their
+corresponding means and variances, then the resulting feature space would lie under a similar
+data distribution [48, 49].
+8
+
+--- PAGE 9 ---
+2.1.3. Semi-supervised Techniques
+A number of proposed approaches explore semi-supervised techniques to infer the label
+information of the unlabeled data samples. Common approaches are active learning [51, 52, 53]
+, co-training mechanism [30, 54, 34, 40, 55], clustering-based similarity matching [56, 57]. The
+active learning approach determines the most uncertain and informative data samples and asks
+the user or Oracle for label information. Co-training mechanism trains one or more classiﬁers
+using the labeled source domain and use the classiﬁer(s) to infer the label information based
+on the majority voting [30, 54, 34], classiﬁer threshold. Co-training mechanism-provided labels
+are known as “pseudo labels”. Pseudo-labeled data samples help in aligning the conditional
+distribution [58].
+Akbari et al. [51, 52] explore active learning techniques in a model personalization framework
+to identify the ground truth labels for the most informative samples. [55] proposes a teacher-
+learner framework, PECO, where a source data trained model predicts the pseudo-label for the
+target domain data using a co-training mechanism. [30, 54] adopts a co-training mechanism
+where multiple classiﬁers are trained with the source data and used to generate pseudo-levels
+for the target data based on the majority voting from the classiﬁers. [54] further extend [30]
+by considering multiple source domains and selecting the most relevant domain based on the
+proposed stratiﬁed distance that accounts for the semantic and kinetic similarity between the
+source and target domain data. Whereas [57] adopts a clustering-based teacher-learner learning
+mechanism where the source domain acts as the teacher by providing a semi-level to the target
+domain for the target domain data itself. In the adaptation process, source and target data are
+clustered, and the clusters and labels form a complete bipartite gap where the association is
+achieved through the Hungarian algorithm [59].
+Table 4 tabulates the existing literature in details based on the proposed methodology,
+heterogeneity, model architecture, key learning component, and experimental datasets for the
+readers convenience. Key takeaways are:
+1. “Component” and “Arch” columns from the table indicate that a signiﬁcant number of
+proposed approaches rely on the CNN layer for feature extraction and deploy a feed-
+forward network for overall data processing. Very limited approaches have explored the
+Recurrent Neural Network (RNN) and diﬀerent variations that are well known to achieve
+strong results in time series and sequential data.
+2. Literature has explored several loss functions (“Loss” column) that are aimed at regular-
+izing diﬀerent aspects of the learning process. Even though these loss functions are often
+9
+
+--- PAGE 10 ---
+dependent on the deployed methodology, it is important to note that the performance
+behavior of the combination of these loss functions has not been studied yet. For exam-
+ple, it is possible to deploy divergence, adversarial, reconstruction, and contrastive loss
+functions together in a deep-learning based framework.
+3. “Heterogeneity” and “Dataset” columns depict that the proposed approaches tackle dif-
+ferent heterogeneity and evaluate the methodology with diﬀerent sets of datasets, which
+makes it really diﬃcult to compare them. Based on observation, we note a recommenda-
+tion guideline for the evaluation process discussed in subsection 3.1.
+Table 5 tabulates the diﬀerent properties of the existing datasets that have be experi-
+mented to evaluate the performance of the proposed approaches.
+We note that HAR and
+WISDM datasets oﬀers meximum experimental ﬂexibility in terms of the user. OPPORTU-
+NITY, DSADS, and MHEATH datasets oﬀer ﬂexibility in terms of body position variations.
+We also note that the OPPORTUNITY, PAMAP2, and DSADS datasets have been widely
+used in the evaluation process. Future literature should consider evaluating on the Opportu-
+nity, PAMAP2, and DSADS datasets to ensure consistency in the evaluation process.
+2.2. Heterogeneity
+In wearable human activity recognition, there are several practical scenarios that cause data
+distribution heterogeneity, such as user diversity, behavior, device placement variation, data
+sampling variations, and diﬀerent data collection protocols for diﬀerent datasets. Three com-
+monly occurring scenarios are cross-person, cross-position, and cross-sensor/device heterogene-
+ity, as depicted in Figure 2. A example of domain adaptation settings for various heterogeneities
+is tabulated in Table 3. We discuss these heterogeneities in details in the following.
+(a) Cross-person
+(b) Cross-position
+(c) Cross-device
+Figure 2: Diﬀerent types of heterogeneity at a glance
+2.2.1. Cross-person Heterogeneity
+Cross-person heterogeneity in wearables refers to the variability in sensor data and human
+movement patterns across diﬀerent individuals, i.e. data collected from wearable devices can
+10
+
+--- PAGE 11 ---
+Heterogeneous Scenario
+Cause of Domain Gap
+Source Domain
+Target Domain
+Cross-person
+Person
+Person-A
+Person-B
+Cross-position
+Position
+Hand
+Ankle
+Cross-dataset
+Dataset
+PAMAP
+DSADS
+Cross-device
+Device
+LG Nexus
+Samsung Galaxy
+Cross-modal
+Feature Representation
+Acoustic
+IMU
+Table 3: IMU-based domain adaptation scenarios with examples.
+vary signiﬁcantly from person to person. Diﬀerences in body size, shape, movement patterns,
+and behavior traits cause this signiﬁcant discrepancy. In the literature, the problem of cross-
+person heterogeneity in wearables is often referred to as model personalization. Several diﬀerent
+approaches have been proposed to address cross-person heterogeneity. Along with deep learning-
+based approaches, there are several non-deep learning-based approaches for addressing cross-
+person heterogeneity [56, 52, 53]. The major drawback of [56, 52] lies in the evaluation process.
+The corresponding proposed methodology is evaluated on a single dataset using the leave one
+subject out (LOSO) validation strategy.
+LOSO is more similar to the traditional machine
+evaluation approach and does not truly represent eﬀectiveness in tackling the data distribution
+heterogeneity.
+In contrast, several deep learning-based approaches are proposed that aim to reduce the
+distribution heterogeneity that can be discussed under unsupervised and semi-supervised learn-
+ing mechanism [32, 51, 29, 45, 67]. Unsupervised approaches assume the availability of the
+labeled source domain sample and the unlabeled target domain sample during the adaptation
+process. Among the unsupervised approaches, there are approaches that attempt to measure
+the domain gap via a distance metric calculation between the source domain feature and target
+domain feature, and by reducing that gap, aim to reduce the heterogeneity [29]. Adversarial
+techniques are another approach that has recently been investigated for tackling cross-person
+heterogeneity [46, 37, 45, 44]. [46] leverages a general GAN-based approach whereas [45, 44]
+deploy a bi-directional GAN architecture in the corresponding methodology. Although these
+approaches share the goal of reducing cross-person heterogeneity, comparing them is diﬃcult
+due to diﬀerences in the evaluation procedure. For instance, the evaluation procedure diﬀers in
+terms of the considered dataset(s), number of activities, compared baselines, and experimental
+design. For the sake of comparison, if we consider [29, 45] as a representative of distance-based
+11
+
+--- PAGE 12 ---
+Work
+Primary Method
+Component
+Arch
+Losses/Optimizaton Criteria
+Heterogenity
+Datasets
+(Activities)
+Distance Minimization
+Generative
+Adversarial / Generative Adversarial
+Contrastive
+Data Augmentation
+Adaptive Batch Normalization
+Co-training (Pseudo Labeling)
+Active Learning
+Clustering
+Subspace Alignment
+CNN
+RNN/GRU/LSTM
+kNN/DT/ ORF/SVM/AdaBoost/Ensemble
+Graphical Models
+Gaussian Mixture Model
+Feed Forward
+Encoder-Decoder
+Variational
+MMD/KLD/JSD
+Cross Entropy
+Adversarial
+Reconstruction/Regression
+Contrastive
+Cluster Association
+Cosine Similarity
+Other
+Environment
+Position
+Person
+Device/Sensor/Dataset
+TNNAR [29]
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+OPP (4),PAMAP2 (18),DSADS (19)
+MotionTransformer [43]
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+Inertial Tracking (1)
+SA-GAN [46]
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+OPP (4)
+XHAR [37]
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+Sport Activities (6),
+Gesture Activities (5)
+PTN [60]
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+MHEALTH (12), WISDM (18), SPAR (7)
+Hetero-DNN [61]
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+MHEALTH (12), WISDM (18), SPAR (7)
+Online DA-BN [50]
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+WISDM (6)
+HDCNN [31]
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+Self Collected (8), HHAR (6),
+Position aware activity recognition [62] (8)
+Lin et al.[63]
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+DSADS (19), OPP (4), SAD (7)
+Akbari et al.[51]
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+PAMAP2 (8), MoST (8)
+ActiveHARNet [64]
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+HHAR (6), Notch (5)
+UDAR [65]
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+CASAS (6), WSN Dataset [66] (7)
+Shift-GAN [44]
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+PAMAP (), DSADS (),
+Uni. of Armsterdam ( HA, HB, HC)
+CoTMix [67]
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+SSC, UCI HAR, HHAR, WISDM
+SWL-Adapt [39]
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+SBHAR (), OPP (), RealWorld ()
+Contras-GAN [45]
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+WISDM (18), DSADS (19), PAMAP (12)
+SLARDA [40]
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+HAR, SSC, MFD
+AEDA [33]
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+CASAS, PAMAP
+LDA [34]
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+PAMAP, DSADS
+Xia et al. [68]
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+PAMAP, RealWorld, OPP
+Akbari et al. [35]
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+HHAR (5), MoST (10), PAMAP2 (10)
+Plug-n-learn [57]
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+DSADS (15)
+Fallahzadeh et al. [56]
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+DSADS (15)
+STAR [69]
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+OPP (4), WISDM (6), SPAD (4)
+Minh et al. [70]
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+PAMAP (12)
+STL [30]
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+OPP (4), PAMAP2(18), DSADS (19)
+Wen et al. [71]
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+SAD (7), HAR (6),OPP (Fine-grained)
+Mannini et al. [52]
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+Adult & Youth
+Dataset [72]
+Sztyler et al. [53]
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+[62]
+PECO [55]
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+O
+CASAS PUCK, CASAS Parkinson
+Table 4: Brief summary of IMU-based wearable domain adaptation literature.
+and adversarial-based approach where both consider DSADS and PAMAP dataset in the eval-
+uation process, from the reported results, we observe that GAN-based approach [45] performs
+superior than the distance-matric-based approach [29] by a signiﬁcant margin. In addition, the
+ablation study in [45] shows that the ensemble of losses with the GAN loss increases the per-
+formance. Diﬀerent from these works, [50] tackles real-time domain adaptation using statistical
+batch normalization-based techniques.
+On the other hand, a number of semi-supervised approaches have been proposed in the lit-
+erature [32, 51, 31, 67, 40, 73, 34] that vary in terms of the target domain labeled sample usage.
+One of the most common approaches is to use a small amount of labeled data from the target
+12
+
+--- PAGE 13 ---
+domain together with a larger amount of labeled data from the source domain to train a model
+that can eﬀectively generalize to the target domain [31, 32, 73, 63]. This approach reduces
+the need for large amounts of labeled data in the target domain, which can be diﬃcult and
+expensive to obtain. In AugToAct [32] proposed an data augmentation-based semi-supervised
+approach and AugToAct [32] performs better than [31] in the similar experimental settings.
+In both approaches [31, 32], 20% labeled target domain data retains high classiﬁcation perfor-
+mance. Self-training is another variation of semi-supervised approach that leverages labeled
+source domain samples to train a model, and then uses the model to predict the labels of the
+unlabeled target domain samples, which are often known as Pseudo-labels [58]. Pseudo-labeled
+data samples are then used to further improve the model [30, 40, 34]. Even though [30, 34]
+both operate on the manually extracted features, from the reported results on the cross-person
+heterogeneity, it is apparent that the clustering-based pseudo labeling technique performs better
+by signiﬁcant margin. In addition, active learning is also explored to reduce the data distribu-
+tion heterogeneity, where a trained model (trained with labeled source data samples) is able to
+actively choose the examples it wants to be labeled next by the oracle (human or other source
+of ground truth) rather than passively relying on a ﬁxed set of labeled examples. The model
+uses the information it has learned so far to identify examples that it is uncertain about and
+would most beneﬁt from having labeled [51]. In comparison between active learning [51] and
+self-learning [34] approach, [34] yields more reliable performance on the commonly experimented
+PAMAP dataset. Even though [51] outperforms [34] by 14.88% but [51] trains the source model
+using the combined data from multiple users whereas [34] trains the source model using a single
+user data. Here, [51] allows the source model to observe more data variations compared to [34].
+Compared to unsupervised approaches, semi-supervised approaches align both the marginal
+probability and conditional probability distributions of source and target domain data samples.
+2.2.2. Cross-position Heterogeneity
+Cross-position heterogeneity in wearables refers to the variability in sensor readings when the
+sensor is placed in diﬀerent positions on the body. This variability can arise from factors such
+as the sensor placement location, the sensor orientation, and the body movement. For example,
+the readings from an accelerometer placed on the wrist will be diﬀerent from the readings of the
+same accelerometer placed on the ankle due to the diﬀerent movement patterns of these body
+1Back, Right Upper Arm, Right Lower Arm, Left Upper Arm, Left Lower Arm
+2Torso, Right Arm, Left Arm, Right Leg, Left Leg
+3Right Pocket, Left Pocket, Belt, Right Upper Arm, Right Wrist
+4Pant Pocket, Jacket Pocket, Hand Bag, Shoulder Bag
+13
+
+--- PAGE 14 ---
+Dataset
+Sensors
+Sampling
+Rate
+Body Position
+User
+Activities
+Literature
+A
+G
+M
+OPPOTUNITY [74, 75, 76]
+30
+[BACK, RUA, RLA, LUA, LLA]1
+4
+4
+[74, 69, 55, 54, 46, 77, 29, 78, 30]
+PAMAP2 [79]
+100
+Hand, Chest, Ankle
+9
+18
+[54, 29, 78, 51, 30, 80]
+DSADS [81]
+25
+[TORSO, RA, LA, RL, LL]2
+8
+19
+[54, 29, 78, 56, 82, 30, 83]
+MHEALTH [84]
+50
+Chest, Right Wrist, Left Ankle
+10
+12
+[54, 83]
+HHAR [13]
+O
+25-200
+Waist, Arms
+6
+9
+[64, 31]
+HAR [85]
+O
+50
+Waist
+30
+6
+[86, 31, 83]
+WISDM [87]
+O
+20
+Pant Pocket, Waist
+51
+18
+[69, 82]
+Susses-Huawei Dataset [88]
+100
+Torso, Backpack, Hand, Pocket
+3
+8
+[89]
+SAD [90]
+50
+[RP, LP, BELT, RUA, RW]3
+10
+7
+[89]
+SPAD [91]
+O
+O
+5
+[PP, JP, HB, SB]4
+8
+4
+[69]
+Notch Dataset [92]
+O
+O
+31.25
+Wrist
+7
+5
+[64]
+CASAS [93]
+O
+O
+-
+Wrist, Heap
+10
+6
+[55]
+Everyday Activities [94]
+O
+O
+-
+Smartphone
+41
+7
+[95]
+Smartphone Dataset[96]
+50
+Arm, Belt, Waist, Pocket
+4
+6
+[71]
+Table 5: IMU-based wearable datasets (A, G, M in the sensor column refers to accelerometer, gyroscope and
+magnetometer respectively).
+parts. To address this issue, researchers have proposed a variety of techniques to reduce the
+cross-position heterogeneity by aligning the sensor readings across diﬀerent positions [44, 45, 29,
+43, 34, 30, 54, 33]. Among the unsupervised approaches, a handful of Generative Adversarial
+Networks (GANs) have been proposed as a technique to tackle cross-position heterogeneity in
+wearables [44, 45, 43]. In domain adaptation settings, where the generator component of the
+GAN architecture is trained to align the feature distributions between the source and target
+domains, it generates synthetic samples from the source domain that are similar to the real
+samples from the target domain.
+By training the generator network to generate synthetic
+readings that are similar to real readings from diﬀerent sensor positions, the model can learn to
+reduce the cross-position heterogeneity and improve the performance of the activity recognition
+system when applied to diﬀerent sensor positions.
+Among the GAN-based approaches, [43]
+considers single dataset with only one activity where the device is placed at diﬀerent body
+positions whereas [44, 45] considers multiple datasets in the evaluation process. Both [44, 45]
+leverages Bi-GAN architectures but diﬀers in the distribution alignment component where [44]
+deploys Kernel Mean Matching (KMM) [97] and [45] leverages a combination of contrastive,
+discrepancy and MMD losses. Overall, [45] evaluates more cross-positional heterogeneity from
+the DSADS and PAMAP datasets and performs better than [44, 29].
+14
+
+--- PAGE 15 ---
+Compared to the unsupervised approaches, even though semi-supervised approaches leverage
+labeled target domain data, the reported experimental results on the similar datasets are less
+convincing. [34, 30, 54] performance on the DSADS and PAMAP dataset ranges between 40-
+60%. We speculate that as these approaches generate pseudo-label for the target domain data,
+incorrect label predictions on the target domain sample might have contributed to negative
+learning and hence such relatively lower performance compared to the unsupervised approaches.
+In contrast, [33] proposes to leverage 10% labeled data in a encoder-decoder-based architecture
+that adopts Gradient Reversal Layer for data distribution alignment, achieves 92.1% accuracy
+on PAMAP dataset.
+2.2.3. Cross-device Heterogeneity
+Cross-sensor heterogeneity in wearables refers to the variability in sensor readings when
+diﬀerent device-integrated sensors are used to measure the same physical activity. For example,
+if two smartphones use the same accelerometer, the sensor readings may be diﬀerent due to
+factors such as measurement ranges, sensor manufacturer, sensor model, and sensor calibration.
+Note that from the experiment design perspective, cross-sensor heterogeneity is also be referred
+as cross-device and cross-dataset heterogeneity. Even though, in cross-dataset heterogeneity
+the data distribution heterogeneity between two dataset arises due to the variability such as
+diﬀerences in the population of subjects, diﬀerences in the environment in which the data was
+collected, and diﬀerences in the protocol used to collect the data. Due to the integrated nature
+of the WHAR, we discuss these heterogeneities together. We list the common scenarios below
+that could raise four types of heterogeneity:
+1. similar sensor but diﬀerent devices [30, 73, 37, 45]. Example - Wrist-worn Smartwatches
+from multiple manufacturers carry IMU sensors. Example - (devices can be treated as
+source and target device), here, body position is ﬁxed
+2. same device but diﬀerent sensors [71].
+Example - A general smartphone has multiple
+sensors (IMU and Gyroscope) that are capable of collecting data (sensors can be treated
+as source and target sensors), here, body position is ﬁxed
+3. similar sensors but diﬀerent devices [31, 35]. For example - Smartphones and smartwatches
+are typically carried IMU sensors but worn at diﬀerent body positions.
+In this case,
+diﬀerent body positions are used.
+4. diﬀerent sensors with diﬀerent devices [98, 55, 65]. Example - Smartphones and smart-
+earable are typically carried IMU and microphone sensors respectively and worn at dif-
+ferent body positions. In this case, diﬀerent body positions are used.
+15
+
+--- PAGE 16 ---
+Note that the following heterogeneity scenarios can include/exclude similar body positions,
+the same person, or both. If multiple datasets carry similar data then more complex hetero-
+geneous cross-dataset heterogeneity will arise [45]. Diﬀerent experimental settings for cross-
+sensor heterogeneity vary the complexity of the data distribution heterogeneity, however, it is
+a very challenging task compared to cross-person and cross-position heterogeneity. [30] eval-
+uates the proposed approach for a limited transfer learning setting whereas comparison be-
+tween [45]and [37] is not straightforward due to the diﬀerences in the evaluation datasets.
+However,
+[45] performed better in terms of the reported F1-score and the considered activ-
+ity set in [45](9-10 activities) and
+[37](5 activities). In Case 3, the generative unsupervised
+approach [35] outperforms the semi-supervised approach [31] on the cross-device heterogeneity
+evaluation on the HHAR dataset. In case 4, [65] reported a detailed cross-sensor heterogeneity
+evaluation that considers 6 diﬀerent datasets and achieves a 78.5% F-1 score. In general, it is
+seen that generative approaches outperform other techniques in tackling cross-sensor or relevant
+heterogeneity. Apart from transfer learning approaches, there are approaches that deploy data
+augmentation, and active learning to tackle the sensor heterogeneity [61, 64]. By increasing
+the size of the training dataset, data augmentation [99] can help reduce the impact of sensor
+heterogeneity by increasing the diversity of the training data. Apart from these heterogeneous
+scenarios, [100] mention the “Concept drift” which is a phenomenon that occurs when the
+underlying probability distribution of the data changes over time. In the context of wearables,
+concept drift can occur when the sensor readings change due to factors such as device wear
+and tear, changes in the environment, or changes in the wearer’s behavior, which can lead to
+a mismatch between the training data and the test data. [69, 57] focused on activity recogni-
+tion under evolving data stream, however, we note that a longitudinal dataset is a signiﬁcant
+component to validate such methodologies that aim to can withstand the concept drift.
+3. Potential Future Directions
+In this section, we iterate several unexplored directions that can serve as a potential guideline
+in sensor-based domain adaptation.
+3.1. Comprehensive Empirical Study
+We observe that diﬀerent literatures follow diﬀerent experimental designs in the evaluation
+process. Often, the evaluation is based on selective settings of cross-person and cross-position
+heterogeneity instead of an exhaustive one. To elaborate, the Opportunity dataset is collected
+from 4 users, where each user carries 5 devices at diﬀerent body positions. If we consider only
+16
+
+--- PAGE 17 ---
+cross-position heterogeneity, there would be 80 domain adaptation settings from 4 users in total
+(for each person, there are 20 possible combinations of positions, with diﬀerent positions as the
+source and target domain). Similarly, for cross-person heterogeneity for a ﬁxed body position,
+there are a total of 60 possible domain adaptation combinations. However, we observe limited
+evaluation reports in the published literature. In addition, we observe disagreement in other
+aspects of the evaluation process: adapting diﬀerent experimental designs (splitting user groups
+into two - one is used as the source, the other as the target domain), diﬀerent numbers of
+considered activities from the considered datasets [35, 67], diﬀerent evaluation metrics [45, 30].
+To bring the chaotic evaluation process into a standardized procedure, we suggest evaluat-
+ing the proposed approach on three datasets among the OPPORTUNITY, PAMAP2, DSADS,
+MHEALTH, HHAR, Susses-Huawei, CASAS, and WISDM datasets for cross-person, cross-
+position, and cross-sensor heterogeneity due to their diverse number of users, positions, and
+sensors (devices). Regarding the experimental design, we note that if a combination of distinct
+user/position/sensor data is used as the source and target domain, it creates robust evaluation
+settings for any wearable domain adaptation approach. Finally, we recommend F1-score as the
+evaluation metric instead of accuracy, as it does not consider the class distribution. Due to the
+above-mentioned diﬀerences in the evaluation settings, it is not trivial to compare the proposed
+approaches. [101] investigated three diﬀerent wearable domain adaptation methodologies (data
+augmentation, distance minimization, and adversarial learning) on a ﬁxed CNN-based architec-
+ture, and [102] developed a benchmarking suit for time series domain adaptation approaches.
+[101, 102] contribute signiﬁcantly towards the comparive study of various approaches. How-
+ever, [101] acknowledged the use of a single framework, and [102] considered approaches mainly
+developed for computer vision domain adaptation problems; adapting for the time series domain
+approach requires substantial network and learning-related hyper-parameter tuning, which is
+another challenge in itself. According to the literature, 20–30% labeled target domain data
+improves the model’s performance signiﬁcantly. We envision that the benchmarking eﬀorts on
+the unsupervised approaches can be further improved by incorporating our recommendation
+on the evaluation process and extending the baseline adaptation methods by incorporating
+distance and correlation-based feature alignment, adversarial and GAN-based approaches, and
+normalization-based approaches. Such eﬀorts would be a signiﬁcant contribution toward better
+understanding the strengths and weaknesses of each approach and building upon existing work
+in the ﬁeld.
+17
+
+--- PAGE 18 ---
+3.2. Real-time Domain Adaptation and System Development
+Traditional domain adaptation approaches the availability of the target domain data prior
+to any domain adaptation process. Whereas there are certain circumstances when the target
+domain data arrive sequentially at large volume and it is unfeasible to store all the data. Given
+such scenario, it is important to perform domain adaptation in a real-time manner. To the
+best of our knowledge, the performance and aspects of wearable domain adaptation approaches
+under such circumstances have not been well investigated. The following challenging aspects
+of the proposed approaches need to be broadly studied: the requirement for low latency and
+high computational eﬃciency, the amount of required labeled and unlabeled target domain
+data, feasibility of the necessity of the device data storage, and maintaining the performance
+on the source and target tasks. Regarding the computation eﬃciency, batch normalization [47]
+is known for faster training and quick network convergence [103]. Such parameter-free batch
+normalization-based approaches [49, 48] can be investigated to develop novel real-time domain
+adaptation approaches. [50] adopted AdaBN [49] in developing an incremental domain adapta-
+tion approach. [50] assumes that no samples from the target user are available in advance, but
+they arrive sequentially, which is substantially diﬀerent than the traditional domain adaptation
+assumption. Thus, the authors traded oﬀadapting to new and forgetting old information, and
+the proposed unsupervised approach does not involve any label information from the target
+user in the adaptation process. [50] performs the domain adaptation task on-the-ﬂy, which is
+very crucial in certain circumstances, for example when the unlabeled data can not be stored.
+Existing incremental learning [104, 105] and continual learning-based [106, 107] approaches can
+be explored to fullﬁll the requirement of a real-time systems. Further, to accommodate the deep
+models in the resource constrained environments, the investigation of the model compressing
+techniques [108, 109, 110, 111, 112, 113] with the domain adaptation techniques can be a sig-
+niﬁcant contribution to the WHAR research and help take a step towards developing a system
+that is close to the beneﬁt for the human beings through various applications.
+3.3. Investigation on Pseudo-label Generation
+In the literature review, the semi-supervised approaches acquire labeled target domain data
+in three approaches - 1) prior availability of the labeled target domain data, 2) asking the oracle
+for the label information for the most informative target domain data samples, 3) training a
+model with source domain data and leveraging the trained model to predict the label informa-
+tion of the target domain data. Indeed, label information aids in the alignment of the marginal
+and conditional distributions. However, we note that the pseudo-labeled-based co-learning ap-
+18
+
+--- PAGE 19 ---
+proaches relatively underperform compared to the unsupervised approaches [30]. We previously
+mentioned that the incorrect pseudo-labeling might trigger negative transfer learning. Along
+with the pseudo-label generation, it is important to ensure its correctness. Novel pseudo-labeling
+techniques for wearables will deﬁnitely help reduce the overhead of asking the label information
+from the oracle or the end-user while improving the performance.
+3.4. Novel and Scalable Architecture Development
+The majority of the proposed wearable domain adaptation approaches have several algo-
+rithmic limitations in their assumptions, which consider a single labeled source domain and one
+target domain, and that all data domains are homogeneous. The number of considered source
+domains is a potential limitation of the framework regarding its scalability, as the performance
+of those frameworks under multiple source domains is unknown. There are several approaches
+to dealing with multiple source domains: 1) selecting the most relevant source domain with the
+target domain [54], 2) combining all source domain data into one [114], 3) concurrently process-
+ing all the source domains during the domain adaptation [38, 115, 116]. Concurrent processing
+of multiple source domains is known as multi-source domain adaptation (MSDA) [117, 118, 119].
+MSADA assumes that the labeled training data can be collected from multiple data sources,
+whereas most of the current wearable domain adaptation approaches assume that source sam-
+ples are collected from a single domain. As the wearable devices are used by a diverse end-user
+community in a diverse environment, the underlying data distributions across the collected data
+sources are heterogeneous. Indeed, MSDA is a very challenging task due to the simultaneous
+consideration of multiple heterogeneous distributions, but at the same time, it provides an
+opportunity to leverage the target domain-relevant domain knowledge shared across multiple
+source domains. The assumption of homogeneous features across all the domains is another
+limitation and opportunity to improve for future research work [120, 121, 122, 123, 124, 125].
+We note that an inherent challenge in both of the improvements over the existing approaches is
+the early detection of transfer learning feasibility among multiple domains during the adapta-
+tion process. Because attempting to accomplish transfer learning between (among) non-related
+domains would cause the “catastrophic forgetting” and the initial non-relevancy might
+be caused by the data distribution heterogeneity. More investigation and study is needed to
+develop novel, scalable wearable domain adaptation approaches.
+3.5. Robust Dataset Collection
+Table 5 tabulates the widely used datasets in the wearable domain adaptation evaluation
+process. We note several limitations in the existing datasets: 1) The majority of the datasets
+19
+
+--- PAGE 20 ---
+consider the common macro activities (activities that require whole-body movements, such as
+running or playing a sport), and the micro activities (ﬁne-grained movements and gestures, such
+as typing on a keyboard or playing an instrument) are omitted, 2) lack of multi-modal datasets
+with heterogeneous feature space (for example: datasets with concurrent activity data from
+paired data modalities such as IMU and Wi-Fi data, IMU and acoustic, IMU and radar, and
+IMU and image, 3) lack of a longitudinal dataset, which is essential to evaluate the “concept
+drift” [126, 127], and 4) missing interleaved activities such as cooking activities in the existing
+dataset. Fulﬁlling the existing dataset limitations would create a signiﬁcant opportunity to
+understand the synergy between the data modalities and to explore the solution ideas discussed
+in the literature [126, 127].
+4. Conclusion
+Deep learning-based approaches outperform the traditional machine learning approaches
+using automatic feature extracting capability and the feasibility of transferring the learned
+knowledge from one domain to another. However, in the presence of data distribution hetero-
+geneity between training and test data samples, machine learning approaches perform poorly.
+In this survey, we explain a transfer learning technique called domain adaptation that focuses
+on alleviating data distribution heterogeneity and tabulates various types of domain adaptation
+problems. We concentrated on the heterogeneity observed in wearable IMU-based human activ-
+ity recognition. We discuss the current literature based on the methodology existing approaches
+follow, the observed heterogeneity, and we concisely tabulate them. In the existing literature,
+we note that adversarial and generative adversarial-based approaches perform superiorly among
+the unsupervised approaches. Among the semi-supervised approaches, the pseudo-labeled-based
+approaches perform relatively lower than other semi-supervised methodologies (we speculate
+that it is because of “conﬁrmation bias” of the pseudo-labeled data samples). However, we
+observe that the existing approaches lack commonality in the method evaluation process (see
+the “Heterogeneity” and “Dataset” columns from Table 4). Due to diﬀerences in the training
+mechanism, number of considered heterogeneity, evaluation dataset, and considered activities,
+it is still diﬃcult to compare the approaches comprehensively. We have developed a guideline
+based on our observations to aid in the development of a comprehensive empirical study of
+wearable domain adaptation approaches. In addition, we have listed several potential future
+guidelines - developing the real-time domain adaptation techniques for faster adaptation in a
+real-life scenarios, investigating more on to self-supervised learning technique such as correctly
+20
+
+--- PAGE 21 ---
+generating pseudo labels for the unlabeled data samples, extending current approaches and de-
+velop novel scalable architecture such that multiple heterogeneous datasets can be leveraged for
+the domain adaptation purpose, preparing a robust dataset such that it can be experimented for
+multiple heterogeneity evaluation. From the discussed literature, we also note that the various
+types of domain adaptation variations tabulated in Table 2 have not yet been well explored.
+We hope that this survey will provide the reader with a comprehensive overview of the cur-
+rent progress on wearable IMU-based domain adaptation approaches and provide guidelines for
+potential future developments.
+References
+[1] T. Van Kasteren, G. Englebienne, B. J. Kr¨ose, An activity monitoring system for elderly care using gener-
+ative and discriminative models, Personal and ubiquitous computing 14 (6) (2010) 489–498.
+[2] A. Alberdi, A. Weakley, M. Schmitter-Edgecombe, D. J. Cook, A. Aztiria, A. Basarab, M. Barrenechea,
+Smart home-based prediction of multidomain symptoms related to alzheimer’s disease, IEEE journal of
+biomedical and health informatics 22 (6) (2018) 1720–1731.
+[3] K. J. Kubota, J. A. Chen, M. A. Little, Machine learning for large-scale wearable sensor data in parkinson’s
+disease: Concepts, promises, pitfalls, and futures, Movement disorders 31 (9) (2016) 1314–1326.
+[4] Z. Wang, J. Li, J. Wang, H. Zhao, S. Qiu, N. Yang, X. Shi, Inertial sensor-based analysis of equestrian sports
+between beginner and professional riders under diﬀerent horse gaits, IEEE Transactions on Instrumentation
+and Measurement 67 (11) (2018) 2692–2704.
+[5] A. Chakma, A. Z. M. Faridee, N. Roy, H. S. Hossain, Shoot like ronaldo: Predict soccer penalty outcome
+with wearables, in: 2020 IEEE International Conference on Pervasive Computing and Communications
+Workshops (PerCom Workshops), IEEE, 2020, pp. 1–6.
+[6] I. Ghosh, S. R. Ramamurthy, A. Chakma, N. Roy, Decoach: Deep learning-based coaching for badminton
+player assessment, Pervasive and Mobile Computing (2022) 101608.
+[7] J. Wen, J. Indulska, M. Zhong, Adaptive activity learning with dynamically available context, in: 2016
+IEEE International Conference on Pervasive Computing and Communications (PerCom), IEEE, 2016, pp.
+1–11.
+[8] S. J. Pan, Q. Yang, A survey on transfer learning, IEEE Transactions on knowledge and data engineering
+22 (10) (2009) 1345–1359.
+[9] W. M. Kouw, M. Loog, A review of domain adaptation without target labels, IEEE transactions on pattern
+analysis and machine intelligence 43 (3) (2019) 766–785.
+[10] G. Wilson, D. J. Cook, A survey of unsupervised deep domain adaptation, ACM Transactions on Intelligent
+Systems and Technology (TIST) 11 (5) (2020) 1–46.
+[11] M. Wang, W. Deng, Deep visual domain adaptation: A survey, Neurocomputing 312 (2018) 135–153.
+[12] I. Redko, E. Morvant, A. Habrard, M. Sebban, Y. Bennani, A survey on domain adaptation theory: learning
+bounds and theoretical guarantees, arXiv e-prints (2020) arXiv–2004.
+[13] A. Stisen, H. Blunck, S. Bhattacharya, T. S. Prentow, M. B. Kjærgaard, A. Dey, T. Sonne, M. M. Jensen,
+21
+
+--- PAGE 22 ---
+Smart devices are diﬀerent: Assessing and mitigatingmobile sensing heterogeneities for activity recognition,
+in: Proceedings of the 13th ACM conference on embedded networked sensor systems, 2015, pp. 127–140.
+[14] N. Y. Hammerla, S. Halloran, T. Pl¨otz, Deep, convolutional, and recurrent models for human activity
+recognition using wearables, arXiv preprint arXiv:1604.08880 (2016).
+[15] S. Rakshit, D. Tamboli, P. S. Meshram, B. Banerjee, G. Roig, S. Chaudhuri, Multi-source open-set deep
+adversarial domain adaptation, in: European Conference on Computer Vision, Springer, 2020, pp. 735–750.
+[16] J. Hu, H. Tuo, C. Wang, L. Qiao, H. Zhong, J. Yan, Z. Jing, H. Leung, Discriminative partial domain
+adversarial network, in: Computer Vision–ECCV 2020: 16th European Conference, Glasgow, UK, August
+23–28, 2020, Proceedings, Part XXVII 16, Springer, 2020, pp. 632–648.
+[17] K. You, M. Long, Z. Cao, J. Wang, M. I. Jordan, Universal domain adaptation, in: Proceedings of the
+IEEE/CVF conference on computer vision and pattern recognition, 2019, pp. 2720–2729.
+[18] J. Wang, J. Jiang, Adversarial learning for zero-shot domain adaptation, in: European Conference on
+Computer Vision, Springer, 2020, pp. 329–344.
+[19] B. Li, Y. Wang, S. Zhang, D. Li, K. Keutzer, T. Darrell, H. Zhao, Learning invariant representations and
+risks for semi-supervised domain adaptation, in: Proceedings of the IEEE/CVF Conference on Computer
+Vision and Pattern Recognition, 2021, pp. 1104–1113.
+[20] Y. Shu, Z. Cao, M. Long, J. Wang, Transferable curriculum for weakly-supervised domain adaptation, in:
+Proceedings of the AAAI Conference on Artiﬁcial Intelligence, Vol. 33, 2019, pp. 4951–4958.
+[21] Y. Luo, P. Liu, T. Guan, J. Yu, Y. Yang, Adversarial style mining for one-shot unsupervised domain
+adaptation, arXiv preprint arXiv:2004.06042 (2020).
+[22] T. Wang, X. Zhang, L. Yuan, J. Feng, Few-shot adaptive faster r-cnn, in: Proceedings of the IEEE/CVF
+Conference on Computer Vision and Pattern Recognition, 2019, pp. 7173–7182.
+[23] H. Liu, M. Long, J. Wang, Y. Wang, Learning to adapt to evolving domains., in: NeurIPS, 2020.
+[24] X. Peng, Z. Huang, Y. Zhu, K. Saenko, Federated adversarial domain adaptation, arXiv preprint
+arXiv:1911.02054 (2019).
+[25] R. Li, Q. Jiao, W. Cao, H.-S. Wong, S. Wu, Model adaptation: Unsupervised domain adaptation without
+source data, in: Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition,
+2020, pp. 9641–9650.
+[26] D. J. MacKay, D. J. Mac Kay, Information theory, inference and learning algorithms, Cambridge university
+press, 2003.
+[27] B. Fuglede, F. Topsoe, Jensen-shannon divergence and hilbert space embedding, in: International Sympo-
+sium onInformation Theory, 2004. ISIT 2004. Proceedings., IEEE, 2004, p. 31.
+[28] A. Gretton, K. M. Borgwardt, M. J. Rasch, B. Sch¨olkopf, A. Smola, A kernel two-sample test, The Journal
+of Machine Learning Research 13 (1) (2012) 723–773.
+[29] J. Wang, V. W. Zheng, Y. Chen, M. Huang, Deep transfer learning for cross-domain activity recognition,
+in: proceedings of the 3rd International Conference on Crowd Science and Engineering, 2018, pp. 1–8.
+[30] J. Wang, Y. Chen, L. Hu, X. Peng, S. Y. Philip, Stratiﬁed transfer learning for cross-domain activity recog-
+nition, in: 2018 IEEE International Conference on Pervasive Computing and Communications (PerCom),
+IEEE, 2018, pp. 1–10.
+[31] M. A. A. H. Khan, N. Roy, A. Misra, Scaling human activity recognition via deep learning-based do-
+main adaptation, in: 2018 IEEE International Conference on Pervasive Computing and Communications
+22
+
+--- PAGE 23 ---
+(PerCom), IEEE, 2018, pp. 1–9.
+[32] A. Z. M. Faridee, M. A. A. H. Khan, N. Pathak, N. Roy, Augtoact: scaling complex human activity
+recognition with few labels, in: Proceedings of the 16th EAI International Conference on Mobile and
+Ubiquitous Systems: Computing, Networking and Services, 2019, pp. 162–171.
+[33] M. M. Rahman, M. Mousavi, P. Tarr, M. A. U. Alam, Enabling heterogeneous domain adaptation in
+multi-inhabitants smart home activity learning, arXiv preprint arXiv:2210.09499 (2022).
+[34] J. Zhao, F. Deng, H. He, J. Chen, Local domain adaptation for cross-domain activity recognition, IEEE
+Transactions on Human-Machine Systems 51 (1) (2020) 12–21.
+[35] A. Akbari, R. Jafari, Transferring activity recognition models for new wearable sensors with deep generative
+domain adaptation, in: Proceedings of the 18th International Conference on Information Processing in
+Sensor Networks, 2019, pp. 85–96.
+[36] A. Z. M. Faridee, A. Chakma, A. Misra, N. Roy, Strangan: Adversarially-learnt spatial transformer for
+scalable human activity recognition, Smart Health 23 (2022) 100226.
+[37] Z. Zhou, Y. Zhang, X. Yu, P. Yang, X.-Y. Li, J. Zhao, H. Zhou, Xhar: Deep domain adaptation for human
+activity recognition with smart devices, in: 2020 17th Annual IEEE International Conference on Sensing,
+Communication, and Networking (SECON), IEEE, 2020, pp. 1–9.
+[38] A. Chakma, A. Z. M. Faridee, M. A. A. H. Khan, N. Roy, Activity recognition in wearables using adversarial
+multi-source domain adaptation, Smart Health 19 (2021) 100174.
+[39] R. Hu, L. Chen, S. Miao, X. Tang, Swl-adapt: An unsupervised domain adaptation model with sample
+weight learning for cross-user wearable human activity recognition, arXiv preprint arXiv:2212.00724 (2022).
+[40] M. Ragab, E. Eldele, Z. Chen, M. Wu, C.-K. Kwoh, X. Li, Self-supervised autoregressive domain adaptation
+for time series data, IEEE Transactions on Neural Networks and Learning Systems (2022).
+[41] Y. Ganin, V. Lempitsky, Unsupervised domain adaptation by backpropagation, in: International conference
+on machine learning, PMLR, 2015, pp. 1180–1189.
+[42] Z. Pei, Z. Cao, M. Long, J. Wang, Multi-adversarial domain adaptation, in: Thirty-second AAAI conference
+on artiﬁcial intelligence, 2018.
+[43] C. Chen, Y. Miao, C. X. Lu, L. Xie, P. Blunsom, A. Markham, N. Trigoni, Motiontransformer: Transferring
+neural inertial tracking between domains, in: Proceedings of the AAAI Conference on Artiﬁcial Intelligence,
+Vol. 33, 2019, pp. 8009–8016.
+[44] A. R. Sanabria, F. Zambonelli, J. Ye, Unsupervised domain adaptation in activity recognition: A gan-based
+approach, IEEE Access 9 (2021) 19421–19438.
+[45] A. R. Sanabria, F. Zambonelli, S. Dobson, J. Ye, Contrasgan: Unsupervised domain adaptation in human
+activity recognition via adversarial and contrastive learning, Pervasive and Mobile Computing 78 (2021)
+101477.
+[46] E. Soleimani, E. Nazerfard, Cross-subject transfer learning in human activity recognition systems using
+generative adversarial networks, arXiv preprint arXiv:1903.12489 (2019).
+[47] S. Ioﬀe, C. Szegedy, Batch normalization: Accelerating deep network training by reducing internal covariate
+shift, in: International conference on machine learning, PMLR, 2015, pp. 448–456.
+[48] F. M. Carlucci, L. Porzi, B. Caputo, E. Ricci, S. R. Bulo, Autodial: Automatic domain alignment layers,
+in: 2017 IEEE international conference on computer vision (ICCV), IEEE, 2017, pp. 5077–5085.
+[49] Y. Li, N. Wang, J. Shi, J. Liu, X. Hou, Revisiting batch normalization for practical domain adaptation,
+23
+
+--- PAGE 24 ---
+arXiv preprint arXiv:1603.04779 (2016).
+[50] A. Mazankiewicz, K. B¨ohm, M. Berg´es, Incremental real-time personalization in human activity recognition
+using domain adaptive batch normalization, arXiv preprint arXiv:2005.12178 (2020).
+[51] A. Akbari, R. Jafari, Personalizing activity recognition models with quantifying diﬀerent types of uncer-
+tainty using wearable sensors, IEEE Transactions on Biomedical Engineering (2020).
+[52] A. Mannini, S. S. Intille, Classiﬁer personalization for activity recognition using wrist accelerometers, IEEE
+journal of biomedical and health informatics 23 (4) (2018) 1585–1594.
+[53] T. Sztyler, H. Stuckenschmidt, Online personalization of cross-subjects based activity recognition models
+on wearable devices, in: 2017 IEEE International Conference on Pervasive Computing and Communications
+(PerCom), IEEE, 2017, pp. 180–189.
+[54] Y. Chen, J. Wang, M. Huang, H. Yu, Cross-position activity recognition with stratiﬁed transfer learning,
+Pervasive and Mobile Computing 57 (2019) 1–13.
+[55] K. D. Feuz, D. J. Cook, Collegial activity learning between heterogeneous sensors, Knowledge and infor-
+mation systems 53 (2) (2017) 337–364.
+[56] R. Fallahzadeh, H. Ghasemzadeh, Personalization without user interruption: Boosting activity recognition
+in new subjects using unlabeled data, in: Proceedings of the 8th International Conference on Cyber-Physical
+Systems, 2017, pp. 293–302.
+[57] S. A. Rokni, H. Ghasemzadeh, Autonomous training of activity recognition algorithms in mobile sensors:
+A transfer learning approach in context-invariant views, IEEE Transactions on Mobile Computing 17 (8)
+(2018) 1764–1777.
+[58] J. E. Van Engelen, H. H. Hoos, A survey on semi-supervised learning, Machine Learning 109 (2) (2020)
+373–440.
+[59] C. H. Papadimitriou, K. Steiglitz, Combinatorial optimization: algorithms and complexity, Courier Cor-
+poration, 1998.
+[60] D. M. Burns, C. M. Whyne, Personalized activity recognition with deep triplet embeddings, arXiv preprint
+arXiv:2001.05517 (2020).
+[61] A. Mathur, T. Zhang, S. Bhattacharya, P. Velickovic, L. Joﬀe, N. D. Lane, F. Kawsar, P. Li´o, Using deep
+data augmentation training to address software and hardware heterogeneities in wearable and smartphone
+sensing devices, in: 2018 17th ACM/IEEE International Conference on Information Processing in Sensor
+Networks (IPSN), IEEE, 2018, pp. 200–211.
+[62] T. Sztyler, H. Stuckenschmidt, On-body localization of wearable devices: An investigation of position-aware
+activity recognition, in: 2016 IEEE International Conference on Pervasive Computing and Communications
+(PerCom), IEEE, 2016, pp. 1–9.
+[63] C.-Y. Lin, R. Marculescu, Model personalization for human activity recognition, in: 2020 IEEE Interna-
+tional Conference on Pervasive Computing and Communications Workshops (PerCom Workshops), IEEE,
+2020, pp. 1–7.
+[64] G. K. Gudur, P. Sundaramoorthy, V. Umaashankar, Activeharnet: Towards on-device deep bayesian active
+learning for human activity recognition, in: The 3rd International Workshop on Deep Learning for Mobile
+Systems and Applications, 2019, pp. 7–12.
+[65] A. R. Sanabria, J. Ye, Unsupervised domain adaptation for activity recognition across heterogeneous
+datasets, Pervasive and Mobile Computing (2020) 101147.
+24
+
+--- PAGE 25 ---
+[66] T. L. van Kasteren, G. Englebienne, B. J. Kr¨ose, Human activity recognition from wireless sensor network
+data: Benchmark and software, in: Activity recognition in pervasive intelligent environments, Springer,
+2011, pp. 165–186.
+[67] E. Eldele, M. Ragab, Z. Chen, M. Wu, C.-K. Kwoh, X. Li, Cotmix: Contrastive domain adaptation for
+time-series via temporal mixup, arXiv preprint arXiv:2212.01555 (2022).
+[68] S. Xia, L. Chu, L. Pei, Z. Zhang, W. Yu, R. C. Qiu, Learning disentangled representation for mixed-
+reality human activity recognition with a single imu sensor, IEEE Transactions on Instrumentation and
+Measurement 70 (2021) 1–14.
+[69] Z. S. Abdallah, M. M. Gaber, B. Srinivasan, S. Krishnaswamy, Adaptive mobile activity recognition system
+with evolving data streams, Neurocomputing 150 (2015) 304–317.
+[70] T. P. Minh, D. Kottke, A. Tsarenko, C. Gruhl, B. Sick, Improving self-adaptation for multi-sensor activity
+recognition with active learning, in: 2020 International Joint Conference on Neural Networks (IJCNN),
+IEEE, 2020, pp. 1–8.
+[71] J. Wen, Z. Wang, Sensor-based adaptive activity recognition with dynamically available sensors, Neuro-
+computing 218 (2016) 307–317.
+[72] A. Mannini, M. Rosenberger, W. L. Haskell, A. M. Sabatini, S. S. Intille, Activity recognition in youth
+using single accelerometer placed at wrist or ankle, Medicine and science in sports and exercise 49 (4)
+(2017) 801.
+[73] Y. Hao, R. Zheng, B. Wang, Invariant feature learning for sensor-based human activity recognition, IEEE
+Transactions on Mobile Computing (2021).
+[74] R. Chavarriaga, H. Sagha, A. Calatroni, S. T. Digumarti, G. Tr¨”oster, J. d. R. Mill´an, D. Roggen, The op-
+portunity challenge: A benchmark database for on-body sensor-based activity recognition, Pattern Recog-
+nition Letters 34 (15) (2013) 2033–2042.
+[75] D. Roggen, K. F¨”orster, A. Calatroni, G. Tr¨”oster, The adarc pattern analysis architecture for adaptive
+human activity recognition systems, Journal of Ambient Intelligence and Humanized Computing 4 (2)
+(2013) 169–186.
+[76] D. Roggen, A. Calatroni, M. Rossi, T. Holleczek, K. F¨”orster, G. Tr¨”oster, P. Lukowicz, D. Bannach,
+G. Pirkl, A. Ferscha, et al., Collecting complex activity datasets in highly rich networked sensor environ-
+ments, in: 2010 Seventh international conference on networked sensing systems (INSS), IEEE, 2010, pp.
+233–240.
+[77] F. J. O. Morales, D. Roggen, Deep convolutional feature transfer across mobile activity recognition domains,
+sensor modalities and locations, in: Proceedings of the 2016 ACM International Symposium on Wearable
+Computers, 2016, pp. 92–99.
+[78] Y. Li, Y. Bao, W. Chen, Domain adaptation transduction: An algorithm for autonomous training with
+applications to activity recognition using wearable devices, in: 2018 IEEE International Conference on
+Internet of Things (iThings) and IEEE Green Computing and Communications (GreenCom) and IEEE
+Cyber, Physical and Social Computing (CPSCom) and IEEE Smart Data (SmartData), IEEE, 2018, pp.
+1821–1828.
+[79] A. Reiss, D. Stricker, Introducing a new benchmarked dataset for activity monitoring, in: 2012 16th
+International Symposium on Wearable Computers, IEEE, 2012, pp. 108–109.
+[80] P. Barbosa, K. D. Garcia, J. Mendes-Moreira, A. C. de Carvalho, Unsupervised domain adaptation for
+25
+
+
+[... truncated at page 25 of 28 ...]

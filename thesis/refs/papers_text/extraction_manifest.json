@@ -1,0 +1,104 @@
+[
+  {
+    "pdf": "Thesis_report\\refs\\adabn_li2016_1603.04779.pdf",
+    "txt": "Thesis_report\\papers_text\\adabn_li2016_1603.04779.txt",
+    "status": "ok",
+    "n_chars": 36670
+  },
+  {
+    "pdf": "Thesis_report\\refs\\calibration_guo2017_1706.04599.pdf",
+    "txt": "Thesis_report\\papers_text\\calibration_guo2017_1706.04599.txt",
+    "status": "ok",
+    "n_chars": 55858
+  },
+  {
+    "pdf": "Thesis_report\\refs\\Deep CNN-LSTM With Self-Attention Model for Human Activity Recognition Using Wearable Sensor.pdf",
+    "txt": "Thesis_report\\papers_text\\Deep CNN-LSTM With Self-Attention Model for Human Activity Recognition Using Wearable Sensor.txt",
+    "status": "ok",
+    "n_chars": 63728
+  },
+  {
+    "pdf": "Thesis_report\\refs\\Deep learning for sensor-based activity recognition_ A survey.pdf",
+    "txt": "Thesis_report\\papers_text\\Deep learning for sensor-based activity recognition_ A survey.txt",
+    "status": "ok",
+    "n_chars": 57921
+  },
+  {
+    "pdf": "Thesis_report\\refs\\Domain Adaptation for Inertial Measurement Unit-based Human.pdf",
+    "txt": "Thesis_report\\papers_text\\Domain Adaptation for Inertial Measurement Unit-based Human.txt",
+    "status": "ok",
+    "n_chars": 70971
+  },
+  {
+    "pdf": "Thesis_report\\refs\\Evaluating BiLSTM and CNN+GRU Approaches for Human Activity Recognition Using WiFi CSI Data.pdf",
+    "txt": "Thesis_report\\papers_text\\Evaluating BiLSTM and CNN+GRU Approaches for Human Activity Recognition Using WiFi CSI Data.txt",
+    "status": "ok",
+    "n_chars": 31509
+  },
+  {
+    "pdf": "Thesis_report\\refs\\ewc_kirkpatrick2017_1612.00796.pdf",
+    "txt": "Thesis_report\\papers_text\\ewc_kirkpatrick2017_1612.00796.txt",
+    "status": "ok",
+    "n_chars": 50076
+  },
+  {
+    "pdf": "Thesis_report\\refs\\MACHINE LEARNING OPERATIONS A SURVEY ON MLOPS.pdf",
+    "txt": "Thesis_report\\papers_text\\MACHINE LEARNING OPERATIONS A SURVEY ON MLOPS.txt",
+    "status": "ok",
+    "n_chars": 36015
+  },
+  {
+    "pdf": "Thesis_report\\refs\\mc_dropout_gal2016_1506.02142.pdf",
+    "txt": "Thesis_report\\papers_text\\mc_dropout_gal2016_1506.02142.txt",
+    "status": "ok",
+    "n_chars": 46082
+  },
+  {
+    "pdf": "Thesis_report\\refs\\tent_wang2021_openreview_uXl3bZLkr3c.pdf",
+    "txt": "Thesis_report\\papers_text\\tent_wang2021_openreview_uXl3bZLkr3c.txt",
+    "status": "ok",
+    "n_chars": 53523
+  },
+  {
+    "pdf": "Thesis_report\\refs\\Transfer Learning in Human Activity Recognition  A Survey.pdf",
+    "txt": "Thesis_report\\papers_text\\Transfer Learning in Human Activity Recognition  A Survey.txt",
+    "status": "ok",
+    "n_chars": 114978
+  },
+  {
+    "pdf": "Thesis_report\\refs\\When Does Optimizing a Proper Loss Yield Calibration.pdf",
+    "txt": "Thesis_report\\papers_text\\When Does Optimizing a Proper Loss Yield Calibration.txt",
+    "status": "ok",
+    "n_chars": 82791
+  },
+  {
+    "pdf": "Thesis_report\\sample reports\\Shalin Vachheta-1701359-M.Sc. Mechatronics.pdf",
+    "txt": "Thesis_report\\papers_text\\Shalin Vachheta-1701359-M.Sc. Mechatronics.txt",
+    "status": "ok",
+    "n_chars": 50157
+  },
+  {
+    "pdf": "Thesis_report\\sample reports\\statement-2025-11.pdf",
+    "txt": "Thesis_report\\papers_text\\statement-2025-11.txt",
+    "status": "ok",
+    "n_chars": 2902
+  },
+  {
+    "pdf": "Thesis_report\\sample reports\\statement-2025-12.pdf",
+    "txt": "Thesis_report\\papers_text\\statement-2025-12.txt",
+    "status": "ok",
+    "n_chars": 9313
+  },
+  {
+    "pdf": "Thesis_report\\sample reports\\statement-2026-01.pdf",
+    "txt": "Thesis_report\\papers_text\\statement-2026-01.txt",
+    "status": "ok",
+    "n_chars": 2459
+  },
+  {
+    "pdf": "Thesis_report\\sample reports\\Thesis_report_MA_004_1700969_compressed_version.pdf",
+    "txt": "Thesis_report\\papers_text\\Thesis_report_MA_004_1700969_compressed_version.txt",
+    "status": "ok",
+    "n_chars": 57709
+  }
+]

@@ -1,0 +1,1405 @@
+--- PAGE 1 ---
+When Does Optimizing a Proper Loss Yield Calibration?
+Jarosław Błasiok
+Columbia University
+Parikshit Gopalan
+Apple
+Lunjia Hu
+Stanford University
+Preetum Nakkiran
+Apple
+Abstract
+Optimizing proper loss functions is popularly believed to yield predictors with good calibration properties; the
+intuition being that for such losses, the global optimum is to predict the ground-truth probabilities, which is indeed
+calibrated. However, typical machine learning models are trained to approximately minimize loss over restricted
+families of predictors, that are unlikely to contain the ground truth. Under what circumstances does optimizing
+proper loss over a restricted family yield calibrated models? What precise calibration guarantees does it give? In this
+work, we provide a rigorous answer to these questions. We replace the global optimality with a local optimality
+condition stipulating that the (proper) loss of the predictor cannot be reduced much by post-processing its predictions
+with a certain family of Lipschitz functions. We show that any predictor with this local optimality satisfies smooth
+calibration as defined in Kakade and Foster (2008); Błasiok et al. (2023b). Local optimality is plausibly satisfied by
+well-trained DNNs, which suggests an explanation for why they are calibrated from proper loss minimization alone.
+Finally, we show that the connection between local optimality and calibration error goes both ways: nearly calibrated
+predictors are also nearly locally optimal.
+1
+Introduction
+In supervised prediction with binary labels, two basic criteria by which we judge the quality of a predictor are
+accuracy and calibration. Given samples from a distribution D on X × {0, 1} that corresponds to points x from X
+with binary labels y ∈{0, 1}, we wish to learn a predictor f that assigns each x a probability f(x) ∈[0, 1] that
+the label is 1. Informally, accuracy measures how close the predictor f is to the ground-truth f ∗(x) = E[y|x].1
+Calibration (Dawid, 1982; Foster and Vohra, 1998) is an interpretability notion originating from the literature on
+forecasting, which stipulates that the predictions of our model be meaningful as probabilities. For instance, on all
+points where f(x) = 0.4, calibration requires the true label to be 1 about 40% of the time. Calibration and accuracy
+are complementary notions: a reasonably accurate predictor (which is still far from optimal) need not be calibrated,
+and calibrated predictors (e.g. predicting the average) can have poor accuracy. The notions are complementary but
+not necessarily conflicting; for example, the ground truth itself is both optimally accurate and perfectly calibrated.
+Proper losses are central to the quest for accurate approximations of the ground truth. Informally a proper loss ensures
+that under binary labels y drawn from the Bernoulli distribution with parameter v∗, the expected loss E[ℓ(y, v)] is
+minimized at v = v∗itself. Familiar examples include the squared loss ℓsq(y, v) = (y −v)2 and the cross-entropy
+loss ℓxent(y, v) = y log(1/v) + (1 −y) log(1/(1 −v)). A key property of proper losses is that over the space of
+all predictors, the expected loss ED[ℓ(y, f(x))] is minimized by the ground truth f ∗which also gives calibration.
+However minimizing over all predictors is infeasible. Hence typical machine learning deviates from this ideal in
+many ways: we restrict ourselves to models of bounded capacity such as decision trees or neural nets of a given depth
+and architecture, and we optimize loss using algorithms like SGD, which are only expected to find approximate local
+minima in the parameter space. What calibration guarantees transfer to this more restricted but realistic setting?
+The State of Calibration & Proper Losses.
+There is a folklore belief in some quarters that optimizing a proper loss,
+even in the restricted setting, will produce a calibrated predictor. Indeed, the user guide for scikit-learn (Pedregosa
+et al., 2011) claims that LogisticRegression returns well calibrated predictions by default as it directly optimizes Log
+1Here we focus on the accuracy of the predictor f as opposed to the accuracy of a classifier induced by f.
+1
+arXiv:2305.18764v2  [cs.LG]  8 Dec 2023
+
+--- PAGE 2 ---
+Figure 1: Schematic depiction of the loss landscape of a proper loss on the population distribution. The red dot
+represents a well-calibrated predictor f. The blue curve represents all predictors {κ ◦f : κ ∈Kℓ} obtained by
+admissible post-processing of f. Since the proper loss cannot be decreased by post-processing (the red dot is a minimal
+point on the blue curve), the predictor f is well-calibrated, even though it is not a global minimum.
+loss2. Before going further, we should point out that this statement in its full generality is just not true: for general
+function families C, minimizing proper loss (even globally) over C might not result in a calibrated predictor.
+Even if the class C contains perfectly calibrated predictors, the predictor found by loss minimization need not be
+(even close to) calibrated. Figure 2 shows how even logistic regression can fail to give calibrated predictors.
+Other papers suggest a close relation between minimizing a proper loss and calibration, but stop short of formalizing
+or quantifying the relationship. For example, in deep learning, Lakshminarayanan et al. (2017) states calibration can
+be incentivised by proper scoring rules. There is also a large body of work on post-hoc recalibration methods. The
+recipe here is to first train a predictor via loss minimization over the training set, then compose it with a simple
+post-processing function chosen to optimize cross-entropy on a holdout set (Platt, 1999; Zadrozny and Elkan, 2002).
+See for instance Platt scaling (Platt, 1999), where the post-processing functions are sigmoids, and which continues to
+be used in deep learning (e.g. for temperature scaling as in Guo et al. (2017)). Google’s data science practitioner’s
+guide recommends that, for recalibration methods, the calibration [objective] function should minimize a strictly proper
+scoring rule (Richardson and Pospisil, 2021). In short, these works suggest recalibration by minimizing a proper loss,
+sometimes in conjunction with a simple family of post-processing functions. However, there are no rigorous bounds
+on the calibration error using these methods, nor is there justification for a particular choice of post-processing
+functions.
+Yet despite the lack of rigorous bounds, there are strong hints from practice that in certain settings, optimizing a
+proper-loss does indeed yield calibrated predictors. Perhaps the strongest evidence comes from the newest generation
+of deep neural networks (DNNs). These networks are trained to minimize a proper loss (usually cross-entropy) using
+SGD or variants, and are typically quite far from the ground truth, yet they turn out to be surprisingly well-calibrated.
+This empirical phenomenon occurs in both modern image classifiers (Minderer et al., 2021; Hendrycks* et al., 2020),
+and language models (Desai and Durrett, 2020; OpenAI, 2023). The situation suggests that there is a key theoretical
+piece missing in our understanding of calibration, to capture why models can be so well-calibrated “out-of-the-box.”
+This theory must be nuanced: not all ways of optimizing a proper loss with DNNs yields calibration. For example, the
+previous generation of image classifiers were poorly calibrated (Guo et al., 2017), though the much smaller networks
+before them were well-calibrated (Niculescu-Mizil and Caruana, 2005). Whether DNNs are calibrated, then depends
+on the architecture, distribution, and training algorithm— and our theory must be compatible with this.
+In summary, prior work suggests a close but complicated relationship between minimizing proper loss and calibration.
+On one hand, for simple models like logistic regression, proper loss minimization does not guarantee calibration. On
+the other hand, for DNNs, certain ways (but not all ways) of optimizing a proper loss appears to yield well-calibrated
+predictors. The goal of our work is to analyze this phenomena from a theoretical perspective.3 Our motivating
+question is: What minimal conditions on model family and training procedure guarantee that optimizing
+for a proper loss provably yields small calibration error?
+2https://scikit-learn.org/stable/modules/calibration.html. Log-loss is ℓxent in our notation.
+3For simplicity, we avoid generalization concerns and consider the setting where we minimize loss directly on the population distribution. This
+is a reasonable simplification in many learning settings with sufficient samples, such as the 1-epoch training of many Large-Language-Models.
+2
+
+--- PAGE 3 ---
+−4
+−2
+0
+2
+4
+0.0
+0.5
+1.0 푓(푥)
+푥
+Distribution & Regressor
+푝(푥| 푦= 0)
+푝(푥| 푦= 1)
+푓(푥): logistic reg.
+0.00
+0.25
+0.50
+0.75
+1.00
+푓(푥)
+0.00
+0.25
+0.50
+0.75
+1.00
+E[푦| 푓(푥)]
+Reliability Diagram
+Figure 2: Logistic Regression can be Miscalibrated. We illustrate a 1-dimensional distribution on which logistic
+regression is severely miscalibrated: consider two overlapping uniform distributions, one for each class. Specifically,
+with probability 1/2 we have y = 0 and x ∼Unif([−3, 1]), and with the remaining probability 1/2, we have y = 1
+and x ∼Unif([−1, 3]). This distribution is shown on the left, as well as the optimal logistic regressor f on this
+distribution. In this setting, the logistic regressor is miscalibrated (as shown at right), despite logistic regression
+optimizing a proper loss. Note that the constant predictor f(x) = 0.5 is perfectly calibrated in this example, but
+logistic regression encourages the solution to deviate from it in order to minimize the proper cross-entropy loss.
+Similar examples of logistic regression being miscalibrated are also found in Kull et al. (2017).
+1.1
+Our Contributions
+The main contribution of this work is to identify a local optimality condition for a predictor that is both necessary
+and sufficient to guarantee calibration. The local optimality condition requires that the loss ℓcannot be reduced
+significantly through post-processing using a family of functions Kℓthat have certain Lipschitz-ness guarantees,
+where post-processing means applying a function κ : [0, 1] →[0, 1] to the output of the predictor. This condition is
+illustrated in Figure 1; it is distinct from the standard local optimality condition of vanishing gradients. We prove
+that a predictor satisfying this local optimality condition is smoothly calibrated in the sense of Kakade and Foster
+(2008); Gopalan et al. (2022b); Błasiok et al. (2023b). Smooth calibration is a consistent calibration measure that has
+several advantages over the commonly used Expected Calibration Error (ECE); see the discussion in Kakade and
+Foster (2008); Błasiok et al. (2023b). Quantitatively for the case of the squared loss, we present a tight connection
+between smooth calibration error and the reduction in loss that is possible from post-processing with Kℓ. For other
+proper loss functions ℓ, we give a tight connection between post-processing with Kℓand a calibration notion we call
+dual smooth calibration. The fact that the connection goes both ways implies that a predictor that does not satisfy
+our local optimality condition is far from calibrated, so we have indeed identified the minimal conditions needed to
+ensure calibration.
+Implications. Heuristically, we believe these theoretical results shed light on why modern DNNs are often calibrated
+in practice. There are at least three possible mechanisms, at varying levels of formality.
+First, informally: poor calibration implies that the test loss can be reduced noticeably by post-processing with a simple
+function. But simple post-processings can be represented by adding a few layers to the DNN— so we could plausibly
+improve the test loss by adding a few layers and re-training (or continuing training) with SGD. Thus, if our DNN has
+been trained to the point where such easy gains are not left on the table (as we expect of state-of-the-art models),
+then it is well-calibrated.
+The second possible mechanism follows from one way of formalizing the above heuristic, yielding natural learning
+algorithms that provably achieve calibration. Specifically, consider Structural Risk Minimization (SRM): globally
+minimizing a proper loss plus a complexity regularizer, within some restricted function family. In Section 5, we
+prove SRM is guaranteed to produce a calibrated predictor, provided: (1) the function family is closed under post-
+processing and (2) the complexity regularizer grows only mildly under post-processing. If the informal “implicit
+regularization hypothesis” in deep learning is true, and SGD on DNNs is equivalent to SRM with an appropriate
+3
+
+--- PAGE 4 ---
+complexity-regularizer (Arora et al., 2019; Neyshabur et al., 2014; Neyshabur, 2017; Zhang et al., 2021), then our results
+imply DNNs are well-calibrated as long as the regularizer satisfies our fairly mild assumptions.
+Finally, a third mechanism for calibration involves a heuristic assumption about the optimizer (SGD). Informally,
+for a sufficiently deep network, updating the network parameters from computing the function f to computing the
+post-processed (κ ◦f) may be a “simple” update for SGD. Thus, if it were possible to improve the loss via such a
+simple post-processing, then SGD would have already exploited this by the end of training.
+These algorithms and intuitions also suggest a practical guidance: for calibration, one should optimize loss over
+function families that are capable of computing rich classes of post-processing functions. The universality properties
+of most DNN architectures imply they can compute a rich family of post-processing functions with small added depth
+(Cybenko, 1989; Lu et al., 2017; Yun et al., 2019; Zhou, 2020) but the family of functions used in logistic regression
+(with logits restricted to being affine in the features) cannot.
+Our results are consistent with the calibration differences between current and previous generation models, when
+viewed through the lens of generalization. In both settings, models are expected to be locally-optimal with respect
+to train loss (Carrell et al., 2022), since this is the explicit optimization objective. Calibration, however, requires
+local-optimality with respect to test loss. Previous generation image classification models were trained to interpolate
+on small datasets, so optimizing the train loss was very different from optimizing the test loss (e.g. Guo et al., 2017;
+Mukhoti et al., 2020). Current generation models, in contrast, are trained on massive datasets, where optimizing the
+train loss is effectively equivalent to optimizing the test loss— and so models are close to locally-optimal with respect
+to both, implying calibration.
+Organization. We first give a technical overview of our results in Section 2. In Section 3 we prove our main result in
+the case of square-loss. Then in Section 4 we extend this result to a wide family of proper losses. Finally, in Section 5
+we present natural algorithms which provably achieve calibration, as a consequence by our results. Additional related
+works are presented in Appendix A.
+2
+Overview
+In this section, we present a formal but still high-level overview of our results. We first set some notation. All our
+probabilities and expectations are taken with respect to a distribution D over X × {0, 1}. A predictor is a function
+f : X →[0, 1] that assigns probabilities to points, the ground-truth predictor is f ∗(x) = E[y|x]. A predictor is
+perfectly calibrated if the set A = {v ∈[0, 1] : E[y|f(x) = v] ̸= v} has measure 0 (i.e. PrD(f(x) ∈A) = 0). A
+post-processing function is a function κ : [0, 1] →[0, 1]. A loss function is a function ℓ: {0, 1} × [0, 1] →R, where
+ℓ(y, v) represents the loss suffered when we predict v ∈[0, 1] and the label is y ∈{0, 1}. Such a loss is proper if when
+y ∼Ber(v∗) is sampled from the Bernoulli distribution with parameter v∗, the expected loss E[ℓ(y, v)] is minimized
+at v = v∗, and we say a loss is strictly proper if v∗is the unique minimizer.
+As a warm-up, we present a characterization of perfect calibration in terms of perfect local optimally over the space
+of all possible (non-Lipschitz) post-processing functions.
+Claim 2.1. For every strictly proper loss ℓ, a predictor f is perfectly calibrated iff for every post-processing function κ,
+E
+D[ℓ(y, f(x))] ≤E
+D[ℓ(y, κ(f(x)))].
+(1)
+This is true, because if f is perfectly calibrated, and κ arbitrary, then after conditioning on arbitrary prediction f(x)
+we have:
+E[ℓ(y, f(x))|f(x) = v] =
+E
+y∼Ber(v)[ℓ(y, v)] ≤
+E
+y∼Ber(v)[ℓ(y, κ(v))],
+and (1) follows by averaging over v. On the other hand if f is not perfectly calibrated, we can improve the expected
+loss by taking κ(v) := E[y|f(x) = v] — by the definition of the strictly proper loss, for each v we will have
+E[ℓ(y, κ(f(x))|f(x) = v] ≤E[ℓ(y, f(x))|f(x) = v], and on a set of positive probability the inequality will be strict.
+While we are not aware of this precise claim appearing previously, statements that are similar in spirit are known; for
+instance, by the seminal work of Foster and Vohra (1998) which characterizes calibration in terms of swap regret for
+4
+
+--- PAGE 5 ---
+the squared loss. In our language they show the equivalent Claim 2.1 for ℓbeing a squared loss, and κ restricted to be
+of the form κ(v0) := w0, κ(v) := v for all v ̸= v0.
+Claim 2.1 connects calibration to a local optimality condition over the space of all possible post-processing functions.
+If this is satisfied, it guarantees calibration even though the loss might be far from the global minimum. This sheds
+light on classes of predictors such as decision trees or branching programs, which are closed under composition with
+arbitrary post-processing functions, since this amounts to relabelling the leaf nodes. It tells us that such models ought
+to be calibrated from proper loss minimization, as long as the optimization achieves a fairly weak notion of local
+optimality.
+The next step is to ask whether DNNs could satisfy a similar property. Closure under arbitrary post-processing seems
+too strong a condition for DNNs to satisfy — we should not expect DNNs to be able to express arbitrarily discontinuous
+uni-variate post-processing functions. But we do not expect or require DNNs to be perfectly calibrated, only to be
+close to perfectly calibrated. Measuring the distance from calibration involves subtle challenges as highlighted in the
+recent work of Błasiok et al. (2023b). This leads us to the following robust formulation which significantly generalizes
+Claim 2.1:
+• Using the well known relation between proper losses and Bregman divergences (Savage, 1971; Gneiting and Raftery,
+2007), we consider proper loss functions where the underlying convex functions satisfy certain differentiability and
+smoothness properties. This is a technical condition, but one that is satisfied by all proper loss functions commonly
+used in practice.
+• We only allow post-processing functions that satisfy certain Lipschitzness properties. Such functions are simple
+enough to be implementable by DNNs of constant depth. Indeed we heuristically believe that state-of-the-art DNNs
+will automatically be near-optimal w.r.t. such post-processings, as mentioned in Section 1.1.
+• We measure calibration distance using the notion of smooth calibration from Kakade and Foster (2008) and
+strengthenings of it in Gopalan et al. (2022b); Błasiok et al. (2023b). Smooth calibration plays a central role in the
+consistent calibration measures framework of Błasiok et al. (2023b), where it is shown using duality that the smCE
+is linearly related with the Wasserstein distance to the nearest perfectly calibrated predictor (Błasiok et al., 2023b).
+In practice, there exist sample-efficient and linear-time estimators which approximate the smooth calibration error
+within a quadratic factor (Błasiok et al., 2023b).
+With these notions in place, we show that the post-processing gap of a predictor, which measures how much the loss
+can be reduced via certain Lipschitz post-processing functions provides both an upper and a lower bound on the
+smooth calibration error. This result gives us a robust and quantitative version of Claim 2.1. The main technical
+challenge in formulating this equivalence is that for general ℓ, the class of post-processing functions that we allow and
+the class of smooth functions that we use to measure calibration error are both now dependent on the loss function ℓ,
+they are Lipschitz over an appropriately defined dual space to the predictions defined using convex duality. In order
+to keep the statements simple, we state our results for the special case of squared loss and cross entropy loss below,
+defering the full statement to the technical sections.
+Squared loss.
+For the squared loss ℓsq(y, v) = (y −v)2, we define the post-processing gap pGapD(f) to be the
+difference between the expected squared loss E[ℓsq(y, f(x))] of a predictor f and the minimum expected squared
+loss after we post-process f(x) 7→f(x) + η(f(x)) for some 1-Lipschitz η. The Brier score (Brier et al., 1950; Foster
+and Vohra, 1998) uses the squared loss of a predictor as a calibration measure; pGap can be viewed as a differential
+version of Brier score.
+Definition 2.2 (Post-processing gap). Let K denote the family of all post-processing functions κ : [0, 1] →[0, 1] such
+that the update function η(v) = κ(v) −v is 1-Lipschitz. For a predictor f : X →[0, 1] and a distribution D over
+X × {0, 1}, we define the post-processing gap of f w.r.t. D to be
+pGapD(f) := E(x,y)∼D[ℓsq(y, f(x))] −infκ∈K E(x,y)∼D[ℓsq(y, κ(f(x)))].
+We define the smooth calibration error smCED(f) as in Kakade and Foster (2008); Gopalan et al. (2022b); Błasiok
+et al. (2023b) to be the maximum correlation between y −f(x) and η(f(x)) over all bounded 1-Lipschitz functions η.
+5
+
+--- PAGE 6 ---
+Smooth calibration is a consistent measure of calibration (Błasiok et al., 2023b). It does not suffer the discontinuity
+problems of ECE (Kakade and Foster, 2008), and is known to be linearly related with the Wasserstein distance to
+the nearest perfectly calibrated predictor (Błasiok et al. (2023b)). In particular, it is 0 if and only if we have perfect
+calibration. We refer the reader to these papers for a detailed discussion of its merits.
+Definition 2.3 (Smooth calibration error). Let H be the family of all 1-Lipschitz functions η : [0, 1] →[−1, 1]. The
+smooth calibration error of a predictor f : X →[0, 1] with respect to distribution D over X × {0, 1} is defined as
+smCED(f) := supη∈H E(x,y)∼D[(y −f(x))η(f(x))].
+Our main result is a quadratic relationship between these two quantities:
+Theorem 2.4. For any predictor f : X →[0, 1] and any distribution D over X × {0, 1},
+smCED(f)2 ≤pGapD(f) ≤2 smCED(f).
+In Appendix C we show that the constants in the inequality above are optimal.
+Cross-entropy loss.
+For the cross entropy loss ℓxent(y, v) = −y ln v −(1 −y) ln(1 −v), we observe its close
+connection to the logistic loss ℓ(ψ)(y, t) = ln(1 + et) −yt given by the equation
+ℓxent(y, v) = ℓ(ψ)(y, t)
+(2)
+where t := ln(v/(1 −v)) is what we call the dual prediction corresponding to v. While a standard terminology
+for t is logit, we say t is the dual prediction because this notion generalizes to arbitrary proper loss functions. One
+can conversely obtain a prediction v from its dual prediction t by taking the sigmoid transformation: v = σ(t) :=
+1/(1 + e−t). The superscript ψ in the logistic loss ℓ(ψ) can be understood to indicate its relationship to the dual
+prediction and the exact meaning is made clear in Section 4. Based on (2), optimizing the cross-entropy loss ℓxent over
+predictions v is equivalent to optimizing the logistic loss ℓ(ψ) over dual predictions t.
+Usually, a neural network that aims to minimize the cross-entropy loss has a last layer that computes the sigmoid σ
+(the binary version of softmax), so the value computed by the network before the sigmoid (the “logit”) is the dual
+prediction. If we want to enhance the neural network by adding more layers, these layers are typically inserted before
+the final sigmoid transformation. It is thus more natural to consider post-processings on the dual predictions (logits)
+rather than on the predictions themselves.
+For a predictor f, we define the dual post-processing gap pGap(ψ,1/4)(g) of its dual predictor g(x) = ln(f(x)/(1 −
+f(x))) to be the difference between the expected logistic loss E[ℓ(ψ)(y, g(x))] of g and the minimum expected logistic
+loss after we post-process g(x) 7→g(x) + η(g(x)) for some 1-Lipschitz η : R →[−4, 4], where the constant 4 comes
+from the fact that the logistic loss is 1/4-smooth in t.
+Definition 2.5 (Dual post-processing gap for cross-entropy loss, special case of Definition 4.4). Let K denote the
+family of all post-processing functions κ : R →R such that the update function η(t) := κ(t) −t is 1-Lipschitz
+and bounded |η(t)| ≤4. Let ℓ(ψ) be the logistic loss. Let D be a distribution over X × {0, 1}. We define the dual
+post-processing gap of a function g : X →R to be
+pGap(ψ,1/4)
+D
+(g) := E(x,y)∼D ℓ(ψ)(y, g(x)) −infκ∈K E(x,y)∼D ℓ(ψ) y, κ(g(x))
+
+.
+We define the dual smooth calibration error smCE(ψ,1/4)(g) to be the maximum of | E[(y −f(x))η(g(x))]| over all
+1/4-Lipschitz functions η : R →[−1, 1]. Like with smooth calibration, it is 0 if and only if the predictor f is perfectly
+calibrated.
+Definition 2.6 (Dual smooth calibration for cross-entropy loss, special case of Definition 4.5). Let H be the family
+of all 1/4-Lipschitz functions η : R →[−1, 1]. For a function g : X →R, define predictor f : X →[0, 1] such that
+f(x) = σ(g(x)) for every x ∈X where σ is the sigmoid transformation. Let D be a distribution over X × {0, 1}. We
+define the dual calibration error of g as
+smCE(ψ,1/4)
+D
+(g) := supη∈H | E(x,y)∼D[(y −f(x))η(g(x))]|.
+6
+
+--- PAGE 7 ---
+We show a result similar to Theorem 2.4 that the dual post-processing gap and the dual smooth calibration error are
+also quadratically related. Moreover, we show that a small dual smooth calibration error implies a small (standard)
+smooth calibration error.
+Corollary 2.7 (Corollary of Theorem 4.6 and Lemma 4.7). Let pGap(ψ,1/4) and smCE(ψ,1/4) be defined as in Def-
+inition 2.5 and Definition 2.6 for the cross-entropy loss. For any function g : X →R and any distribution D over
+X × {0, 1},
+2 smCE(ψ,1/4)
+D
+(g)2 ≤pGap(ψ,1/4)
+D
+(g) ≤4 smCE(ψ,1/4)
+D
+(g).
+(3)
+Moreover, let predictor f : X →[0, 1] be given by f(x) = σ(g(x)) for the sigmoid transformation σ. Its (standard)
+smooth calibration error smCED(f) defined in Definition 2.3 satisfies
+smCED(f) ≤smCE(ψ,1/4)
+D
+(g).
+(4)
+The constants in the corollary above are optimal as we show in Lemmas C.3 and C.4 in the appendix. Both results (3)
+and (4) generalize to a wide class of proper loss functions as we show in Section 4.
+Remark 2.8. In a subsequent work, Błasiok and Nakkiran (2023) proved the reverse direction of (4) for the cross-entropy
+loss: smCED(f) ≥Ω
+ smCE(ψ,1/4)
+D
+(g)2
+. Hence both smCE(ψ,1/4)(g) and pGap(ψ,1/4)(g) are consistent calibration
+measures, a notion introduced by Błasiok et al. (2023b).
+Our result shows that achieving a small dual post-processing gap when optimizing a cross-entropy is necessary
+and sufficient for good calibration guarantees. It sheds light on the examples where logistic regression fails to
+yield a calibrated predictor; in those instances the cross-entropy loss can be further reduced by some Lipschitz
+post-processing of the logit. This is intuitive because logistic regression only optimizes cross-entropy within the
+restricted class where the logit is a linear combination of the features plus a bias term, and this class is not closed
+under Lipschitz post-processing.
+3
+Calibration and Post-processing Gap for the Squared Loss
+In this section we prove our main result Theorem 2.4 relating the smooth calibration error of a predictor to its
+post-processing gap with respect to the squared loss.
+Proof of Theorem 2.4. We first prove the upper bound on pGapD(f). For any κ ∈K in the definition of pGap
+(Definition 2.2), there exists a 1-Lipschitz function η : [0, 1] →[−1, 1] such that κ(v) = v + η(v) for every v ∈[0, 1].
+For the squared loss ℓ,
+E(x,y)∼D[ℓ(y, κ(f(x)))] = E[(y −f(x) −η(f(x)))2]
+= E[(y −f(x))2] −2 E[(y −f(x))η(f(x))] + E[η(f(x))2].
+(5)
+The three terms on the right hand side satisfy
+E[(y −f(x))2] = E[ℓ(y, f(x))],
+E[(y −f(x))η(f(x))] ≤smCED(f),
+E[η(f(x))2] ≥0.
+Plugging these into (5), we get
+E[ℓ(y, f(x))] −E[ℓ(y, κ(f(x)))] ≤2smCED(f).
+Since this inequality holds for any κ ∈K, we get pGapD(f) ≤2smCED(f) as desired.
+Now we prove the lower bound on pGapD(f). For any 1-Lipschitz function η : [0, 1] →[−1, 1], define β :=
+E[(y −f(x))η(f(x))] ∈[−1, 1] and define post-processing κ : [0, 1] →[0, 1] such that
+κ(v) = proj[0,1](v + βη(v))
+for every v ∈[0, 1],
+7
+
+--- PAGE 8 ---
+where proj[0,1](u) is the value in [0, 1] closest to u, i.e., proj[0,1](u) = min(max(u, 0), 1). By Lemma G.2, we have
+κ ∈K. The expected squared loss after we apply the post-processing κ can be bounded as follows:
+E(x,y)∼D[ℓ(y, κ(f(x)))] ≤E[(y −f(x) −βη(f(x)))2]
+= E[(y −f(x))2] −2β E[(y −f(x))η(f(x))] + β2 E[η(f(x))2]
+= E[ℓ(y, f(x))] −2β2 + β2 E[η(f(x))2]
+≤E[ℓ(y, f(x))] −2β2 + β2.
+Re-arranging the inequality above, we have
+E[(y −f(x))η(f(x))]2 = β2 ≤E[ℓ(y, f(x))] −E[ℓ(y, κ(f(x)))] ≤pGapD(f).
+Since this inequality holds for any 1-Lipschitz function η : [0, 1] →[−1, 1], we get smCED(f)2 ≤pGapD(f), as
+desired.
+In Appendix C we provide examples showing that the constants in Theorem 2.4 are optimal.
+4
+Generalization to Any Proper Loss
+When we aim to minimize the squared loss, we have shown that achieving a small post-processing gap w.r.t. Lipschitz
+post-processings ensures a small smooth calibration error and vice versa. In this section, we extend this result to a
+wide class of proper loss functions including the popular cross-entropy loss.
+Definition 4.1. Let V ⊆[0, 1] be a non-empty interval. We say a loss function ℓ: {0, 1} × V →R is proper if for
+every v ∈V , it holds that v ∈argminv′∈V Ey∼Ber(v)[ℓ(y, v′)].
+One can easily verify that the squared loss ℓ(y, v) = (y −v)2 is a proper loss function over V = [0, 1], and the cross
+entropy loss ℓ(y, v) = −y ln v −(1 −y) ln(1 −v) is a proper loss function over V = (0, 1).
+It turns out that if we directly replace the squared loss in Definition 2.2 with an arbitrary proper loss, we do not
+get a similar result as Theorem 2.4. In Appendix B we give a simple example where the post-processing gap w.r.t.
+the cross-entropy loss can be arbitrarily larger than the smooth calibration error. Thus new ideas are needed to
+extend Theorem 2.4 to general proper loss functions. We leverage a general theory involving correspondence between
+proper loss functions and convex functions (Shuford et al., 1966; Savage, 1971; Schervish, 1989; Buja et al., 2005). We
+provide a detailed description of this theory in Appendix D. There we include a proof of Lemma D.4 which implies
+the following lemma:
+Lemma 4.2. Let V ⊆[0, 1] be a non-empty interval. Let ℓ: {0, 1} × V →R be a proper loss function. For every v ∈V ,
+define dual(v) := ℓ(0, v) −ℓ(1, v). Then there exists a convex function ψ : R →R such that
+ℓ(y, v) = ψ(dual(v)) −y dual(v)
+for every y ∈{0, 1} and v ∈V .
+(6)
+Moreover, if ψ is differentiable, then ∇ψ(t) ∈[0, 1].
+Lemma 4.2 says that every proper loss induces a convex function ψ and a mapping dual : V →R that maps a
+prediction v ∈V ⊆[0, 1] to its dual prediction dual(v) ∈R. Our main theorem applies whenever the induced
+function ψ is differentiable, and ∇ψ is λ-Lipschitz (equivalently ψ is λ-smooth) — those are relatively mild conditions
+that are satisfied by all proper loss functions of interest.
+The duality relationship between v and dual(v) comes from the fact that each (v, dual(v)) pair makes the Fenchel-
+Young divergence induced by a conjugate pair of convex functions (φ, ψ) take its minimum value zero, as we show in
+Appendix D. Equation (6) expresses a proper loss as a function that depends on dual(v) rather than directly on v, and
+thus minimizing a proper loss over predictions v is equivalent to minimizing a corresponding dual loss over dual
+predictions t = dual(v):
+8
+
+--- PAGE 9 ---
+Definition 4.3 (Dual loss). For a function ψ : R →R, we define a dual loss function ℓ(ψ) : {0, 1} × R →R such that
+ℓ(ψ)(y, t) = ψ(t) −yt
+for every y ∈{0, 1} and t ∈R.
+Consequently, if a loss function ℓ: {0, 1} × V →R satisfies (6) for some V ⊆[0, 1] and dual : V →R, then
+ℓ(y, v) = ℓ(ψ)(y, dual(v))
+for every y ∈{0, 1} and v ∈V.
+(7)
+The above definition of a dual loss function is essentially the definition of the Fenchel-Young loss in the literature (see
+e.g. Duchi et al., 2018; Blondel et al., 2020). A loss function ℓ(ψ) satisfying the relationship in (7) has been referred to
+as a composite loss (see e.g. Buja et al., 2005; Reid and Williamson, 2010).
+For the cross-entropy loss ℓ(y, v) = −y ln v −(1 −y) ln(1 −v), the corresponding dual loss is the logistic loss
+ℓ(ψ)(y, t) = ln(1+et)−yt, and the relationship between a prediction v ∈(0, 1) and its dual prediction t = dual(v) ∈
+R is given by v = σ(t) for the sigmoid transformation σ(t) = et/(1 + et).
+For a predictor f : X →V , we define its dual post-processing gap by considering dual predictions g(x) = dual(f(x))
+w.r.t. the dual loss ℓ(ψ) as follows:
+Definition 4.4 (Dual post-processing gap). For λ > 0, let Kλ denote the family of all post-processing functions
+κ : R →R such that there exists a 1-Lipschitz function η : R →[−1/λ, 1/λ] satisfying κ(t) = t + η(t) for every t ∈R.
+Let ψ and ℓ(ψ) be defined as in Definition 4.3. Let D be a distribution over X ×{0, 1}. We define the dual post-processing
+gap of a function g : X →R to be
+pGap(ψ,λ)
+D
+(g) := E(x,y)∼D ℓ(ψ)(y, g(x)) −infκ∈Kλ E(x,y)∼D ℓ(ψ) y, κ(g(x))
+
+.
+Definition 4.4 is a generalization of Definition 2.2 from the squared loss to an arbitrary proper loss corresponding to a
+function ψ as in (6). The following definition generalizes the definition of smooth calibration in Definition 2.3 to an
+arbitrary proper loss in a similar way. Here we use the fact proved in Appendix D (equation (20)) that if the function
+ψ from Lemma 4.2 for a proper loss ℓ: {0, 1} × V →R is differentiable, then ∇ψ(dual(v)) = v holds for any v ∈V ,
+where ∇ψ(·) denotes the derivative of ψ. This means that ∇ψ transforms a dual prediction to its original prediction.
+Definition 4.5 (Dual smooth calibration). For λ > 0, let Hλ be the family of all λ-Lipschitz functions η : R →[−1, 1].
+Let ψ : R →R be a differentiable function with derivative ∇ψ(t) ∈[0, 1] for every t ∈R. For a function g : X →R,
+define predictor f : X →[0, 1] such that f(x) = ∇ψ(g(x)) for every x ∈X. Let D be a distribution over X × {0, 1}.
+We define the dual calibration error of g to be
+smCE(ψ,λ)
+D
+(g) := supη∈Hλ | E(x,y)∼D[(y −f(x))η(g(x))]|.
+In Theorem 4.6 below we state our generalization of Theorem 2.4 to arbitrary proper loss functions. Theorem 4.6
+shows that achieving a small dual post-processing gap is equivalent to achieving a small dual calibration error. We
+then show in Lemma 4.7 that a small dual calibration error implies a small (standard) smooth calibration error.
+Theorem 4.6. Let ψ : R →R be a differentiable convex function with derivative ∇ψ(t) ∈[0, 1] for every t ∈R. For
+λ > 0, assume that ψ is λ-smooth, i.e.,
+|∇ψ(t) −∇ψ(t′)| ≤λ|t −t′|
+for every t, t′ ∈R.
+(8)
+Then for every g : X →R and any distribution D over X × {0, 1},
+smCE(ψ,λ)
+D
+(g)2/2 ≤λ pGap(ψ,λ)
+D
+(g) ≤smCE(ψ,λ)
+D
+(g).
+Lemma 4.7. Let ψ : R →R be a differentiable convex function with derivative ∇ψ(t) ∈[0, 1] for every t ∈R. For
+λ > 0, assume that ψ is λ-smooth as in (8). For g : X →R, define f : X →[0, 1] such that f(x) = ∇ψ(g(x)) for
+every x ∈X. For a distribution D over X × {0, 1}, define smCED(f) as in Definition 2.3. Then
+smCED(f) ≤smCE(ψ,λ)
+D
+(g).
+9
+
+--- PAGE 10 ---
+We defer the proofs of Theorem 4.6 and Lemma 4.7 to Appendix E.1 and Appendix E.2. Combining the two results,
+assuming ψ is λ-smooth, we have
+smCED(f)2/2 ≤λ pGap(ψ,λ)
+D
+(g).
+This means that a small dual post-processing gap for a proper loss implies a small (standard) smooth calibration error.
+The cross-entropy loss ℓis a proper loss where the corresponding ψ from Lemma 4.2 is given by ψ(t) = ln(1 + et)
+and it is 1/4-smooth. Setting λ = 1/4 in Theorem 4.6 and Lemma 4.7, we get (3) and (4) for the cross-entropy loss.
+5
+Optimization Algorithms and Implicit Regularization.
+We now present several natural algorithms which explicitly minimize loss, but implicitly achieve good calibration.
+These are simple consequences of our results. Moreover, we give informal intuitions connecting each algorithm to
+training DNNs in practice.
+5.1
+Structural Risk Minimization
+We show that structural risk minimization (SRM) on the population distribution is guaranteed to output well-calibrated
+predictors, under mild assumptions on the function family and regularizer. Recall, structural risk minimization
+considers a function family F equipped with some “complexity measure” µ : F →R≥0. For example, we may take
+the family of bounded-width neural networks, with depth as the complexity measure. SRM then minimizes a proper
+loss, plus a complexity-regularizer given by µ:
+f ∗= argmin
+f∈F
+E
+D[ℓ(y, f(x)] + λµ(f).
+The complexity measure µ is usually designed to control the capacity of the function family for generalization reasons,
+though we will not require such assumptions about µ. Rather, we only require that µ(f) does not grow too quickly
+under composition with Lipshitz functions. That is, µ(κ ◦f) should be at most a constant greater than µ(f), for all
+Lipshitz functions κ. Now, as long as the function family F is also closed under composition, SRM is well-calibrated:
+Claim 5.1. Let F be a class of functions f : X →[0, 1] closed under composition with K, where we define K as in
+Definition 2.2. That is, for f ∈F, κ ∈K we have κ ◦f ∈F. Let µ : F →R≥0 be any complexity measure satisfying,
+for all f ∈F, κ ∈K : µ(κ ◦f) ≤µ(f) + 1. Then the minimizer f ∗of the regularized optimization problem
+f ∗= argmin
+f∈F
+E
+D ℓsq(y, f(x)) + λµ(f).
+satisfies pGapD(f ∗) ≤λ, and thus by Theorem 2.4 has small calibration error: smCED(f ∗) ≤
+√
+λ.
+Proof. The proof is almost immediate. Let MSED(f) denote ED[ℓsq(y, f(x))]. Consider the solution f ∗and arbitrary
+κ ∈K. Since κ ◦f ∗∈F, we have
+MSED(f ∗) + λµ(f ∗) ≤MSED(κ ◦f ∗) + λµ(κ ◦f ∗) ≤MSED(κ ◦f ∗) + λµ(f ∗) + λ.
+After rearranging, this is equivalent to
+MSED(f ∗) −MSED(κ ◦f ∗) ≤λ,
+and since κ ∈K was arbitrary, we get pGapD(f) ≤λ. as desired.
+Discussion: Implicit Regularization. This aspect of SRM connects our results to the “implicit regularization”
+hypothesis from deep learning theory community (Neyshabur, 2017). The implicit regularization hypothesis is an
+informal belief that SGD on neural networks implicitly performs minimization on a “complexity-regularized” objective,
+which ensures generalization. The exact form of this complexity regularizer remains elusive, but many works have
+attempted to identify its structural properties (e.g. Arora et al. (2019); Neyshabur et al. (2014); Neyshabur (2017);
+Zhang et al. (2021)). In this context, our results imply that if the implicit regularization hypothesis is true, then as
+long as the complexity measure µ doesn’t increase too much from composition, the final output of SGD will be
+well-calibrated.
+10
+
+--- PAGE 11 ---
+5.2
+Iterative Risk Minimization
+One intuition for why state-of-the-art DNNs are often calibrated is that they are “locally optimal” (in our sense)
+by design. For a state-of-the-art network, if it were possible to improve its test loss significantly by just adding a
+layer (and training it optimally), then the human practitioner training the DNN would have added another layer and
+re-trained. Thus, we expect the network eventually produced will be approximately loss-optimal with respect to
+adding a layer, and thus also with respect to univariate Lipshitz post-processings (so pGapD(f) ≈0).
+This intuition makes several strong assumptions, for example, the practitioner must be able to re-train the last two
+layers globally optimally4. However, the same idea can apply in settings where optimization is tractable. We give one
+way of formalizing this via the Iterative Risk Minimization algorithm in Appendix F.1.
+Discussion: Importance of depth. These two algorithms highlight the central role of composition in function
+families. Specifically, if we are optimizing over a function family that is not closed under univariate Lipshitz
+compositions (perhaps approximately), then we have no reason to expect pGap(f) ≈0: because there could exist a
+simple (univariate, Lipshitz) transformation which reduces the loss, but which our function family cannot model.
+This may provide intuition for why certain models which preceeded DNNs, like logistic regression and SVMs, were
+often not calibrated. Moreover, it emphasizes the importance of depth in neural-networks: depth is required to model
+composing Lipshitz transforms, which improves both loss and calibration.
+5.3
+Heuristic Structure of SGD
+Finally, there is an informal conjecture which could explain why certain DNNs in practice are calibrated, even if they
+are far from state-of-the-art: Informally, if it were possible to improve the loss by a simple update to the network
+function (post-processing), then one may conjecture SGD would have exploited this by the end of training. That is,
+updating the parameters from computing the function f to computing (κ ◦f) may be a “simple” update for SGD on a
+deep-enough network, and SGD would not leave this gain on the table by the end of training. We stress that this
+conjecture is informal and speculative, but we consider it a plausible intuition.
+6
+Conclusion
+Inspired by recent empirical observations, we studied formal conditions under which optimizing a proper loss also
+happens to yield calibration “for free.” We identified a certain local optimality condition that characterizes distance
+to calibration, in terms of properties of the (proper) loss landscape. Our results apply even to realistic optimization
+algorithms, which optimize over restricted function families, and may not reach global minima within these families. In
+particular, our formal results suggest an intuitive explanation for why state-of-the-art DNNs are often well-calibrated:
+because their test loss cannot be improved much by adding a few more layers. It also offers guidance for how one can
+achieve calibration simply by proper loss minimization over a sufficiently expressive family of predictors.
+Limitations. The connection between our theoretical results and DNNs in practice is heuristic— for example, we do
+not have a complete proof that training a DNN with SGD on natural distributions will yield a calibrated predictor,
+though we have formal results that give some intuition for this. Part of the difficulty here is due to known definitional
+barriers (Nakkiran, 2021), which is that we would need to formally specify what “DNN” means in practice (which
+architectures, and sizes?), what “SGD” means in practice (what initialization, learning-rate schedule, etc), and what
+“natural distributions” means in practice. Finally, we intuitively expect the results from our work to generalize beyond
+the binary label setting; we leave it to future work to formalize this intuition.
+Acknowledgements. Part of this work was performed while LH was interning at Apple. LH is also supported by
+Moses Charikar’s and Omer Reingold’s Simons Investigators awards, Omer Reingold’s NSF Award IIS-1908774, and
+the Simons Foundation Collaboration on the Theory of Algorithmic Fairness. JB is supported by Simons Foundation.
+4Technically, we only require a weaker statement of the form: For all networks fd of depth d in the support of SGD outputs, if the loss of
+κ ◦fd is ε, then training a network fd+1 of depth d + 1 will reach loss at most ε.
+11
+
+--- PAGE 12 ---
+References
+Moloud Abdar, Farhad Pourpanah, Sadiq Hussain, Dana Rezazadegan, Li Liu, Mohammad Ghavamzadeh, Paul Fieguth,
+Xiaochun Cao, Abbas Khosravi, U Rajendra Acharya, et al. A review of uncertainty quantification in deep learning:
+Techniques, applications and challenges. Information Fusion, 76:243–297, 2021. 15
+Sanjeev Arora, Nadav Cohen, Wei Hu, and Yuping Luo. Implicit regularization in deep matrix factorization. Advances
+in Neural Information Processing Systems, 32, 2019. 4, 10
+Jarosław Błasiok and Preetum Nakkiran. Smooth ECE: Principled reliability diagrams via kernel smoothing. arXiv
+preprint arXiv:2309.12236, 2023. 7
+Jarosław Błasiok, Parikshit Gopalan, Lunjia Hu, Adam Tauman Kalai, and Preetum Nakkiran. Loss minimization
+yields multicalibration for large neural networks. arXiv preprint arXiv:2304.09424, 2023a. URL https://doi.
+org/10.48550/arXiv.2304.09424. 15
+Jarosław Błasiok, Parikshit Gopalan, Lunjia Hu, and Preetum Nakkiran. A unifying theory of distance from calibration.
+In Proceedings of the 55th Annual ACM Symposium on Theory of Computing, page 1727–1740, New York, NY, USA,
+2023b. Association for Computing Machinery. ISBN 9781450399135. 1, 3, 5, 6, 7, 15
+Mathieu Blondel, André F. T. Martins, and Vlad Niculae. Learning with Fenchel-Young losses. Journal of Machine
+Learning Research, 21(35):1–69, 2020. URL http://jmlr.org/papers/v21/19-021.html. 9
+Glenn W Brier et al. Verification of forecasts expressed in terms of probability. Monthly weather review, 78(1):1–3,
+1950. 5
+Andreas Buja, Werner Stuetzle, and Yi Shen. Loss functions for binary class probability estimation and classification:
+Structure and applications. Manuscript, 2005. URL https://sites.stat.washington.edu/wxs/
+Learning-papers/paper-proper-scoring.pdf. 8, 9, 18
+Annabelle Carrell, Neil Mallinar, James Lucas, and Preetum Nakkiran. The calibration generalization gap. arXiv
+preprint arXiv:2210.01964, 2022. 4
+Lucas Clarté, Bruno Loureiro, Florent Krzakala, and Lenka Zdeborová. On double-descent in uncertainty quantification
+in overparametrized models. In Francisco Ruiz, Jennifer Dy, and Jan-Willem van de Meent, editors, Proceedings
+of The 26th International Conference on Artificial Intelligence and Statistics, volume 206 of Proceedings of Machine
+Learning Research, pages 7089–7125. PMLR, 25–27 Apr 2023a. URL https://proceedings.mlr.press/
+v206/clarte23a.html. 15
+Lucas Clarté, Bruno Loureiro, Florent Krzakala, and Lenka Zdeborová. Theoretical characterization of uncertainty
+in high-dimensional linear classification. Machine Learning: Science and Technology, 4(2):025029, jun 2023b. doi:
+10.1088/2632-2153/acd749. URL https://dx.doi.org/10.1088/2632-2153/acd749. 15
+George Cybenko. Approximation by superpositions of a sigmoidal function. Mathematics of control, signals and
+systems, 2(4):303–314, 1989. 4
+A Philip Dawid. The well-calibrated bayesian. Journal of the American Statistical Association, 77(379):605–610, 1982. 1
+Shrey Desai and Greg Durrett. Calibration of pre-trained transformers. In Proceedings of the 2020 Conference on
+Empirical Methods in Natural Language Processing (EMNLP), pages 295–302, 2020. 2
+John Duchi, Khashayar Khosravi, and Feng Ruan. Multiclass classification, information, divergence and surrogate
+risk. The Annals of Statistics, 46(6B):3246 – 3275, 2018. doi: 10.1214/17-AOS1657. URL https://doi.org/
+10.1214/17-AOS1657. 9
+Dean P. Foster and Rakesh V. Vohra. Asymptotic calibration. Biometrika, 85(2):379–390, 1998. 1, 4, 5
+Yarin Gal. Uncertainty in Deep Learning. PhD thesis, University of Cambridge, 2016. 15
+Ira Globus-Harris, Declan Harrison, Michael Kearns, Aaron Roth, and Jessica Sorrell. Multicalibration as boosting for
+regression. arXiv preprint arXiv:2301.13767, 2023. 15
+12
+
+--- PAGE 13 ---
+Tilmann Gneiting and Adrian E Raftery. Strictly proper scoring rules, prediction, and estimation. Journal of
+the American Statistical Association, 102(477):359–378, 2007. doi: 10.1198/016214506000001437. URL https:
+//doi.org/10.1198/016214506000001437. 5
+Parikshit Gopalan, Adam Tauman Kalai, Omer Reingold, Vatsal Sharan, and Udi Wieder. Omnipredictors. In Innovations
+in Theoretical Computer Science (ITCS’2022), 2022a. URL https://arxiv.org/abs/2109.05389. 15
+Parikshit Gopalan, Michael P. Kim, Mihir Singhal, and Shengjia Zhao. Low-degree multicalibration. In Conference
+on Learning Theory, 2-5 July 2022, London, UK, volume 178 of Proceedings of Machine Learning Research, pages
+3193–3234. PMLR, 2022b. 3, 5, 15
+Parikshit Gopalan, Lunjia Hu, Michael P. Kim, Omer Reingold, and Udi Wieder. Loss Minimization Through the
+Lens Of Outcome Indistinguishability. In 14th Innovations in Theoretical Computer Science Conference (ITCS 2023),
+volume 251 of Leibniz International Proceedings in Informatics (LIPIcs), pages 60:1–60:20, 2023a. 15
+Parikshit Gopalan, Michael P. Kim, and Omer Reingold. Characterizing notions of omniprediction via multicalibration.
+CoRR, abs/2302.06726, 2023b. doi: 10.48550/arXiv.2302.06726. URL https://doi.org/10.48550/arXiv.
+2302.06726. 15
+Alex Graves. Practical variational inference for neural networks. Advances in neural information processing systems,
+24, 2011. 15
+Chuan Guo, Geoff Pleiss, Yu Sun, and Kilian Q Weinberger. On calibration of modern neural networks. In International
+Conference on Machine Learning, pages 1321–1330. PMLR, 2017. 2, 4
+Úrsula Hébert-Johnson, Michael P. Kim, Omer Reingold, and Guy N. Rothblum. Multicalibration: Calibration for
+the (computationally-identifiable) masses. In Proceedings of the 35th International Conference on Machine Learning,
+ICML, 2018. 15, 20
+Dan Hendrycks*, Norman Mu*, Ekin Dogus Cubuk, Barret Zoph, Justin Gilmer, and Balaji Lakshminarayanan. Augmix:
+A simple method to improve robustness and uncertainty under data shift. In International Conference on Learning
+Representations, 2020. URL https://openreview.net/forum?id=S1gmrxHFvB. 2
+Lunjia Hu, Inbal Livni-Navon, Omer Reingold, and Chutong Yang. Omnipredictors for constrained optimization.
+arXiv preprint arXiv:2209.07463, 2022. URL https://doi.org/10.48550/arXiv.2209.07463. 15
+Sham Kakade and Dean Foster. Deterministic calibration and nash equilibrium. Journal of Computer and System
+Sciences, 74(1):115–130, 2008. 1, 3, 5, 6, 15
+Archit Karandikar, Nicholas Cain, Dustin Tran, Balaji Lakshminarayanan, Jonathon Shlens, Michael C Mozer, and
+Becca Roelofs. Soft calibration objectives for neural networks. Advances in Neural Information Processing Systems,
+34:29768–29779, 2021. 15
+Michael Kearns, Seth Neel, Aaron Roth, and Zhiwei Steven Wu. Preventing fairness gerrymandering: Auditing and
+learning for subgroup fairness. arXiv preprint arXiv:1711.05144, 2017. 15
+Meelis Kull, Telmo Silva Filho, and Peter Flach. Beta calibration: a well-founded and easily implemented improvement
+on logistic calibration for binary classifiers. In Artificial Intelligence and Statistics, pages 623–631. PMLR, 2017. 3
+Aviral Kumar, Sunita Sarawagi, and Ujjwal Jain. Trainable calibration measures for neural networks from kernel
+mean embeddings. In International Conference on Machine Learning, pages 2805–2814. PMLR, 2018. 15
+Balaji Lakshminarayanan, Alexander Pritzel, and Charles Blundell. Simple and scalable predictive uncertainty
+estimation using deep ensembles. In Advances in neural information processing systems, pages 6402–6413, 2017. 2
+Zhou Lu, Hongming Pu, Feicheng Wang, Zhiqiang Hu, and Liwei Wang. The expressive power of neural networks: A
+view from the width. Advances in neural information processing systems, 30, 2017. 4
+David JC MacKay. Probable networks and plausible predictions-a review of practical bayesian methods for supervised
+neural networks. Network: computation in neural systems, 6(3):469, 1995. 15
+13
+
+--- PAGE 14 ---
+Matthias Minderer, Josip Djolonga, Rob Romijnders, Frances Hubis, Xiaohua Zhai, Neil Houlsby, Dustin Tran, and
+Mario Lucic. Revisiting the calibration of modern neural networks. Advances in Neural Information Processing
+Systems, 34:15682–15694, 2021. 2
+Jishnu Mukhoti, Viveka Kulharia, Amartya Sanyal, Stuart Golodetz, Philip Torr, and Puneet Dokania. Calibrating
+deep neural networks using focal loss. Advances in Neural Information Processing Systems, 33:15288–15299, 2020. 4
+Preetum Nakkiran. Towards an empirical theory of deep learning. PhD thesis, Harvard University, 2021. 11
+Behnam Neyshabur. Implicit regularization in deep learning. arXiv preprint arXiv:1709.01953, 2017. 4, 10
+Behnam Neyshabur, Ryota Tomioka, and Nathan Srebro. In search of the real inductive bias: On the role of implicit
+regularization in deep learning. arXiv preprint arXiv:1412.6614, 2014. 4, 10
+Alexandru Niculescu-Mizil and Rich Caruana. Predicting good probabilities with supervised learning. In Proceedings
+of the 22nd international conference on Machine learning, pages 625–632. ACM, 2005. 2, 15
+OpenAI. Gpt-4 technical report, 2023. 2
+F. Pedregosa, G. Varoquaux, A. Gramfort, V. Michel, B. Thirion, O. Grisel, M. Blondel, P. Prettenhofer, R. Weiss,
+V. Dubourg, J. Vanderplas, A. Passos, D. Cournapeau, M. Brucher, M. Perrot, and E. Duchesnay. Scikit-learn:
+Machine learning in Python. Journal of Machine Learning Research, 12:2825–2830, 2011. 1
+John C. Platt. Probabilistic outputs for support vector machines and comparisons to regularized likelihood methods.
+In ADVANCES IN LARGE MARGIN CLASSIFIERS, pages 61–74. MIT Press, 1999. 2, 15
+Mark D. Reid and Robert C. Williamson. Composite binary losses. Journal of Machine Learning Research, 11(83):
+2387–2422, 2010. URL http://jmlr.org/papers/v11/reid10a.html. 9
+Lee
+Richardson
+and
+Taylor
+Pospisil.
+Why
+model
+calibration
+matters,
+and
+how
+to
+measure
+it,
+2021.
+URL
+https://www.unofficialgoogledatascience.com/2021/04/
+why-model-calibration-matters-and-how.html. 2
+Leonard J. Savage. Elicitation of personal probabilities and expectations. Journal of the American Statistical Association,
+66(336):783–801, 1971. doi: 10.1080/01621459.1971.10482346. URL https://www.tandfonline.com/
+doi/abs/10.1080/01621459.1971.10482346. 5, 8, 18
+Mark J. Schervish. A general method for comparing probability assessors. The Annals of Statistics, 17(4):1856 – 1879,
+1989. doi: 10.1214/aos/1176347398. URL https://doi.org/10.1214/aos/1176347398. 8, 18
+Emir H. Shuford, Arthur Albert, and H. Edward Massengill. Admissible probability measurement procedures. Psychome-
+trika, 31(2):125–145, 1966. doi: 10.1007/BF02289503. URL https://doi.org/10.1007/BF02289503. 8,
+18
+Chulhee Yun, Srinadh Bhojanapalli, Ankit Singh Rawat, Sashank J Reddi, and Sanjiv Kumar. Are transformers
+universal approximators of sequence-to-sequence functions? arXiv preprint arXiv:1912.10077, 2019. 4
+Bianca Zadrozny and Charles Elkan. Obtaining calibrated probability estimates from decision trees and naive bayesian
+classifiers. In Icml, volume 1, pages 609–616. Citeseer, 2001. 15
+Bianca Zadrozny and Charles Elkan. Transforming classifier scores into accurate multiclass probability estimates. In
+Proceedings of the eighth ACM SIGKDD international conference on Knowledge discovery and data mining, pages
+694–699. ACM, 2002. 2, 15
+Chiyuan Zhang, Samy Bengio, Moritz Hardt, Benjamin Recht, and Oriol Vinyals. Understanding deep learning (still)
+requires rethinking generalization. Communications of the ACM, 64(3):107–115, 2021. 4, 10
+Ding-Xuan Zhou. Universality of deep convolutional neural networks. Applied and computational harmonic analysis,
+48(2):787–794, 2020. 4
+14
+
+--- PAGE 15 ---
+A
+Additional Related Works
+Calibration without Bayesian Modeling.
+Our results show that it is formally possible to obtain calibrated
+classifiers via pure loss minimization, without incorporating Bayesian priors into the learning process. We view this
+as encouraging for the field of uncertainty quantification in machine learning, since it shows it is possible to obtain
+accurate uncertainties without incurring the computational and conceptual overheads of Bayesian methods (Abdar
+et al., 2021; Graves, 2011; MacKay, 1995; Gal, 2016).
+Calibration Methods.
+There have been many methods proposed to achieve accurate models that are also well-
+calibrated. The classic two-stage approach is to first learn an accurate classifier, and then post-process for calibration
+(via e.g. isotonic regression or Platt scaling as in Platt (1999); Zadrozny and Elkan (2001, 2002); Niculescu-Mizil and
+Caruana (2005)). Recent papers on neural networks also suggest optimizing for both calibration and accuracy jointly,
+by adding a “calibration regularizer” term to the standard accuracy-encouraging objective function (Kumar et al.,
+2018; Karandikar et al., 2021). In contrast, we are interested in the setting where loss-minimization happens to yield
+calibration “out of the box”, without re-calibration. There is a growing body of work on principled measures of
+calibration (Kakade and Foster, 2008; Gopalan et al., 2022b; Błasiok et al., 2023b), which we build on in our paper. Clarté
+et al. (2023a,b) analyze calibration for empirical risk minimization and highlight the role played by regularization.
+Multicalibration.
+There has recently been great interest in a generalization of calibration known as multicalibration
+(Hébert-Johnson et al., 2018), see also Kearns et al. (2017), motivated by algorithmic fairness considerations. A series
+of works explores the connection between multicalibration and minimization of convex losses, through the notion of
+omniprediction (Gopalan et al., 2022a, 2023a,b; Hu et al., 2022; Globus-Harris et al., 2023). A tight characterization
+of multicalibration in terms of squared loss minimization is presented in Gopalan et al. (2023b), which involves a
+novel notion of loss minimization called swap agnostic learning. Another related result is the recent work of Błasiok
+et al. (2023a) which shows that minimizing squared loss for sufficiently deep neural nets yields multicalibration
+with regard to smaller neural nets of a fixed complexity. This result is similar in flavor since it argues that a lack
+of multicalibration points to a good way to reduce the loss, and relies on the expressive power of DNNs to do this
+improvement. But it goes only in one direction. Our results apply to any proper loss, and give a tight characterization
+of calibration error. We generalize our results to multicalibration in Appendix E.
+B
+Post-processing Gap for Cross Entropy Loss
+Here we show that directly replacing the squared loss in the definition of post-processing gap (Definition 2.2) with the
+cross-entropy loss does not give us a similar result as Theorem 2.4. Specifically, we give an example where the smooth
+calibration error of a predictor is small but the post-processing gap w.r.t. the cross entropy loss can be arbitrarily
+large.
+We choose X = {x0, x1} and let D be the distribution over X × {0, 1} such that the marginal distribution over X
+is uniform, E(x,y)∼D[y|x = x0] = 0.1 and E(x,y)∼D[y|x = x1] = 0.9. Consider predictor f : X →[0, 1] such that
+f(x0) = ε and f(x1) = 1 −ε for some ε ∈(0, 0.1). As ε →0, it is easy to verify that smCED(f) →0.05. However,
+the post-processing gap w.r.t. the cross-entropy loss tends to +∞because ℓ(1, ε) = ℓ(0, 1 −ε) →+∞as ε →0 for
+the cross-entropy loss ℓ.
+C
+Tight Examples
+We give examples showing that the constants in Theorem 2.4 and in Corollary 2.7 are all optimal. Specifically
+Lemma C.1 shows that the constants in the upper bound of pGap in Theorem 2.4 are optimal, whereas Lemma C.2
+shows that the constants in the lower bound of pGap are also optimal. Lemma C.3 shows that the constants in the
+upper bound of pGap(ψ,1/4) in (3) are optimal. Lemma C.4 simultaneously shows that the constants in the lower
+bound of pGap(ψ,1/4) in (3) and the constants in (4) are optimal.
+15
+
+--- PAGE 16 ---
+Lemma C.1. Let X = {x0, x1} be a set of two individuals. For every ε ∈(0, 1/4), there exists a distribution D over
+X × {0, 1} and a predictor f : X →[0, 1] such that
+pGapD(f) = ε −3ε2,
+whereas
+smCED(f) = ε/2 −ε2.
+Proof. We simply choose D to be the uniform distribution over {(x0, 0), (x1, 1)}, and we choose f(x0) = 1/2 −ε
+and f(x1) = 1/2 + ε. For any 1-Lipschitz function η : [0, 1] →[−1, 1], we have
+| E(x,y)∼D[(y −f(x))η(f(x))]| = | −(1/2)(1/2 −ε)η(f(x0)) + (1/2)(1/2 −ε)η(f(x1))|
+= (1/2)(1/2 −ε)|η(1/2 −ε) −η(1/2 + ε)|.
+Clearly, the supremum of the above quantity is ε/2 −ε2 which is achieved when |η(1/2 −ε) −η(1/2 + ε)| = 2ε.
+Therefore,
+smCED(f) = ε/2 −ε2.
+For any predictor f ′ : X →[0, 1] and the squared loss ℓ,
+E(x,y)∼D[ℓ(y, f ′(x))] = (1/2)(0 −f ′(x0))2 + (1/2)(1 −f ′(x1))2
+= f ′(x0)2/2 + f ′(x1)2/2 −f ′(x1) + 1/2
+= 1
+4(f ′(x0) + f ′(x1) −1)2 + 1
+4(f ′(x1) −f ′(x0) −1)2
+When f ′(x) = f(x) + η(f(x)) for a 1-Lipschitz function η : [0, 1] →[−1, 1], the infimum of the above quantity is
+achieved when f ′(x0) + f ′(x1) −1 = 0 and f ′(x1) −f ′(x0) = 4ε, and the infimum is (1/4)(1 −4ε)2. If we choose
+f ′ = f instead, we get E[ℓ(y, f(x))] = (1/4)(1 −2ε)2. Therefore,
+pGapD(f) = (1/4)(1 −2ε)2 −(1/4)(1 −4ε)2 = ε −3ε2.
+Lemma C.2. Let X = {x0} be a set consisting of only a single individual x0. Let D be the uniform distribution over
+X × {0, 1} and for ε ∈(0, 1/2), let f : X →[0, 1] be the predictor such that f(x0) = 1/2 + ε. Then
+pGapD(f) = ε2,
+whereas
+smCED(f) = ε.
+Proof. For any 1-Lipschitz function η : [0, 1] →[−1, 1],
+| E(x,y)∼D[(y −f(x))η(f(x))]| = ε|η(1/2 + ε)|.
+The supremum of the quantity above over η is clearly ε, implying that smCED(f) = ε.
+For any predictor f ′ : X →[0, 1] and the squared loss ℓ,
+E(x,y)∼D[ℓ(y, f ′(x))] = (1/2)(0 −f ′(x0))2 + (1/2)(1 −f ′(x0))2
+= f ′(x0)2 −f ′(x0) + 1/2
+= 1/4 + (f ′(x0) −1/2)2.
+The infimum of the above quantity over a function f ′ : X →[0, 1] satisfying f ′(x) = f(x) + η(f(x)) for some
+1-Lipschitz η : [0, 1] →[−1, 1] is clearly 1/4. If we choose f ′ = f instead, we get E(x,y)∼D[ℓ(y, f(x))] = 1/4 + ε2.
+Therefore,
+pGapD(f) = (1/4 + ε2) −1/4 = ε2.
+Lemma C.3. Define pGap(ψ,1/4) and smCE(ψ,1/4) as in Definition 2.5 and Definition 2.6 for the cross-entropy loss. Let
+X = {x0, x1} be a set of two individuals. For every ε ∈(0, 1/4), there exists a distribution D over X × {0, 1} and a
+function g : X →R such that
+pGap(ψ,1/4)
+D
+(g) ≥2ε + O(ε2),
+whereas
+smCE(ψ,1/4)
+D
+(g) ≤ε/2 + O(ε2).
+16
+
+--- PAGE 17 ---
+Proof. We simply choose D to be the uniform distribution over {(x0, 0), (x1, 1)}, and we choose g(x0) = −4ε and
+g(x1) = 4ε. Let σ denote the sigmoid transformation given by σ(t) = et/(1 + et). The Taylor expansion of the
+sigmoid transformation σ around t = 0 is σ(t) = 1/2 + O(t). Thus the predictor f we get from applying σ to g
+satisfies f(x1) = 1 −f(x0) = 1/2 + O(ε). For any 1/4-Lipschitz function η : R →[−1, 1], we have
+E(x,y)∼D[(y −f(x))η(g(x))] = (1/2)(0 −f(x0))η(g(x0)) + (1/2)(1 −f(x1))η(g(x1))
+= −(1/2)(1 −f(x1))η(g(x0)) + (1/2)(1 −f(x1))η(g(x1))
+= (1/2)(1 −f(x1))(η(g(x1)) −η(g(x0)))
+≤(1/2)(1 −f(x1))|g(x0) −g(x1)|/4
+≤(1/2)(1/2 + O(ε)) · (8ε)/4
+= ε/2 + O(ε2).
+This implies that smCE(ψ,1/4)
+D
+(g) ≤ε/2 + O(ε2).
+For any function g′ : X →R and the logistic loss ℓ(ψ),
+E(x,y)∼D[ℓ(ψ)(y, g′(x))] = (1/2) ln(1 + eg′(x0)) + (1/2) ln(1 + eg′(x1)) −(1/2)g′(x1)
+= (1/2) ln(1 + eg′(x0)) + (1/2) ln(1 + e−g′(x1)).
+We use the Taylor expansion ln(1 + et) = ln 2 + t/2 + O(t2) to get
+E(x,y)∼D[ℓ(ψ)(y, g′(x))] = ln 2 + (1/4)(g′(x0) −g′(x1)) + O(g′(x0)2 + g′(x1)2).
+(9)
+Consider the case when g′(x0) = −8ε and g′(x1) = 8ε. Clearly, g′ can be written as g′(x) = g(x) + η(g(x)) for a
+1-Lipschitz function η : R →[−4, 4]. By (9), the expected loss achieved by g′ is
+E(x,y)∼D[ℓ(ψ)(y, g′(x))] = ln 2 −4ε + O(ε2).
+If g′ = g instead, the expected loss is ln 2 −2ε + O(ε2). Taking the difference between the two, we get
+pGap(ψ,1/4)
+D
+(g) ≥2ε + O(ε2).
+Lemma C.4. Define pGap(ψ,1/4) as in Definition 2.5 for the cross-entropy loss. Let X = {x0} be a set consisting of only
+a single individual x0. Let D be the uniform distribution over X × {0, 1} and for ε ∈(0, 1/2), let g : X →R be the
+function such that g(x0) = 4ε. Then
+pGap(ψ,1/4)
+D
+(g) = 2ε2 + O(ε4),
+whereas
+smCED(f) = ε + O(ε3),
+where f : X →(0, 1) is given by f(x) = σ(g(x)) for the sigmoid transformation σ(t) = et/(1 + et).
+Proof. The Taylor expansion of σ around t = 0 is σ(t) = 1/2+t/4+O(t3). Thus f(x0) = σ(g(x0)) = 1/2+ε+O(ε3).
+For any 1-Lipschitz function η : [0, 1] →[−1, 1],
+| E(x,y)∼D[(y −f(x)η(f(x))]| = |(1/2 −f(x0))η(f(x0))| = (ε + O(ε3))|η(f(x0))|.
+The supremum of the quantity above over η is clearly ε + O(ε3), implying that smCED(f) = ε + O(ε3).
+For any function g′ : X →[0, 1] and the logistic loss ℓ(ψ),
+E(x,y)∼D[ℓ(ψ)(y, g′(x))] = ln(1 + eg′(x0)) −(1/2)g′(x0)
+(10)
+= ln(eg′(x0)/2 + e−g′(x0)/2).
+The infimum of the above quantity over a function g′ : X →R satisfying g′(x) = g(x)+η(g(x)) for some 1-Lipschitz
+η : R →[−4, 4] is ln 2 achieved when g′(x0) = 0. If we choose g′ = g instead, we get E(x,y)∼D[ℓ(ψ)(y, g(x))] =
+ln 2 + 2ε2 + O(ε4) by plugging the Taylor expansion ln(1 + et) = ln 2 + t/2 + t2/8 + O(t4) into (10). Therefore,
+pGap(ψ,1/4)
+D
+(g) = 2ε2 + O(ε4).
+17
+
+--- PAGE 18 ---
+D
+Proper Loss and Convex Functions
+It is known that there is a correspondence between proper loss functions and convex functions (Shuford et al., 1966;
+Savage, 1971; Schervish, 1989; Buja et al., 2005). Here we demonstrate this correspondence, which is important for
+extending the connection between smooth calibration and post-processing gap (Theorem 2.4) to general proper loss
+functions in Section 4.
+Definition D.1 (Sub-gradient). For a function φ : V →R defined on V ⊆R, we say t ∈R is a sub-gradient of φ at
+v ∈V if
+φ(v′) ≥φ(v) + (v′ −v)t
+for every v′ ∈V,
+or equivalently,
+vt −φ(v) = max
+v′∈V
+ v′t −φ(v′)
+
+.
+(11)
+Definition D.2 (Fenchel-Young divergence). For a pair of functions φ : V →R and ψ : T →R defined on V, T ⊆R,
+we define the Fenchel-Young divergence Dφ,ψ : V × T →R such that
+Dφ,ψ(v, t) = φ(v) + ψ(t) −vt
+for every v ∈V and t ∈T.
+The following claim follows immediately from the two definitions above.
+Claim D.3. Let φ : V →R and ψ : T →R be functions defined on V, T ⊆R. Then t ∈T is a sub-gradient of
+φ at v ∈V if and only if Dφ,ψ(v, t) = minv′∈V Dφ,ψ(v′, t). Similarly, v is a sub-gradient of ψ at t if and only if
+Dφ,ψ(v, t) = mint′∈T Dφ,ψ(v, t′). In particular, assuming Dφ,ψ(v′, t′) ≥0 for every v′ ∈V and t′ ∈T whereas
+Dφ,ψ(v, t) = 0 for some v ∈V and t ∈T, then t is a sub-gradient of φ at v, and v is a sub-gradient of ψ at t.
+Lemma D.4 (Convex functions from proper loss). Let V ⊆[0, 1] be a non-empty interval. Let ℓ: {0, 1} × V →R be
+a proper loss function. For every v ∈V , define dual(v) := ℓ(0, v) −ℓ(1, v). There exist convex functions φ : V →R
+and ψ : R →R such that
+ℓ(y, v) = ψ(dual(v)) −y dual(v)
+for every y ∈{0, 1} and v ∈V ,
+(12)
+Dφ,ψ(v, t) ≥0
+for every v ∈V and t ∈R,
+(13)
+Dφ,ψ(v, dual(v)) = 0
+for every v ∈V ,
+(14)
+0 ≤ψ(t2) −ψ(t1)
+t2 −t1
+≤1
+for every distinct t1, t2 ∈R.
+(15)
+Before we prove the lemma, we remark that (12) and (14) together imply the following:
+ℓ(y, v) = −φ(v) + (v −y)dual(v)
+for every y ∈{0, 1} and v ∈V .
+Proof. Any loss function ℓ: {0, 1}×V →R, proper or not, can be written as ℓ(y, v) = ℓ(0, v)−y dual(v). When ℓis
+proper, it is easy to see that for v, v′ ∈V with dual(v) = dual(v′), it holds that ℓ(0, v) = ℓ(0, v′); otherwise, ℓ(y, v) is
+always smaller or always larger than ℓ(y, v′) for every y ∈{0, 1}, making it impossible for ℓto be proper. Therefore,
+for proper ℓ, there exists ψ0 : T →R such that ℓ(0, v) = ψ0(dual(v)) for every v ∈V , where T := {dual(v) : v ∈V }.
+Therefore,
+ℓ(y, v) = ℓ(0, v) −y dual(v) = ψ0(dual(v)) −y dual(v).
+(16)
+By the assumption that ℓis proper, for every v ∈V ,
+v ∈argmin
+v′∈V
+E
+y∼Ber(v) ℓ(y, v′) = argmin
+v′∈V
+
+ψ0(dual(v′)) −v dual(v′)
+
+,
+and thus
+dual(v) ∈argmin
+t∈T
+
+ψ0(t) −vt
+
+.
+18
+
+--- PAGE 19 ---
+For every v ∈V , we define
+φ(v) := v dual(v) −ψ0(dual(v)) = max
+t∈T
+
+vt −ψ0(t)
+
+.
+The definition of φ immediately implies the following:
+Dφ,ψ0(v, t) ≥0
+for every v ∈V and t ∈T,
+(17)
+Dφ,ψ0(v, dual(v)) = 0
+for every v ∈V.
+(18)
+By Claim D.3, dual(v) is a sub-gradient of φ at v. This proves that φ is convex. Now we define ψ : R →R such that
+ψ(t) = supv∈V vt −φ(v) for every t ∈R. This definition ensures that inequality (13) holds. By Lemma G.3, ψ is a
+convex function and (15) holds. Moreover, for every v ∈V , we have shown that dual(v) is a sub-gradient of φ at v,
+so by (11), ψ(dual(v)) = v dual(v) −φ(v) = ψ0(dual(v)). This implies that (12) and (14) hold because of (16) and
+(18).
+Lemma D.5 (Proper loss from convex functions). Let V ⊆[0, 1] be a non-empty interval. Let φ : V →R, ψ : R →R,
+and dual : V →R be functions satisfying (13) and (14). Define loss function ℓ: {0, 1} × V →R as in (12). Then
+1. ℓis a proper loss function;
+2. φ is convex;
+3. for every v ∈V , dual(v) is a sub-gradient of φ at v, and v is a sub-gradient of ψ at dual(v);
+4. φ(v) = v dual(v) −ψ(dual(v)) = −Ey∼Ber(v)[ℓ(y, v)];
+5. if we define ψ′(t) := supv∈V (vt −φ(v)), then ψ′ is convex and ψ′(dual(v)) = ψ(dual(v)) for every v ∈V .
+Moreover, for any two distinct real numbers t1, t2,
+0 ≤ψ′(t2) −ψ′(t1)
+t2 −t1
+≤1.
+(19)
+Proof. For every v ∈V , equations (13) and (14) imply that
+dual(v) ∈argmin
+t∈R
+ ψ(t) −vt
+
+,
+and thus
+v ∈argmin
+v′∈V
+
+ψ(dual(v′)) −v dual(v′)
+
+= argmin
+v′∈V
+E
+y∼Ber(v) ℓ(y, v′).
+This proves that ℓis proper (Item 1). Item 3 follows from (13), (14) and Claim D.3. Item 2 follows from Item 3. The first
+equation in Item 4 follows from (14), and the second equation follows from (12). For Item 5, the convexity of ψ′ and
+inequality (19) follow from Lemma G.3, and ψ′(dual(v)) = ψ(dual(v)) holds because ψ′(dual(v)) = v dual(v)−φ(v)
+by Item 3 and (11), and ψ(dual(v)) = v dual(v) −φ(v) by Item 4.
+Our discussion above gives a correspondence between a proper loss function ℓ: {0, 1} × V →R and a tuple
+(φ, ψ, dual) satisfying (13) and (14). By Lemma D.5, if φ, ψ and dual satisfy (13) and (14), then every v ∈V is a
+sub-gradient of ψ at dual(v). Therefore, assuming ψ is differentiable and using ∇ψ : R →R to denote its derivative,
+if t = dual(v) for some v ∈V , then we can compute v from t by
+v = ∇ψ(t).
+(20)
+For the cross entropy loss ℓ(y, v) = −y ln v −(1 −y) ln(1 −v), we can find the corresponding φ, ψ, dual and ℓ(ψ)
+(see Definition 4.3) as follows:
+φ(v) = −
+E
+y∼Ber(v)[ℓ(y, v)] = v ln v + (1 −v) ln(1 −v),
+19
+
+--- PAGE 20 ---
+dual(v) = ℓ(0, v) −ℓ(1, v) = ln(v/(1 −v)),
+ψ(t) =
+sup
+v∈(0,1)
+ vt −φ(v)
+
+= ln(1 + et),
+ℓ(ψ)(y, t) = ψ(t) −yt = ln(1 + et) −yt,
+(logistic loss)
+∇ψ(t) = et/(1 + et).
+(sigmoid transformation)
+For the squared loss ℓ(y, v) = (y −v)2, we can find the corresponding φ, ψ, dual and ℓ(ψ) as follows:
+φ(v) = −
+E
+y∼Ber(v)[ℓ(y, v)] = −v(1 −v)2 −(1 −v)v2 = v(v −1),
+dual(v) = ℓ(0, v) −ℓ(1, v) = 2v −1,
+ψ(t) = sup
+v∈[0,1]
+ vt −φ(v)
+
+=
+
+
+
+
+
+0,
+if t < −1;
+(t + 1)2/4,
+if −1 ≤t ≤1;
+t,
+if t > 1.
+ℓ(ψ)(y, t) = ψ(t) −yt =
+
+
+
+
+
+−yt,
+if t < −1;
+(y −(t + 1)/2)2,
+if −1 ≤t ≤1;
+(1 −y)t,
+if t > 1.
+∇ψ(t) =
+
+
+
+
+
+0,
+if t < −1;
+(t + 1)/2,
+if −1 ≤t ≤1;
+1,
+if t > 1.
+For the squared loss, one can alternatively choose ψ(t) = (t + 1)2/4 for every t ∈R and accordingly define
+ℓ(ψ)(y, t) = (y −(t + 1)/2)2 for every y ∈{0, 1} and t ∈R. This still ensures (12), (13) and (14), but (15) no longer
+holds.
+E
+Generalized Dual (Multi)calibration and Generalized Dual Post-
+processing Gap
+Below we generalize the notions of dual post-processing gap and dual smooth calibration error from Section 4 by
+replacing the Lipschitz functions in those definitions with functions from a general class. Here we allow the functions
+to not only depend on the dual prediction g(x), but also depend directly on x. With such generality, the calibration
+notion we consider in Definition E.2 below captures the notion of multicalibration (Hébert-Johnson et al., 2018).
+We connect this generalized calibration notion with a generalized notion of post-processing gap (Definition E.1) in
+Theorem E.3.
+Definition E.1 (Generalized dual post-processing gap). Let ψ and ℓ(ψ) be defined as in Definition 4.3. Let W be a class
+of functions w : X × R →R. Let D be a distribution over X × {0, 1}. We define the generalized dual post-processing
+gap of a function g : X →R w.r.t. class W and distribution D to be
+genGap(ψ,W )
+D
+(g) := E(x,y)∼D ℓ(ψ)(y, g(x)) −infw∈W E(x,y)∼D ℓ(ψ) y, w(x, g(x))
+
+.
+Definition E.2 (Generalized dual calibration). Let ψ : R →R be a differentiable function. For a function g : X →R,
+define predictor f : X →R such that f(x) = ∇ψ(g(x)) for every x ∈X.5 Let W be a class of functions w : X ×R →R.
+Let D be a distribution over X ×{0, 1}. We define the generalized dual calibration error of g w.r.t. class W and distribution
+D to be
+genCE(ψ,W )
+D
+(g) := supw∈W | E(x,y)∼D[(y −f(x))w
+ x, g(x)
+
+]|.
+5It is possible here for f(x) to lie outside the interval [0, 1], in which case f is not a valid predictor. However, if ψ satisfies (15), then
+∇ψ(t) ∈[0, 1] for every t ∈R and thus f(x) ∈[0, 1] for every x ∈X. Also, one can start from a valid predictor f : X →[0, 1] and define
+g(x) = dual(f(x)). By Lemma D.5, this ensures that f(x) = ∇ψ(g(x)) assuming that (φ, ψ, dual) satisfy (13) and (14).
+20
+
+--- PAGE 21 ---
+Theorem E.3. Let ψ : R →R be a differentiable convex function. For λ > 0, assume that ψ is λ-smooth as defined in
+(8). Let W be a class of bounded functions w : X × R →[−1, 1]. Define W ′ to be the class of functions w′ : X × R →R
+such that there exist w ∈W and β ∈[−1/λ, 1/λ] satisfying
+w′(x, t) = t + βw(x, t)
+for every x ∈X and t ∈R.
+Then for every g : X →R and any distribution D over X × {0, 1},
+genCE(ψ,W )
+D
+(g)2/2 ≤λ genGap(ψ,W ′)
+D
+(g) ≤genCE(ψ,W )
+D
+(g).
+Proof. By the definition of ℓ(ψ) in Definition 4.3,
+E
+(x,y)∼D ℓ(ψ)(y, g(x)) −
+E
+(x,y)∼D ℓ(ψ) y, w′ x, g(x)
+
+= E[ψ(g(x)) −yg(x) −ψ(w′(x, g(x))) + yw′(x, g(x))]
+= E[ψ(g(x)) −ψ(w′(x, g(x))) + yβw(x, g(x))].
+(21)
+By the convexity of ψ and the λ-smoothness property, for every t, t′ ∈R,
+∇ψ(t)(t′ −t) ≤ψ(t′) −ψ(t) =
+Z t′
+t
+∇ψ(τ)dτ
+≤
+Z t′
+t
+(∇ψ(t) + λ(τ −t))dτ = ∇ψ(t)(t′ −t) + λ
+2 (t′ −t)2.
+(22)
+For x ∈X, setting t to be g(x) and setting t′ to be w′(x, g(x)) := g(x) + βw(x, g(x)) for some w ∈W and
+β ∈[−1/λ, 1/λ], we have
+t′ −t = w′(x, g(x)) −g(x) = βw(x, g(x)).
+Plugging this into (22) and defining f(x) := ∇ψ(g(x)) = ∇ψ(t), we have
+f(x)βw(x, g(x)) ≤ψ(w′(x, g(x))) −ψ(g(x)) ≤f(x)βw(x, g(x)) + λβ2
+2 w(x, g(x))2.
+Plugging this into (21) and using the fact that |w(x, g(x))| ≤1, we have
+E[(y −f(x))βw(x, g(x))] −λβ2
+2
+≤
+E
+(x,y)∼D ℓ(ψ)(y, g(x)) −
+E
+(x,y)∼D ℓ(ψ) y, w′ x, g(x)
+
+(23)
+≤E[(y −f(x))βw(x, g(x))].
+(24)
+For any w ∈W, choosing β = E[(y −f(x))w(x, g(x))]/λ and choosing w′ ∈W ′ such that w′(x, t) = t + βw(x, t),
+by (23) we have
+1
+2λ E[(y −f(x))w(x, g(x))]2 ≤
+E
+(x,y)∼D ℓ(ψ)(y, g(x)) −
+E
+(x,y)∼D ℓ(ψ) y, w′ x, g(x)
+
+.
+This proves that
+genCE(ψ,W )
+D
+(g)2/2 ≤λ genGap(ψ,W ′)
+D
+(g).
+For any w′ ∈W ′, there exists β ∈[−1/λ, 1/λ] and w ∈W such that w′(x, t) = t + βw(x, t). By (24),
+E
+(x,y)∼D ℓ(ψ)(y, g(x)) −
+E
+(x,y)∼D ℓ(ψ) y, w′ x, g(x)
+
+≤E[(y −f(x))βw(x, g(x))]
+≤(1/λ)| E[(y −f(x))w(x, g(x))]|.
+This proves that
+λ genGap(W ′)
+D
+(g) ≤genCE(W )
+D
+(g).
+21
+
+--- PAGE 22 ---
+E.1
+Proof of Theorem 4.6
+We restate and prove Theorem 4.6.
+Theorem 4.6. Let ψ : R →R be a differentiable convex function with derivative ∇ψ(t) ∈[0, 1] for every t ∈R. For
+λ > 0, assume that ψ is λ-smooth, i.e.,
+|∇ψ(t) −∇ψ(t′)| ≤λ|t −t′|
+for every t, t′ ∈R.
+(8)
+Then for every g : X →R and any distribution D over X × {0, 1},
+smCE(ψ,λ)
+D
+(g)2/2 ≤λ pGap(ψ,λ)
+D
+(g) ≤smCE(ψ,λ)
+D
+(g).
+Proof. Let W be the family of all λ-Lipschitz functions η : R →[−1, 1] and define W ′ as in Theorem E.3. We have
+genCE(ψ,W )
+D
+(g) = smCE(ψ,λ)
+D
+(g),
+and
+genGap(ψ,W ′)
+D
+(g) = pGap(ψ,λ)
+D
+(g).
+Theorem 4.6 then follows immediately from Theorem E.3.
+E.2
+Proof of Lemma 4.7
+We restate and prove Lemma 4.7.
+Lemma 4.7. Let ψ : R →R be a differentiable convex function with derivative ∇ψ(t) ∈[0, 1] for every t ∈R. For
+λ > 0, assume that ψ is λ-smooth as in (8). For g : X →R, define f : X →[0, 1] such that f(x) = ∇ψ(g(x)) for
+every x ∈X. For a distribution D over X × {0, 1}, define smCED(f) as in Definition 2.3. Then
+smCED(f) ≤smCE(ψ,λ)
+D
+(g).
+Proof. For a 1-Lipschitz function η : [0, 1] →[−1, 1], define η′ : R →[−1, 1] such that η′(t) = η(∇ψ(t)) for every
+t ∈R. For t1, t2 ∈R, by the λ-smoothness property of η,
+|η′(t1) −η′(t2)| = |η(∇ψ(t1)) −η(∇ψ(t2))| ≤|∇ψ(t1) −∇ψ(t2)| ≤λ|t1 −t2|.
+This proves that η′ is λ-Lipschitz. Therefore,
+| E(x,y)∼D[(y −f(x))η(f(x))]| = | E(x,y)∼D(y −f(x))η′(g(x))| ≤smCE(ψ,λ)
+D
+(g).
+Taking supremum over η completes the proof.
+F
+Optimization Algorithms Which Achieve Calibration
+F.1
+Iterative Risk Minimization
+We now present another algorithm, inspired by a routine that occurs in practice. Specifically, one intuition for why
+state-of-the-art DNNs have small pGap is: if it were possible to improve the loss significantly by just adding a layer
+(and training it optimally), then the human practitioner training the DNN would have added another layer and
+re-trained.
+In this section we present a certain formalization of this algorithm, along with its calibration guarantees. We work
+with the following setup:
+22
+
+--- PAGE 23 ---
+• We are interested in models f ∈F with a complexity measure µ : F →Z. Think of size for decision trees
+or depth for neural nets with a fixed architecture. We assume that F contains all constant functions and that
+µ(c) = 0 for any constant function c.
+• We consider post-processing functions κ : [0, 1] →[0, 1] belonging to some family K, which have bounded
+complexity under µ. Formally, there exists b = b(K) ∈Z such that for every f ∈F and κ ∈K,
+µ(κ ◦f) ≤µ(f) + b
+.
+• We have a loss function ℓ: [0, 1] × R →R . Let
+ℓ(f, D) =
+E
+(x,y)∼D[ℓ(y, f)].
+For any complexity bound s, we have an efficient procedure MinD(s) that can solve the loss minimization
+problem over models of complexity s:
+min
+f∈F
+µ(f)≤s
+ℓ(f, D).
+The running time can grow with s. For each s ∈Z, let OPTs denote the minimum of this program and let f ∗
+s
+denote the model found by MinD(s) that achieves this minimum.
+We use this to present an algorithm that produces a model f which is smoothly calibrated, has loss bounded by OPTs,
+and complexity not too much larger than s.
+Algorithm 1 Local search for small pGap.
+Input s0.
+s ←s0.
+h ←0.
+while True do
+f ∗
+s = Min(s).
+f ∗
+s+b = Min(s + b).
+if OPTs+b ≥OPTs −α then
+Return f ∗
+s .
+else
+h ←h + 1.
+s ←s + b.
+end if
+end while
+Theorem F.1. On input s0, Algorithm 1 terminates in h ≤1/α steps and returns a model f ∈F which satisfies the
+following guarantees:
+1. µ(f) = t ≤s0 + hb.
+2. ℓ2(f, D) = OPTt ≤OPTs0 −hα.
+3. pGap(f) ≤α, hence smCE(f) ≤√α.
+Proof. The bound on the number of steps follows by observing that each update decreases ℓ2(f, D) by α. Since
+OPTs0 ≤OPT0 ≤1, this can only happen 1/α times. This also implies items (1) and (2), since each update increases
+the complexity by no more than b, while decreasing the loss by at least α.
+To prove claim (3), assume for contradiction that pGap(f) > α. Then there exists κ ∈K such that if we consider
+f ′ = κ ◦f, then
+µ(f ′) ≤t + b, ℓ2(f, D) < OPTt −α.
+23
+
+--- PAGE 24 ---
+But this f ′ provides a certificate that
+OPTt+b ≤ℓ2(f ′, D) < OPTt −α.
+Hence the termination condition is not satisfied for f. So by contradiction, it must hold that pGap(f) ≤α, hence
+smCE(f) ≤√α.
+We now present an alternative algorithm that is close in spirit to algorithm 1, but can be viewed more directly as
+minimizing a regularized loss function. We assume access to the same minmization procedure MinD(s) as before. We
+define the regularized loss
+ℓλ(f, D) = ℓ(f, D) + λµ(f).
+λ quantifies the tradeoff between accuracy and model complexity that we accept. In other words, we accept increasing
+µ(f) by 1 if it results in a reduction of at least λ in the loss.
+Algorithm 2 Regularized loss minimization for small pGap.
+r ←⌊1/λ⌋.
+while s ∈{0, · · · , r} do
+f ∗
+s ←Min(s).
+OPTs ←ℓ2(f ∗
+s , D).
+end while
+t ←argmins∈{0,...,r} OPTs + λs.
+Return f ∗
+t .
+Theorem F.2. Let λ = α/b. Algorithm 2 returns a model f with µ(f) = t ≤⌊1/λ⌋where
+1. f = argminf ′∈F ℓλ(f ′, D) and ℓ2(f, D) = OPTt.
+2. For any s ̸= t,
+OPTs ≥OPTt −(s −t)λ.
+3. pGap(f) ≤α, hence smCE(f) ≤√α.
+Proof. We claim that
+min
+f ′∈F ℓλ(f ′, D) ≤1.
+This follows by taking the constant 1/2, which results in ℓ2(0, D) ≤1 and µ(f) = 0. This means that the optimum
+is achieved for f where µ(f) ≤1/λ. For f such that µ(f) ≤t, it is easy to see that Algorithm 2 finds the best model.
+Assume that s ̸= t. By item (1), we must have
+OPTt + λt ≤OPTs + λs
+Rearranging this gives the claimed bound.
+Assume that pGap(f) = α′ > α. Then there exists f ′ = κ(f) such that µ(f ′) ≤µ(f)+b, but ℓ(f ′, D) ≤ℓ2(f, D)−α′.
+But this means that
+ℓλ(f ′) = ℓ(f ′, D) + λµ(f ′)
+≤ℓ2(f, D) −α′ + λ(µ(f) + b)
+= ℓλ(f) + (λb −α′)
+< ℓλ(f)
+where the inequality holds by our choice of λ = α/b. But this contradicts item (1).
+Note that if we take s −t = hb, then (s −t)λ = hα, so Item (2) in Theorem F.2 gives a statement matching
+Item (2) in Theorem F.1. The difference is that we now get a bound for any s ̸= t. When s > t, item (3) upper
+bounds OPTt −OPTs, which measures how much the ℓ2 loss decreases with increased complexity. When s < t,
+OPTs > OPTt, and item (3) lower bounds how much the loss increases when shrink the complexity of the model.
+24
+
+--- PAGE 25 ---
+G
+Helper Lemmas
+Claim G.1. Let η1, η2 : [0, 1] →R be two 1-Lipschitz functions. Then max(η1(v), η2(v)) and min(η1(v), η2(v)) are
+also 1-Lipschitz functions of v ∈[0, 1].
+Proof. Fix arbitrary v, v′ ∈[0, 1]. Let i, i′ ∈{1, 2} be such that max(η1(v), η2(v)) = ηi(v) and max(η1(v′), η2(v′)) =
+ηi′(v′). We have
+max(η1(v), η2(v)) −max(η1(v′), η2(v′)) ≥ηi′(v) −ηi′(v′) ≥−|v −v′|,
+and
+max(η1(v), η2(v)) −max(η1(v′), η2(v′)) ≤ηi(v) −ηi(v′) ≤|v −v′|.
+This proves that max(η1(v), η2(v)) is 1-Lipschitz. A similar argument works for min(η1(v), η2(v)).
+Lemma G.2. Let η : [0, 1] →[−1, 1] be a 1-Lipschitz function. Define κ : [0, 1] →[0, 1] such that κ(v) =
+proj[0,1](v + η(v)) for every v ∈[0, 1]. Define η′ : [0, 1] →[−1, 1] such that η′(v) = κ(v) −v for every v ∈[0, 1].
+Then η′ is 1-Lipschitz.
+Proof. By the definition of κ, we have κ(v) = min(max(v+η(v), 0), 1). Therefore, η′(v) = min(max(η(v), −v), 1−
+v). The lemma is proved by applying Claim G.1 twice.
+Lemma G.3. Let V ⊆[a, b] be a non-empty set. For some m ∈R, let φ : V →[m, +∞) be a function lower bounded
+by m. Define ψ : R →R such that ψ(t) = sup
+v∈V
+
+vt −φ(v)
+
+. Then ψ is a convex function. Moreover, for t1 < t2, we
+have
+a(t2 −t1) ≤ψ(t2) −ψ(t1) ≤b(t2 −t1).
+Proof. For any p ∈[0, 1], t1, t2 ∈R, and v ∈V ,
+v(pt1 + (1 −p)t2) −φ(v) = p(vt1 −φ(v)) + (1 −p)(vt2 −φ(v)) ≤pψ(t1) + (1 −p)ψ(t2).
+Taking supremum over v ∈V , we have
+ψ(pt1 + (1 −p)t2) ≤pψ(t1) + (1 −p)ψ(t2).
+This proves the convexity of ψ. Moreover, if t1, t2 ∈R satisfies t1 < t2, then for any v ∈V ,
+vt1 −φ(v) = vt2 −φ(v) + v(t1 −t2) ≤vt2 −φ(v) + a(t1 −t2) ≤ψ(t2) −a(t2 −t1).
+Taking supremum over v ∈V , we have
+ψ(t1) ≤ψ(t2) + a(t1 −t2).
+Similarly,
+vt2 −φ(v) = vt1 −φ(v) + v(t2 −t1) ≤vt1 −φ(v) + b(t2 −t1) ≤ψ(t1) + b(t2 −t1).
+Taking supremum over v ∈V , we have
+ψ(t2) ≤ψ(t1) + b(t2 −t1).
+25

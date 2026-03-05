@@ -1,0 +1,212 @@
+% parameter_citations.bib
+% BibTeX entries for every hyper-parameter cited in docs/THESIS_PARAMETER_CITATIONS.md
+% All entries verified against docs/research/ or publicly available canonical sources.
+% Last updated: February 2026
+
+@inproceedings{bao2004activity,
+  author    = {Bao, Ling and Intille, Stephen S.},
+  title     = {Activity Recognition from User-Annotated Acceleration Data},
+  booktitle = {Proceedings of the 2nd International Conference on Pervasive Computing (Pervasive 2004)},
+  year      = {2004},
+  pages     = {1--17},
+  publisher = {Springer},
+  address   = {Vienna, Austria},
+  note      = {Window size 4 s convention for coarse activity labels.}
+}
+
+@article{chen2021deep,
+  author    = {Chen, Kaixuan and Zhang, Dalin and Yao, Lina and Guo, Bin and Yu, Zhiwen and Liu, Yunhao},
+  title     = {Deep Learning for Sensor-Based Human Activity Recognition: Overview, Challenges, and Opportunities},
+  journal   = {ACM Computing Surveys},
+  volume    = {54},
+  number    = {4},
+  year      = {2021},
+  pages     = {1--40},
+  publisher = {ACM},
+  doi       = {10.1145/3447744},
+  note      = {Window/overlap/batch conventions for HAR.}
+}
+
+@inproceedings{gal2016dropout,
+  author    = {Gal, Yarin and Ghahramani, Zoubin},
+  title     = {Dropout as a {Bayesian} Approximation: Representing Model Uncertainty in Deep Learning},
+  booktitle = {Proceedings of the 33rd International Conference on Machine Learning (ICML)},
+  year      = {2016},
+  pages     = {1050--1059},
+  publisher = {PMLR},
+  note      = {MC Dropout: T=30 forward passes for stable uncertainty estimates.}
+}
+
+@article{gama2014survey,
+  author    = {Gama, Jo{\~a}o and {\v{Z}}liobait{\.e}, Indr{\.e} and Bifet, Albert and Pechenizkiy, Mykola and Bouchachia, Abdelhamid},
+  title     = {A Survey on Concept Drift Adaptation},
+  journal   = {ACM Computing Surveys},
+  volume    = {46},
+  number    = {4},
+  year      = {2014},
+  pages     = {44:1--44:37},
+  publisher = {ACM},
+  doi       = {10.1145/2523813},
+  note      = {Drift detection, CUSUM, consecutive-warning smoothing, multi-channel gating.}
+}
+
+@inproceedings{guo2017calibration,
+  author    = {Guo, Chuan and Pleiss, Geoff and Sun, Yu and Weinberger, Kilian Q.},
+  title     = {On Calibration of Modern Neural Networks},
+  booktitle = {Proceedings of the 34th International Conference on Machine Learning (ICML)},
+  year      = {2017},
+  pages     = {1321--1330},
+  publisher = {PMLR},
+  note      = {Temperature scaling; initial T=1.5; ECE threshold 0.10.}
+}
+
+@inproceedings{kingma2015adam,
+  author    = {Kingma, Diederik P. and Ba, Jimmy},
+  title     = {Adam: A Method for Stochastic Optimization},
+  booktitle = {Proceedings of the 3rd International Conference on Learning Representations (ICLR)},
+  year      = {2015},
+  note      = {Optimiser defaults: lr=0.001, β₁=0.9, β₂=0.999.}
+}
+
+@article{kirkpatrick2017overcoming,
+  author    = {Kirkpatrick, James and Pascanu, Razvan and Rabinowitz, Neil and Veness, Joel and
+               Desjardins, Guillaume and Rusu, Andrei A. and Milan, Kieran and Quan, John and
+               Ramalho, Tiago and Grabska-Barwinska, Agnieszka and others},
+  title     = {Overcoming Catastrophic Forgetting in Neural Networks},
+  journal   = {Proceedings of the National Academy of Sciences},
+  volume    = {114},
+  number    = {13},
+  year      = {2017},
+  pages     = {3521--3526},
+  publisher = {PNAS},
+  doi       = {10.1073/pnas.1611835114},
+  note      = {EWC regularisation; λ=1000 anchors weights to source task.}
+}
+
+@inproceedings{kohavi1995study,
+  author    = {Kohavi, Ron},
+  title     = {A Study of Cross-Validation and Bootstrap for Accuracy Estimation and Model Selection},
+  booktitle = {Proceedings of the 14th International Joint Conference on Artificial Intelligence (IJCAI)},
+  year      = {1995},
+  pages     = {1137--1143},
+  publisher = {Morgan Kaufmann},
+  note      = {5-fold cross-validation as standard bias-variance tradeoff.}
+}
+
+@inproceedings{lakshminarayanan2017simple,
+  author    = {Lakshminarayanan, Balaji and Pritzel, Alexander and Blundell, Charles},
+  title     = {Simple and Scalable Predictive Uncertainty Estimation using Deep Ensembles},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  year      = {2017},
+  pages     = {6402--6413},
+  publisher = {Curran Associates},
+  note      = {Confidence thresholds for uncertainty monitoring.}
+}
+
+@techreport{lee2013pseudo,
+  author      = {Lee, Dong-Hyun},
+  title       = {Pseudo-Label: The Simple and Efficient Semi-Supervised Learning Method for Deep Neural Networks},
+  institution = {ICML Workshop on Challenges in Representation Learning},
+  year        = {2013},
+  note        = {Curriculum pseudo-labelling; high-confidence-first strategy.}
+}
+
+@article{li2018adabn,
+  author    = {Li, Yanghao and Wang, Naiyan and Shi, Jianping and Liu, Jiaying and Hou, Xiaodi},
+  title     = {Revisiting Batch Normalization for Practical Domain Adaptation},
+  journal   = {arXiv preprint arXiv:1603.04779},
+  year      = {2018},
+  note      = {AdaBN: replace BN running statistics with target-domain statistics. n_batches=10, batch_size=64.}
+}
+
+@article{mannini2010machine,
+  author    = {Mannini, Andrea and Sabatini, Angelo Maria},
+  title     = {Machine Learning Methods for Classifying Human Physical Activity from On-Body Accelerometers},
+  journal   = {Sensors},
+  volume    = {10},
+  number    = {2},
+  year      = {2010},
+  pages     = {1154--1175},
+  publisher = {MDPI},
+  doi       = {10.3390/s100201154},
+  note      = {Sensor range validation: acceleration ≤ 50 m/s², gyroscope ≤ 500 °/s.}
+}
+
+@inproceedings{naeini2015obtaining,
+  author    = {Naeini, Mahdi Pakdaman and Cooper, Gregory F. and Hauskrecht, Milos},
+  title     = {Obtaining Well Calibrated Probabilities Using {Bayesian} Binning},
+  booktitle = {Proceedings of the 29th AAAI Conference on Artificial Intelligence (AAAI)},
+  year      = {2015},
+  pages     = {2901--2907},
+  publisher = {AAAI Press},
+  note      = {ECE: n_bins=15 recommendation; ECE warn threshold 0.10.}
+}
+
+@article{page1954continuous,
+  author    = {Page, Ewan S.},
+  title     = {Continuous Inspection Schemes},
+  journal   = {Biometrika},
+  volume    = {41},
+  number    = {1/2},
+  year      = {1954},
+  pages     = {100--115},
+  publisher = {Oxford University Press},
+  doi       = {10.2307/2333009},
+  note      = {CUSUM: consecutive-warning trigger; drift z-score critical threshold.}
+}
+
+@inproceedings{rabanser2019failing,
+  author    = {Rabanser, Stephan and G{\"u}nnemann, Stephan and Lipton, Zachary C.},
+  title     = {Failing Loudly: An Empirical Study of Methods for Detecting Dataset Shift},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  year      = {2019},
+  pages     = {1396--1408},
+  publisher = {Curran Associates},
+  note      = {Wasserstein drift detection; warn=0.30, critical=0.50.}
+}
+
+@inproceedings{sculley2015hidden,
+  author    = {Sculley, D. and Holt, Gary and Golovin, Daniel and Davydov, Eugene and Phillips, Todd and
+               Ebner, Dietmar and Chaudhary, Vinay and Young, Michael and Crespo, Jean-Francois and Dennison, Dan},
+  title     = {Hidden Technical Debt in Machine Learning Systems},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  year      = {2015},
+  pages     = {2503--2511},
+  publisher = {Curran Associates},
+  note      = {Governance: auto_deploy=False; promote_to_shared=False; explicit human approval gates.}
+}
+
+@inproceedings{tarvainen2017mean,
+  author    = {Tarvainen, Antti and Valpola, Harri},
+  title     = {Mean Teachers Are Better Role Models: Weight-Averaged Consistency Targets Improve Semi-Supervised Deep Learning Results},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  year      = {2017},
+  pages     = {1195--1204},
+  publisher = {Curran Associates},
+  note      = {EMA decay α=0.999 for teacher model in curriculum pseudo-labelling.}
+}
+
+@book{wald1947sequential,
+  author    = {Wald, Abraham},
+  title     = {Sequential Analysis},
+  year      = {1947},
+  publisher = {John Wiley \& Sons},
+  address   = {New York},
+  note      = {Three-sigma rule (3σ ≈ 99.7th percentile) for critical drift threshold.}
+}
+
+@inproceedings{wang2021tent,
+  author    = {Wang, Dequan and Shelhamer, Evan and Liu, Shaoteng and Olshausen, Bruno and Darrell, Trevor},
+  title     = {Tent: Fully Test-Time Adaptation by Entropy Minimization},
+  booktitle = {Proceedings of the 9th International Conference on Learning Representations (ICLR)},
+  year      = {2021},
+  note      = {TENT: n_steps=10, lr=1e-4, ood_entropy_threshold=0.85, rollback_threshold=0.05.}
+}
+
+@inproceedings{zappi2020usc,
+  author    = {Zappi, Piero and Stiefmeier, Thomas and Farella, Elisabetta and Roggen, Daniel and Benini, Luca and Tr{\"o}ster, Gerhard},
+  title     = {Activity Recognition from On-Body Sensors by Classifier Fusion: Sensor Scalability and Robustness},
+  booktitle = {3rd International Workshop on Wearable and Implantable Body Sensor Networks (BSN)},
+  year      = {2007},
+  note      = {USC-HAD corpus; 50 Hz target rate; dominant-hand lateral acceleration ratio.}
+}

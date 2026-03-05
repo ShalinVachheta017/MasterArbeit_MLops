@@ -1,7 +1,7 @@
-"""    
+"""
 Component 10 – Baseline Update
 
-Wraps:  scripts/build_training_baseline.py  →  BaselineBuilder
+Wraps:  src/build_training_baseline.py  →  BaselineBuilder
 """
 
 import logging
@@ -38,13 +38,7 @@ class BaselineUpdate:
         logger.info("STAGE 10 — Baseline Update")
         logger.info("=" * 60)
 
-        import sys
-
-        scripts_dir = str(self.pipeline_config.scripts_dir)
-        if scripts_dir not in sys.path:
-            sys.path.insert(0, scripts_dir)
-
-        from build_training_baseline import BaselineBuilder
+        from src.build_training_baseline import BaselineBuilder
 
         builder = BaselineBuilder()
 

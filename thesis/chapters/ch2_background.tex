@@ -1,0 +1,229 @@
+% ============================================================================
+% chapters/ch2_background.tex
+% ============================================================================
+\chapter{Background and Related Work}
+\label{ch:background}
+
+This chapter reviews the theoretical foundations and prior work across four
+domains that underpin this thesis: human activity recognition with deep
+learning (\Cref{sec:bg_har}), MLOps practices for production machine learning
+systems (\Cref{sec:bg_mlops}), domain adaptation and transfer learning for
+sensor data (\Cref{sec:bg_domain_adaptation}), and uncertainty quantification
+in deep neural classifiers (\Cref{sec:bg_uq}).
+
+% ----------------------------------------------------------------------------
+\section{Human Activity Recognition}
+\label{sec:bg_har}
+% ----------------------------------------------------------------------------
+
+\subsection{Definition and Sensor Modalities}
+
+Human Activity Recognition refers to the automatic identification of
+physical activities performed by a person, inferred from sensor measurements
+\citep{chen2021deep}.
+In the wearable sensor paradigm relevant to this thesis, activities are
+inferred from triaxial accelerometers and triaxial gyroscopes embedded in
+a wrist-worn device.
+The accelerometer measures linear acceleration along three orthogonal axes
+(units: m/s\textsuperscript{2}), while the gyroscope measures angular velocity
+around three orthogonal axes (units: $^\circ$/s or rad/s).
+
+\citet{mannini2010machine} provide a foundational review of machine learning
+methods for accelerometer-based HAR, establishing sensor validation ranges
+that are still used in practice: acceleration $\leq 50$\,m/s\textsuperscript{2}
+and gyroscope $\leq 500$\,$^\circ$/s.
+\citet{bao2004activity} introduced the sliding window paradigm, observing that
+a 4-second window captures sufficient context for coarse activity labels, a
+convention adopted in most subsequent work.
+
+\subsection{Deep Learning Architectures for HAR}
+
+\citet{chen2021deep} survey deep learning approaches for sensor-based HAR,
+identifying one-dimensional convolutional neural networks (1D-CNNs) and
+recurrent architectures (LSTM, GRU) as the dominant families.
+1D-CNNs extract local temporal features through learned filters, while
+bidirectional LSTM layers capture global sequence context in both forward and
+backward directions.
+Their combination (\cnnbilstm{}) has been shown to outperform unimodal
+architectures on benchmark datasets including UCI-HAR, PAMAP2, and
+Opportunity.
+
+The model used in this thesis is a \cnnbilstm{} with 499,131 parameters and
+17 layers, pre-trained on labelled wrist sensor data using the 11 anxiety-related
+activity classes described in \Cref{sec:scope}.
+Details of the architecture are provided in \Cref{sec:model_architecture}.
+
+\subsection{Benchmark Datasets and Limitations}
+
+Most published HAR evaluations use subject-independent (leave-one-subject-out)
+cross-validation on publicly available benchmarks.
+A key limitation of this evaluation protocol is that it treats all subjects as
+drawn from a single distribution, ignoring the persistent inter-subject
+variability that arises in real deployments.
+\todo{Add citations for benchmark datasets: UCI-HAR, PAMAP2, Opportunity.}
+
+% ----------------------------------------------------------------------------
+\section{MLOps for Production Machine Learning}
+\label{sec:bg_mlops}
+% ----------------------------------------------------------------------------
+
+\subsection{The MLOps Problem}
+
+\citet{sculley2015hidden} identified hidden technical debt in production ML
+systems, observing that data dependencies, feedback loops, and system
+entanglement generate maintenance costs that dwarf the cost of writing model
+code.
+Their analysis motivates the MLOps discipline: applying software engineering
+principles (modularity, testing, monitoring, deployment automation) to the full
+ML lifecycle, not just the modelling phase.
+
+A canonical MLOps lifecycle comprises six phases: data management, model
+development, model evaluation, deployment, monitoring, and retraining.
+A production system must execute these phases repeatedly and automatically
+as new data arrive \citep{sculley2015hidden}.
+
+\subsection{Monitoring in Production}
+
+The central challenge of production ML monitoring is detecting model
+degradation without access to ground-truth labels.
+\citet{gama2014survey} survey concept drift detection methods, identifying
+three classes: sequential analysis methods (CUSUM, SPRT), distribution
+comparison methods (KS test, PSI), and model-based methods (holdout accuracy
+on labelled windows).
+Only the first two classes are applicable in the unlabelled production setting
+addressed by this thesis.
+
+The Population Stability Index (PSI) is defined as:
+\begin{equation}
+  \text{PSI} = \sum_{i=1}^{B}
+    \left( p_i^{\text{prod}} - p_i^{\text{ref}} \right)
+    \ln \frac{p_i^{\text{prod}}}{p_i^{\text{ref}}}
+  \label{eq:psi}
+\end{equation}
+where $p_i^{\text{prod}}$ and $p_i^{\text{ref}}$ are the production and
+reference histogram proportions in bin $i$, and $B$ is the number of bins.
+Standard thresholds ($\text{PSI} < 0.10$ no drift, $0.10$--$0.25$ moderate,
+$> 0.25$ significant) apply to single-channel distributions; this thesis
+empirically calibrates equivalent thresholds for 24-channel aggregated PSI
+(see \Cref{sec:psi_calibration}).
+
+\subsection{Data and Model Versioning}
+
+\citet{sculley2015hidden} emphasise that data versioning is as important as
+code versioning for reproducible ML.
+DVC \citep{dvcteam2020} extends Git with pointer files that track large binary
+artefacts (datasets and models) using content hashes, enabling reproducible
+re-runs at any prior data version.
+MLflow \citep{mlflowteam2018} provides a complementary layer: it records
+experiment metadata, hyperparameters, metrics, and model artefacts associated
+with code commits, linking DVC data versions to specific model versions.
+
+% ----------------------------------------------------------------------------
+\section{Domain Adaptation for Wearable Sensor Data}
+\label{sec:bg_domain_adaptation}
+% ----------------------------------------------------------------------------
+
+\subsection{Sources of Domain Shift in HAR}
+
+Domain shift in wearable HAR arises from three sources:
+\begin{enumerate}
+  \item \textbf{Inter-subject variability.} Different users move differently
+        even when performing the same activity. A model trained on one user's
+        data may not generalise to another user's distribution.
+  \item \textbf{Sensor placement variability.} Wrist-worn sensors are affected
+        by handedness (dominant vs.\ non-dominant wrist), tightness of fit,
+        and wrist orientation relative to the device face.
+  \item \textbf{Sensor calibration drift.} Long-term drift in accelerometer
+        and gyroscope calibration changes the marginal distribution of sensor
+        readings, even for the same physical activity.
+\end{enumerate}
+
+This thesis encountered a concrete instance of category~(3): production data
+from Garmin smartwatches was recorded in milliG, while the pre-trained model
+was trained on data in m/s\textsuperscript{2}.
+The resulting magnitude difference degraded cross-user accuracy to 14.5\,\%
+(below random-chance baseline of 9.09\,\% for 11 classes), a case study
+detailed in \Cref{sec:unit_mismatch}.
+
+\subsection{Adaptive Batch Normalisation}
+
+\citet{li2018adabn} proposed Adaptive Batch Normalisation (AdaBN) as a
+parameter-free test-time adaptation method.
+The core observation is that Batch Normalisation \citep{ioffe2015batch} layers
+store running statistics (mean and variance) that represent the training domain
+distribution.
+By replacing these statistics with the statistics computed from the target
+domain, the model's internal normalisation is updated to reflect the new domain
+without modifying any learnable weights.
+AdaBN requires $n_{\text{batches}} = 10$ forward passes over the target data
+to stabilise the running statistics, using batch size $B = 64$.
+
+\subsection{TENT: Test-Time Entropy Minimisation}
+
+\citet{wang2021tent} proposed TENT, a test-time adaptation method that
+minimises the entropy of the model's output predictions over a target batch
+through gradient descent on the Batch Normalisation affine parameters
+($\gamma, \beta$) only.
+TENT uses $n_{\text{steps}} = 10$ gradient steps with learning rate
+$lr = 10^{-4}$.
+
+An important interaction arises when AdaBN and TENT are applied sequentially:
+TENT's training-mode forward passes update the BN running statistics, overwriting
+the statistics set by AdaBN.
+\Cref{sec:tent_adabn} describes the snapshot-and-restore mechanism implemented
+in this thesis to prevent this interaction.
+
+\subsection{Pseudo-Labelling for Self-Supervised Adaptation}
+
+\citet{lee2013pseudo} introduced pseudo-labelling as a semi-supervised learning
+strategy: a model trained on labelled data generates pseudo-labels for unlabelled
+examples; those pseudo-labels are then used as training targets.
+Quality is controlled by a confidence threshold $\tau$, retaining only
+predictions with maximum softmax probability $> \tau$.
+The curriculum variant progressively lowers $\tau$ across training iterations,
+providing easy-to-classify examples first \citep{lee2013pseudo}.
+
+Catastrophic forgetting is a risk in any fine-tuning scenario: the model may
+overfit to the new domain and lose performance on the original domain.
+\citet{kirkpatrick2017overcoming} addressed this with Elastic Weight
+Consolidation (EWC), which adds an $L_2$ penalty proportional to the Fisher
+information to anchor weights that were important for the original task.
+
+% ----------------------------------------------------------------------------
+\section{Uncertainty Quantification}
+\label{sec:bg_uq}
+% ----------------------------------------------------------------------------
+
+\subsection{Calibration and Expected Calibration Error}
+
+A neural network is said to be \textit{calibrated} if its predicted confidence
+values correspond to empirical accuracy: a batch of predictions with 80\,\%
+confidence should be correct roughly 80\,\% of the time.
+Modern deep neural networks are typically overconfident \citep{guo2017calibration}.
+
+\citet{guo2017calibration} showed that temperature scaling --- dividing the
+pre-softmax logit vector by a scalar temperature $T > 1$ --- effectively
+recalibrates neural networks with minimal additional computation.
+The optimal temperature is found by minimising Expected Calibration Error (ECE)
+on a held-out validation set.
+ECE is computed as:
+\begin{equation}
+  \text{ECE} = \sum_{b=1}^{B} \frac{|S_b|}{N}
+    \left| \mathrm{acc}(S_b) - \mathrm{conf}(S_b) \right|
+  \label{eq:ece}
+\end{equation}
+where $S_b$ is the set of samples in confidence bin $b$, $|S_b|/N$ is the
+fraction of samples in that bin, and $\mathrm{acc}$, $\mathrm{conf}$ are the
+bin accuracy and mean confidence, respectively.
+A warning is raised when $\text{ECE} > 0.10$ \citep{naeini2015obtaining}.
+
+\subsection{Monte Carlo Dropout}
+
+\citet{gal2016dropout} showed that applying dropout at test time (keeping
+dropout active during inference) approximates Bayesian inference in a deep
+Gaussian process.
+Running $T$ stochastic forward passes through the model with dropout enabled
+produces a distribution over predictions; the variance of this distribution
+is an estimator of epistemic (model) uncertainty.
+$T = 30$ passes are recommended for stable uncertainty estimates
+\citep{gal2016dropout}.

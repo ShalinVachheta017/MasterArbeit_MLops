@@ -40,14 +40,11 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # ── Project paths (resolved from this file's location) ───────────────────────
-_SCRIPTS_DIR = Path(__file__).parent
-_PROJECT_ROOT = _SCRIPTS_DIR.parent
-
-# Add src to path so we can import config constants
-sys.path.insert(0, str(_PROJECT_ROOT / "src"))
+_SRC_DIR = Path(__file__).resolve().parent.parent
+_PROJECT_ROOT = _SRC_DIR.parent
 
 try:
-    from config import SENSOR_COLUMNS, WINDOW_SIZE, NUM_SENSORS, ACTIVITY_LABELS
+    from src.config import SENSOR_COLUMNS, WINDOW_SIZE, NUM_SENSORS, ACTIVITY_LABELS
     _OVERLAP = 0.5
     _STEP = int(WINDOW_SIZE * (1 - _OVERLAP))
 except ImportError:

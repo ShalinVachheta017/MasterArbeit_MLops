@@ -1,0 +1,200 @@
+% ============================================================================
+% chapters/ch1_introduction.tex
+% ============================================================================
+\chapter{Introduction}
+\label{ch:introduction}
+
+% ----------------------------------------------------------------------------
+\section{Problem Statement}
+\label{sec:problem}
+% ----------------------------------------------------------------------------
+
+Human Activity Recognition (HAR) using wearable inertial measurement units
+(IMUs) has progressed from a laboratory research problem to a practical tool
+for continuous health monitoring.
+In the context of anxiety detection, wrist-worn accelerometer and gyroscope
+data can be used to classify physical activities---such as walking, sitting,
+or fidgeting---whose patterns correlate with mental health states.
+Deep learning architectures, including one-dimensional convolutional neural
+networks combined with bidirectional long short-term memory layers
+(\cnnbilstm{}), have demonstrated strong classification performance when
+evaluated on curated benchmark datasets \citep{chen2021deep}.
+
+However, a significant gap persists between research-grade model evaluation
+and reliable operation in production.
+The central problem addressed by this thesis is:
+
+\begin{quote}
+\textit{Once a HAR model trained on labelled laboratory data is deployed to
+process continuous, unlabelled wearable recordings, how can the system detect
+that the model's reliability has degraded and adapt without requiring
+manual re-labelling?}
+\end{quote}
+
+This question is rarely addressed in the HAR literature.
+The majority of published work evaluates models under closed-world assumptions:
+the training distribution matches the test distribution, all test data are
+labelled, and the model is evaluated once rather than continuously.
+In a real deployment, none of these assumptions hold.
+Users differ in anthropometry, handedness, and movement idiosyncrasies.
+Sensor placement may vary between the dominant and non-dominant wrist.
+Environmental conditions, firmware updates, and battery degradation introduce
+gradual sensor drift.
+Over days and weeks, the data distribution shifts away from the training
+distribution, and model outputs become progressively less trustworthy---yet no
+ground-truth labels exist to detect or quantify this degradation.
+
+The consequences of undetected degradation are particularly severe in a mental
+health monitoring context.
+Misclassified activity sequences can lead to incorrect anxiety state estimates,
+eroding both clinical utility and user trust.
+A production HAR system therefore requires not only a performant model, but
+also a surrounding infrastructure that
+(a)~continuously monitors prediction quality using proxy signals,
+(b)~determines when retraining is necessary,
+(c)~adapts the model without labelled data, and
+(d)~ensures that the entire process is reproducible, versioned, and auditable.
+
+This is fundamentally a Machine Learning Operations (MLOps) problem.
+MLOps extends the principles of DevOps---automation, continuous integration,
+monitoring, and infrastructure-as-code---to the machine learning lifecycle
+\citep{sculley2015hidden}.
+While MLOps practices are well-established in domains such as natural language
+processing and recommender systems, their application to wearable sensor HAR
+remains nascent.
+
+% ----------------------------------------------------------------------------
+\section{Research Questions}
+\label{sec:rqs}
+% ----------------------------------------------------------------------------
+
+The following research questions guide this thesis:
+
+\begin{description}[leftmargin=2cm, labelwidth=1.5cm]
+  \item[RQ\,1] How can model degradation in a deployed HAR system be detected
+               without access to ground-truth activity labels?
+  \item[RQ\,2] Which proxy metrics correlate most reliably with actual
+               classification accuracy in a wrist-worn HAR context?
+  \item[RQ\,3] When should an automated system trigger model adaptation or
+               full retraining, and how can false triggers be suppressed?
+  \item[RQ\,4] How effective is curriculum pseudo-labelling as a self-supervised
+               adaptation strategy for HAR model updates?
+  \item[RQ\,5] What engineering practices (versioning, containerisation,
+               CI/CD) are necessary to make a HAR MLOps pipeline
+               reproducible and auditable?
+\end{description}
+
+% ----------------------------------------------------------------------------
+\section{Contributions}
+\label{sec:contributions}
+% ----------------------------------------------------------------------------
+
+This thesis makes the following contributions:
+
+\begin{enumerate}
+  \item A \textbf{14-stage production pipeline} that decomposes the HAR MLOps
+        lifecycle into independently executable, composable stages with typed
+        configuration and artefact dataclasses
+        (\Cref{ch:methodology,ch:implementation}).
+
+  \item A \textbf{three-layer monitoring framework} (confidence, temporal
+        consistency, statistical drift) that operates entirely on unlabelled
+        predictions and feeds into a voting-based trigger policy
+        (\Cref{sec:monitoring}).
+
+  \item A \textbf{tiered trigger policy engine} with multi-metric vote
+        confirmation, cooldown periods, and tiered alerting that suppresses
+        false retraining triggers (\Cref{sec:trigger}).
+
+  \item A \textbf{curriculum pseudo-labelling procedure} with Elastic Weight
+        Consolidation (EWC) regularisation that adapts a pre-trained model
+        to new user data without ground-truth labels
+        (\Cref{sec:pseudo_labelling}).
+
+  \item An \textbf{AdaBN+TENT test-time adaptation sequence} with a BN
+        statistics snapshot mechanism that prevents TENT from corrupting
+        AdaBN's output, and dual rollback gates for safety
+        (\Cref{sec:tent_adabn}).
+
+  \item A \textbf{calibrated uncertainty pipeline} combining temperature
+        scaling and Monte Carlo (MC) Dropout for both monitoring and active
+        learning sample selection (\Cref{sec:calibration}).
+
+  \item Integration of all components into a \textbf{containerised, CI/CD-enabled
+        deployment} with Docker, GitHub Actions, MLflow experiment tracking,
+        and DVC data versioning (\Cref{ch:implementation}).
+
+  \item An \textbf{empirical engineering log} documenting 21 real problems
+        encountered during development --- including a sensor unit mismatch
+        that reduced cross-user accuracy to 14.5\,\% and the sequence of fixes
+        that recovered it --- as evidence-backed case studies for the
+        implementation challenges chapter (\Cref{ch:discussion}).
+\end{enumerate}
+
+% ----------------------------------------------------------------------------
+\section{Scope and Delimitations}
+\label{sec:scope}
+% ----------------------------------------------------------------------------
+
+The scope of this thesis is bounded as follows.
+The sensor modality is restricted to wrist-worn triaxial accelerometers and
+gyroscopes (6-axis IMU) as collected by Garmin smartwatches.
+The classification target is an 11-class activity taxonomy derived from an
+anxiety-related behavioural protocol comprising the activities listed in
+\Cref{tab:activity_classes}.
+
+\begin{table}[ht]
+  \centering
+  \caption{The eleven activity classes used throughout this thesis.}
+  \label{tab:activity_classes}
+  \begin{tabular}{clcl}
+    \toprule
+    \textbf{ID} & \textbf{Activity} & \textbf{ID} & \textbf{Activity} \\
+    \midrule
+    0  & Ear rubbing        & 6  & Nail biting        \\
+    1  & Forehead rubbing   & 7  & Nape rubbing       \\
+    2  & Hair pulling       & 8  & Sitting (neutral)  \\
+    3  & Hand scratching    & 9  & Smoking            \\
+    4  & Hand tapping       & 10 & Standing (neutral) \\
+    5  & Knuckles cracking  &    &                    \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The deep learning architecture is a fixed \cnnbilstm{}; architecture search
+is explicitly out of scope.
+The pipeline is designed for single-user adaptation scenarios; federated or
+multi-user aggregation is identified as future work.
+
+The thesis does not collect new labelled data.
+The primary dataset comprises 26 recording sessions from the Garmin Decoded
+export format.
+Labelled training data originate from a prior data collection phase described
+in \Cref{sec:dataset}.
+
+% ----------------------------------------------------------------------------
+\section{Thesis Structure}
+\label{sec:structure}
+% ----------------------------------------------------------------------------
+
+The remainder of this thesis is organised as follows.
+
+\Cref{ch:background} reviews the literature across four domains: HAR with deep
+learning, MLOps practices for continuous ML systems, domain adaptation for
+sensor data, and uncertainty quantification in neural classifiers.
+
+\Cref{ch:methodology} presents the methodology, describing the 14-stage
+pipeline architecture, the monitoring and trigger framework, and the adaptation
+strategies in detail.
+
+\Cref{ch:implementation} details the implementation, covering the repository
+structure, CLI design, CI/CD workflow, experiment tracking, and containerised
+deployment.
+
+\Cref{ch:evaluation} reports the experimental results: classification
+performance, calibration quality, drift detection accuracy, pseudo-labelling
+convergence, and the ablation comparison across adaptation methods.
+
+\Cref{ch:discussion} discusses the findings, reflects on the engineering
+challenges encountered, identifies limitations, and outlines directions for
+future work.

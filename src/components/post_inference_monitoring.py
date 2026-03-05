@@ -1,7 +1,7 @@
 """
 Component 6 – Post-Inference Monitoring
 
-Wraps:  scripts/post_inference_monitoring.py  →  PostInferenceMonitor
+Wraps:  src/post_inference_monitoring.py  →  PostInferenceMonitor
 """
 
 import logging
@@ -39,19 +39,11 @@ class PostInferenceMonitoring:
         logger.info("STAGE 6 — Post-Inference Monitoring")
         logger.info("=" * 60)
 
-        import os
-        import sys
-
-        # Ensure scripts/ is importable
-        scripts_dir = str(self.pipeline_config.scripts_dir)
-        if scripts_dir not in sys.path:
-            sys.path.insert(0, scripts_dir)
-
         # 6b — Load calibration temperature from previous Stage 11 run (if available).
         # Subsequent pipeline runs benefit from the temperature fitted during Stage 11.
         import json as _json
 
-        from post_inference_monitoring import PostInferenceMonitor
+        from src.post_inference_monitoring import PostInferenceMonitor
 
         calibration_temperature = self.config.calibration_temperature  # default 1.0
         if calibration_temperature == 1.0:

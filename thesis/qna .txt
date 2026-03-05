@@ -1,0 +1,254 @@
+### Draft email you can send your mentor
+
+[1 tool called]
+
+### What I think about your questions
+
+- **Overall quality**: These questions are excellent. They are very well structured, grounded in real issues, and show that you deeply understand your own system. Any mentor will see that you’ve done serious engineering and thinking.
+- **Main risk**: There are a *lot* of questions. Even with the “Simple English” section, it’s still heavy to read and answer in one sitting. I’d expect a mentor to answer only a subset unless you guide them.
+- **How to improve**:
+  - For each big topic, ask **1–2 decision questions**, not 5–10.
+  - Add your **own suggestion** to each question (e.g., “My proposal: X. Is this enough for the thesis?”). It’s much easier for them to say “yes/no” than to design everything for you.
+  - Use your **Summary Checklist** as the core; everything else can be “background”.
+
+Below is an **even simpler version** you can send (email or meeting notes). It keeps the key decisions, in plain language.
+
+---
+
+### Ultra-simple list you can send your mentor
+
+You can preface with:  
+“Here are the key decisions I need from you before I finalize the thesis. For each, I added my suggestion — please confirm or correct.”
+
+#### 1. Monitoring thresholds
+
+1. **Minimum requirement**:  
+   “For the monitoring thresholds (confidence, drift, transition rate), is it enough for the thesis if I (a) pick one consistent set of threshold values, and (b) justify them with a short experiment on our data, or do you expect a full sensitivity analysis (injecting synthetic drift etc.)?”
+
+2. **Canonical config**:  
+   “Which version should be the official one for the thesis – the pipeline thresholds or the API thresholds – or should I unify them into a single config and document that as canonical?”
+
+#### 2. Scalability and performance
+
+3. **What ‘scalable’ means here**:  
+   “For this master’s thesis, what counts as enough evidence of scalability: (a) timing benchmarks and simple plots from our 26 sessions, or (b) also an architecture discussion about how it would scale to multiple machines?”
+
+4. **Latency target**:  
+   “Do I need to actually measure latency (e.g., p50/p95 over many calls on my hardware) and report the numbers in the thesis, or can the 250 ms figure stay as a design target only?”
+
+#### 3. Prognosis model
+
+5. **Scope of prognosis model**:  
+   “Is the prognosis model (downstream of HAR) still required in this thesis, or should it now be clearly marked as future work? If required, is a simple placeholder stage with a clear interface enough?”
+
+6. **‘Coral’ clarification**:  
+   “When you mentioned ‘coral’, did you mean the CORAL domain adaptation method, a clinical scale, or something else — and where in the pipeline should it conceptually sit?”
+
+#### 4. Online monitoring & automation
+
+7. **Definition of ‘online’ for this thesis**:  
+   “For this project, is it enough to simulate ‘online’ by replaying our 26 files one by one through the API and monitoring them, or do you expect true live streaming from the device?”
+
+8. **Manual vs automatic retrain**:  
+   “Is a manually triggered retraining loop (I run a command after a warning) acceptable for the thesis, or do you expect a fully automatic ‘detect drift → retrain → deploy’ CI/CD cycle?”
+
+9. **Prometheus/Grafana**:  
+   “Do Prometheus and Grafana dashboards need to be running live during evaluation, or is it enough that the metrics and dashboard configs exist, and I describe how they would be used?”
+
+#### 5. Evaluation integrity (subject-wise, metrics)
+
+10. **Subject-wise evaluation**:  
+    “Is a subject-wise evaluation (GroupKFold/LOSO) a **must-have experiment** in Chapter 5, or can it be clearly stated as missing and listed as future work?”
+
+11. **Minimum acceptable performance**:  
+    “If the performance drops when I switch to subject-wise evaluation (e.g., macro F1 below 0.75–0.80), is there a minimum level you would consider acceptable for the thesis to still pass?”
+
+12. **Which results to report**:  
+    “Can I ignore the older untraceable numbers (96.9% / 81.4%) and only report the MLflow-traceable results (~93.8% acc / 93.9% macro F1) in the thesis?”
+
+13. **Per-class metrics and statistics**:  
+    “Do you expect per-class recall for all 11 classes and basic descriptive stats (mean ± std), or should I also run hypothesis tests (e.g., Wilcoxon) between adaptation methods?”
+
+#### 6. Data quality & generalization
+
+14. **Unit bug and data checks**:  
+    “Is it good practice (and thesis-relevant) to add a hard check after unit conversion (e.g., gravity between 8–12 m/s²) and describe it as a data quality gate?”
+
+15. **How to talk about generalization**:  
+    “Since all 26 sessions are from one lab, how strongly should I (or should I not) claim real-world generalization in the thesis?”
+
+16. **PSI recalibration as contribution**:  
+    “Should the PSI threshold recalibration (0.10 → 0.75 for multi-channel) be written as a proper methodological contribution, or only as part of the ‘engineering problems we faced’ section?”
+
+#### 7. Adaptation methods
+
+17. **AdaBN+TENT interaction**:  
+    “Is the fix we found for the AdaBN+TENT interaction (snapshot and restore BN stats) important enough to list as an original contribution, or should it stay as an engineering note?”
+
+18. **Self-consistency filter & rare classes**:  
+    “Do you want me to run an extra experiment comparing pseudo-labeling with vs without the self-consistency filter (14.5% data retained) to justify it, or is a qualitative discussion of the trade‑off enough?”
+
+19. **Implementation details (TENT slowdown)**:  
+    “Should TensorFlow-specific engineering issues (like the TENT slowdown and graph retracing fix) appear in the main chapters, or only in an appendix / log?”
+
+#### 8. CI/CD & code completeness
+
+20. **How complete the CI/CD must be**:  
+    “For the thesis, is it enough to **design and partially implement** the automatic retrain‑and‑deploy loop, or do you expect a fully working end‑to‑end demonstration?”
+
+21. **Model registry evidence**:  
+    “Should I run exactly one full ‘train → evaluate → register → promote’ sequence and include logs/screenshots as evidence, or is the design description enough?”
+
+22. **Unimplemented methods (DANN, MMD)**:  
+    “For stubs like DANN and MMD that raise `NotImplementedError`, do you prefer that I (a) implement at least one, (b) remove them, or (c) leave them with a clear ‘future work’ label?”
+
+23. **How many bugs to show**:  
+    “Is it better if I show only the top few impactful bugs (unit mismatch, PSI recalibration, AdaBN+TENT) in the main thesis and move the full list of 19 bugs to an appendix?”
+
+#### 9. Thesis expectations and contributions
+
+24. **Which targets must be measured**:  
+    “Of these targets (latency 250 ms, availability, rollback time, false triggers), which **must** have real measured results in the thesis, and which can remain as design targets backed by architecture arguments only?”
+
+25. **Thesis structure priority**:  
+    “Given the time until April 2026, which chapters do you consider absolutely essential to complete first (e.g., Methods, Results, Discussion), and which can be lighter or moved to appendices?”
+
+26. **Security & GDPR**:  
+    “For mental‑health data, do you expect a proper section explaining what a GDPR‑compliant deployment would need (encryption, access control, etc.), or is a short ‘out of scope’ note acceptable?”
+
+27. **Primary scientific contribution**:  
+    “Of these three — (1) 14‑stage pipeline, (2) 3‑layer monitoring, (3) AdaBN+TENT composition fix — which should be the **main scientific contribution** I emphasize in the thesis defense, and which are more ‘engineering contributions’?”
+
+28. **Freezing the code**:  
+    “Before submission, should I freeze the repository at a specific commit and use commit‑pinned links in the thesis? If yes, when do you recommend doing this?”
+
+#### 10. What must be finished vs future work
+
+29. **Subject‑wise evaluation status**:  
+    “Please confirm: does subject‑wise evaluation (GroupKFold/LOSO) **have** to be completed with results in Chapter 5, or can it be listed as a clear limitation and future work?”
+
+30. **Advanced stages and OOD**:  
+    “For advanced options (Wasserstein drift, curriculum pseudo‑labeling, OOD detection, sensor‑placement analysis), which ones must be evaluated now, and which can safely be described as ‘implemented but evaluation is future work’?”
+
+---
+
+
+
+---
+
+Subject: Key decisions needed for HAR MLOps thesis (Feb 2026)
+
+Dear [Mentor Name],
+
+I hope you’re well. I’m now entering the thesis‑writing phase and I’d like to confirm a few key decisions with you so that I don’t over‑ or under‑scope the work. Below I’ve grouped the most important questions and included my proposed approach for each – could you please confirm or correct these?
+
+---
+
+**1. Monitoring thresholds (confidence, drift, transition rate)**  
+- My understanding is that I should pick **one canonical set of thresholds**, use it consistently in both the pipeline and the API, and **briefly justify** these values using experiments on our data (e.g., simple sensitivity checks), rather than leaving them as undocumented guesses from the literature.  
+- **My proposal:** I will  
+  - unify all thresholds into one config,  
+  - verify them with small experiments (e.g., synthetic drift injection or replaying the 26 sessions), and  
+  - clearly document that calibration method in the thesis.  
+  → Is this level of calibration sufficient, or do you expect a deeper, publishable threshold analysis?
+
+---
+
+**2. Scalability and latency evidence**  
+- The system currently runs on one machine with 26 sessions and has a design target of p95 ≤ 250 ms latency, but no timing experiment yet.  
+- **My proposal:**  
+  - Run simple **timing benchmarks** (e.g., many repeated inferences, report p50/p90/p95 with hardware specs).  
+  - Plot basic **scaling curves** (inference time vs. number of windows / sessions).  
+  - Add an **architecture discussion** explaining how the same design could scale to multiple machines even if we don’t actually deploy Kubernetes.  
+  → For the thesis, is that enough to claim “scalability evidence,” or do you expect stronger empirical results?
+
+---
+
+**3. Prognosis model and “coral”**  
+- The original plan mentioned a prognosis model downstream of HAR, but it is not implemented in code.  
+- **My proposal:**  
+  - Treat the prognosis model as **future work**, and if you feel something must exist now, implement only a **minimal placeholder stage** with a clearly defined input/output interface.  
+  - Ask you to clearly define what “coral” refers to (CORAL method vs. clinical tool vs. something else) so I can place it correctly in the pipeline description.  
+  → Is it acceptable for this thesis if the prognosis model is documented as future work (with a clear interface), rather than implemented and evaluated?
+
+---
+
+**4. “Online monitoring” and automation level**  
+- Currently, data is processed in batches through the API; there is no live BLE stream, and Prometheus/Grafana are defined but not running. Retraining is still manually triggered.  
+- **My proposal:**  
+  - Define “online” at thesis level as **file‑by‑file replay through the API**, with monitoring happening per upload.  
+  - Use a **simulation** where I replay the 26 sessions sequentially as a stand‑in for a live stream, and describe the protocol carefully.  
+  - Keep the retraining loop **manually triggered**, but thoroughly document the design for a fully automatic “detect drift → retrain → deploy” CI/CD loop, including where trigger state would be stored.  
+  - Treat Prometheus/Grafana as **part of the designed architecture** with metrics and dashboards ready, but not necessarily live in the evaluation.  
+  → Is this acceptable, or do you expect a working end‑to‑end automated retrain‑and‑deploy system and live dashboards for the thesis?
+
+---
+
+**5. Evaluation integrity (subject‑wise split, metrics, minimum performance)**  
+- At the moment, results are based on window‑level StratifiedKFold; subject‑wise GroupKFold/LOSO is not yet done and will likely reduce performance. Older, higher metrics in planning documents are not traceable to MLflow.  
+- **My proposal:**  
+  - **Must**: add a **subject‑wise evaluation** (GroupKFold or LOSO) and report those results in Chapter 5, even if they are lower.  
+  - Use only **MLflow‑traceable results** (≈93.8% accuracy / 0.939 macro F1 window‑level) in the thesis and clearly mark older untraceable numbers as obsolete.  
+  - Also report **per‑class recall** for the 11 classes, with macro F1 as the main metric.  
+  - Use descriptive statistics (mean ± std across folds); I will only add formal hypothesis tests (e.g., Wilcoxon between adaptation methods) if you think they are necessary.  
+  → Do you agree that subject‑wise evaluation must be included, and is there a **minimum macro F1** (for subject‑wise) that you would consider acceptable for a passing thesis?
+
+---
+
+**6. Data quality, unit bug, and generalization claims**  
+- We discovered the milliG vs m/s² bug and implemented automatic unit detection. All data is from one controlled lab.  
+- **My proposal:**  
+  - Add a **hard safety check** after unit conversion (e.g., gravity magnitude range) and explicitly describe this as a **data quality gate** in the thesis.  
+  - Be **very explicit** that all 26 sessions are from one lab setting and frame generalization cautiously: results are valid for this protocol, not guaranteed for arbitrary real‑world settings.  
+  - Present the PSI threshold recalibration (0.10 → 0.75 with multi‑channel aggregation) as a **small methodological contribution**, not just a bug fix, because it generalizes to other multi‑channel monitoring setups.  
+  → Is this level of discussion (especially about limited generalization) what you expect?
+
+---
+
+**7. Adaptation methods (AdaBN, TENT, pseudo‑labeling)**  
+- We implemented AdaBN, TENT, and pseudo‑labeling, discovered the AdaBN+TENT interaction bug, and introduced a strong self‑consistency filter that keeps only ~14.5% of labeled data.  
+- **My proposal:**  
+  - Treat the **AdaBN+TENT interaction fix** (snapshot/restore BN stats) as one of the **main technical contributions** of the thesis, since we haven’t seen it clearly documented elsewhere.  
+  - Run **one extra ablation** comparing pseudo‑labeling **with vs. without** the self‑consistency filter, to justify whether the 14.5% retention is actually beneficial.  
+  - Mention TensorFlow‑specific issues (e.g., TENT slowdown due to graph retracing) briefly as implementation challenges, with more detail in an appendix or engineering log rather than in the main scientific narrative.  
+  → Is this framing (one key contribution + one extra ablation + brief TF details) aligned with what you’d like to see?
+
+---
+
+**8. CI/CD, stubs (DANN/MMD), and evidence of deployment maturity**  
+- The code includes a model registry, drift‑triggered retrain logic, and some blue‑green/canary deployment code, but the CI/CD loop is not fully wired. DANN and MMD are present only as `NotImplementedError` stubs.  
+- **My proposal:**  
+  - For CI/CD, **describe and partially implement** the full automatic loop, including trigger‑state persistence design, but do not insist on a completely production‑ready system.  
+  - Run **at least one full “train → evaluate → register → promote” sequence** and include logs/screenshots as concrete evidence.  
+  - For DANN/MMD, either  
+    - (a) clearly label them as **future work** in code and thesis, or  
+    - (b) remove them if you think unimplemented stubs will confuse examiners.  
+  - Highlight only the **top 3–4 major bugs** (unit mismatch, PSI recalibration, AdaBN+TENT) in the main text, and move the full list of ~19 bugs to an appendix.  
+  → Which option do you prefer for the DANN/MMD stubs, and is a partly implemented CI/CD loop plus one demonstrated promotion run sufficient for the thesis?
+
+---
+
+**9. Thesis structure, security, and main contribution**  
+- I aim to submit around April 2026, with some chapters still unwritten. The thesis deals with sensitive mental‑health sensor data.  
+- **My proposal:**  
+  - Prioritize completing **Methods (pipeline + monitoring + adaptation), Results (including subject‑wise evaluation and ablations), and Discussion/Future Work** first, with other sections lighter if necessary.  
+  - Include a **short but concrete section** on data protection and GDPR considerations (especially Article 9), even if security is not fully implemented, to show awareness of real‑world constraints.  
+  - Present the main contributions as:  
+    1. The **3‑layer label‑free monitoring framework** (with multi‑channel threshold calibration), and  
+    2. The **AdaBN+TENT composition fix** for test‑time adaptation,  
+    with the 14‑stage pipeline architecture as the larger engineering context rather than the central novelty.  
+  - Before submission, **freeze the repository at a specific commit** and use commit‑pinned links in the thesis so that all code references are stable.  
+  → Do you agree with this emphasis on contributions and chapter priorities, and when would you recommend freezing the repository (e.g., right before final proofreading)?
+
+---
+
+If you prefer, I can also bring the full detailed question document to our next meeting and walk through it, but the items above are the main decisions I need from you to finalize scope and avoid surprises near the deadline.
+
+Thank you very much for your time and guidance.
+
+Best regards,  
+Shalin
+
+---
+
+If you want, I can next trim this further (e.g., to just 8–10 bullets) or adjust the proposals to be more conservative or more ambitious depending on how much work you feel comfortable committing to.

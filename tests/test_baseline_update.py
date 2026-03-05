@@ -65,20 +65,10 @@ class TestBaselineUpdateComponent:
             output_normalized_path=tmp_path / "normalized.json",
         )
 
-        with patch.dict("sys.modules", {"build_training_baseline": MagicMock()}):
-            import sys
-            mock_module = MagicMock()
-            mock_module.BaselineBuilder.return_value = mock_builder
-
-            # Add scripts to path and patch
-            scripts_dir = str(pipeline_config.scripts_dir)
-            if scripts_dir not in sys.path:
-                sys.path.insert(0, scripts_dir)
-
-            with patch.dict("sys.modules", {"build_training_baseline": mock_module}):
-                from src.components.baseline_update import BaselineUpdate
-                comp = BaselineUpdate(pipeline_config, config)
-                artifact = comp.initiate_baseline_update()
+        with patch("src.build_training_baseline.BaselineBuilder", return_value=mock_builder):
+            from src.components.baseline_update import BaselineUpdate
+            comp = BaselineUpdate(pipeline_config, config)
+            artifact = comp.initiate_baseline_update()
 
         assert isinstance(artifact, BaselineUpdateArtifact)
         assert artifact.n_channels == 6

@@ -1,0 +1,1074 @@
+--- PAGE 1 ---
+IAS
+Interconnected 
+Automation Systems
+Department of Electrical Engineering and Computer Science
+Siegen University
+Chair of Interconnected Automation Systems
+Prof. Dr.-Ing. Oliver WallscheidDipl -Ing. Konstantin Wrede
+Master Thesis
+Evaluation of a Pipeline to generate
+Deep Learning Agents for Fine
+Motoric Motion Tasks in the
+Domain of Serial Manipulators
+by
+Dhruvil Prafullbhai Mahidhariya
+Student ID: 1700969
+Supervisor: Prof. Dr.-Ing. Oliver Wallscheid
+External Supervisor: Dipl -Ing. Konstantin Wrede
+Thesis Nr.: MA_004
+Filing Date: July 29, 2025
+
+--- PAGE 2 ---
+Declaration of Authorship
+Ich versichere, dass ich die schriftliche Ausarbeitung selbständig angefertigt und keine
+anderen als die angegebenen Hilfsmittel benutzt habe. Alle Stellen, die dem Wortlaut oder
+dem Sinn nach (inkl. Übersetzungen) anderen Werken entnommen sind, habe ich in jedem
+einzelnen Fall unter genauer Angabe der Quelle (einschließlich des World Wide Web sowie
+generativer KI und anderer elektronischer Datensammlungen) deutlich als Entlehnung
+kenntlich gemacht. Dies gilt auch für angefügte Zeichnungen, bildliche Darstellungen,
+Skizzen und dergleichen. Ich nehme zur Kenntnis, dass die nachgewiesene Unterlassung
+der Herkunftsangabe als versuchte Täuschung gewertet wird.
+Ich bestätige, dass die
+elektronische Version inhaltlich mit der gedruckten Version übereinstimmt.
+Siegen,
+(Datum)
+(Unterschrift)
+I certify that I have prepared this written work independently and have not used any
+aids other than those speciﬁed. I have clearly identiﬁed all passages that are taken from
+other works in terms of wording or meaning (including translations) as borrowed material
+in each individual case, stating the exact source (including the World Wide Web as well
+as generative AI and other electronic data collections).
+This also applies to attached
+drawings, pictorial representations, sketches and the like. I acknowledge that the proven
+omission of the indication of origin will be regarded as attempted deception. I conﬁrm
+that the content of the electronic version is the same as the printed version.
+Siegen,
+(Date)
+(Signature)
+31.07.2025
+31.07.2025
+
+--- PAGE 3 ---
+Abstract
+This thesis explores a learning pipeline that trains robotic agents using imitation learning
+and imitation-bootstrapped reinforcement learning to perform contact-rich manipulation
+tasks. While imitation learning provides sample-e!cient policy initialization from expert
+demonstrations, it often lacks robustness in unseen situations. Reinforcement learning,
+on the other hand, provides better generalization due to parallel training but requires ex-
+tensive interaction time and a well-shaped reward function, making it impractical for real-
+world training from scratch. To address these limitations, the thesis evaluates a pipeline
+in which expert demonstrations are ﬁrst collected in a simulation environment to train
+the imitation learning agent. This trained imitation learning agent is then used to initial-
+ize the policy weights for reinforcement learning training. Additional demonstrations are
+synthetically augmented to enhance data diversity. The trained model in simulation is
+validated on national institute of standard and Technology (NIST) and RoboEval bench-
+marks. Manipulation tasks peg-insertion and plugsocket-insertion are used to validate the
+results, which demonstrate that the combined approach of imitation learning + reinforce-
+ment learning improves the performance of the agent. This work highlights the potential
+of hybrid learning strategies for robotic skill acquisition.
+
+--- PAGE 4 ---
+Acknowledgement
+I would like to express my sincere gratitude to everyone who supported me throughout
+the course of this master’s thesis project.
+First and foremost, I would like to thank my academic supervisor, Prof. Dr.-Ing. Oliver
+Wallscheid, for his invaluable guidance during this thesis. His constructive feedback
+during the intermediate results presentation helped shape the direction of this work. His
+thoughtful counter-questions on the observation space were particularly instrumental in
+helping me reﬁne the objectives of the thesis.
+I am deeply grateful to my external supervisor, Dipl.-Ing.
+Konstantin Wrede, as
+well as to M.Sc. Yibo Di, for their excellent guidance and mentorship throughout the
+project. Their practical insights, extended discussions, and generous knowledge sharing
+were crucial in helping me gain a deep understanding of the subject.
+I thank them
+for always asking the right questions and for consistently encouraging me to push my
+limits.
+My appreciation also goes to the entire Adaptive Robotics team at Fraunhofer IIS,
+and to the group head Mr. Ron Martin, for their continuous support and assistance in
+the laboratory. A very special thanks to my friends at the institute for their camaraderie
+and support.
+A special thanks to my sister for her support and encouragement during my studies.
+Lastly, I would like to thank my family and friends for their unwavering encouragement,
+patience, and moral support throughout my academic journey.
+This thesis would not have been possible without the contributions and support of all
+these individuals.
+Siegen, July 29, 2025
+Dhruvil Prafullbhai Mahidhariya
+i
+
+--- PAGE 5 ---
+Contents
+Acknowledgement
+i
+1
+Introduction
+1
+1.1 Structure of work . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+2
+2
+State of the Art and Related Work
+3
+2.1 Imitation learning for robotics . . . . . . . . . . . . . . . . . . . . . . . . .
+3
+2.2 Reinforcement learning for robotics
+. . . . . . . . . . . . . . . . . . . . . .
+5
+2.3 Simulation to reality transfer . . . . . . . . . . . . . . . . . . . . . . . . . .
+8
+2.4 Selection of Tasks . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+12
+3
+Methodology
+15
+3.1 Workﬂow overview
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+15
+3.2 Demonstration collection . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+17
+3.3 Synthetic data generation . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+18
+3.3.1 Data annotation
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+18
+3.3.2 Data generation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+19
+3.4 Imitation learning model training
+. . . . . . . . . . . . . . . . . . . . . . .
+20
+3.5 Reinforcement learning model training . . . . . . . . . . . . . . . . . . . . .
+21
+3.6 Simulation to reality transfer . . . . . . . . . . . . . . . . . . . . . . . . . .
+23
+3.6.1 Pytorch deployment framework . . . . . . . . . . . . . . . . . . . . .
+24
+4
+Policy Network Architecture
+27
+5
+Simulation Setup
+29
+5.1 Scene setup
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+29
+5.2 Actuation and Control Strategy
+. . . . . . . . . . . . . . . . . . . . . . . .
+34
+5.3 Training environment . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+35
+5.3.1 Observations
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+35
+5.3.2 Actions
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+37
+5.3.3 Rewards . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+38
+5.3.4 Terminations
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+41
+5.4 Sim2Real consideration . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+42
+5.4.1 Domain Randomization
+. . . . . . . . . . . . . . . . . . . . . . . . .
+42
+5.4.2 Noise Injection
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+44
+ii
+
+--- PAGE 6 ---
+Dhruvil Prafullbhai Mahidhariya
+DEFT
+6
+Real-world Setup
+46
+6.1 Perception pipeline
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+48
+6.2 Task Plugins . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+49
+6.3 Sim2Real Gap . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+50
+7
+Results
+52
+7.0.1 Performance on NIST Assembly Benchmark . . . . . . . . . . . . . .
+55
+7.0.2 Performance on RoboEval benchmark . . . . . . . . . . . . . . . . . .
+57
+8
+Conclusion
+61
+8.1 Future Work . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+62
+Lists
+64
+List of Tables . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+64
+List of Figures
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+64
+Acronyms . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+65
+Glossary . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+67
+Nomenclature . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+68
+References . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+68
+Appendix
+74
+A.1 Real-World End-E"ector Positions . . . . . . . . . . . . . . . . . . . . . . .
+74
+A.2 Performance on RoboEval metrics . . . . . . . . . . . . . . . . . . . . . . .
+75
+A.3 LSTM Implementation . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+75
+A.4 Observations . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+76
+A.5 Keypoint Reward Visualization . . . . . . . . . . . . . . . . . . . . . . . . .
+79
+iii
+
+--- PAGE 7 ---
+1 Introduction
+Automatic robotic assembly has posed signiﬁcant challenges to the manufacturing indus-
+try. Traditional methods like PTP (point-to-point) robot programming have been widely
+adopted for industrial automation. However, these methods lack ﬂexibility and adapt-
+ability in dynamic environments. Moreover, it is di!cult to generalize across similar but
+slightly varied tasks. Classical control loops often require manual tuning and precise cal-
+ibration, especially for contact-rich tasks like insertion, which demand high precision and
+accuracy. These limitations can be overcome through the use of ML (Machine Learn-
+ing) techniques such as imitation learning (IL) and reinforcement learning (RL) [1] [2]
+[3]. Imitation Learning (IL) refers to the process of learning a policy by mimicking ex-
+pert demonstrations, typically via supervised learning. Reinforcement Learning (RL),
+in contrast, involves learning optimal actions by maximizing cumulative reward through
+interaction with the environment.
+In recent years, the use of IL and RL to perform ﬁne motoric motion tasks has grown
+rapidly, with companies like Nvidia leading the race [4]. However, contact-rich manipu-
+lation tasks remain a challenging problem due to the complexity of accurately modeling
+contact dynamics and achieving robust generalization. A key bottleneck in deploying
+such policies on real robots is the simulation-to-real (sim-to-real) transfer problem, where
+discrepancies between the simulated and real-world environments—such as unmodeled
+friction, sensor noise, or slight hardware inaccuracies can lead to poor real-world perfor-
+mance of policies trained purely in simulation.
+To address these limitations, this work presents a hybrid approach that combines im-
+itation learning and reinforcement learning (IL+RL) to leverage the strengths of both
+methods. First, expert demonstrations are collected in a simulation environment to train
+an imitation learning policy. This is achieved using the teleoperation capabilities of Isaac
+Lab. Isaac Lab, which is built on Isaac Sim—a physics simulator capable of running
+multiple parallel environments on the graphics processing unit (GPU)—enables e!cient
+training of robotic agents using both IL and RL. To enhance the diversity and robustness
+of the training data, the initial demonstrations are further augmented using MimicGen
+(RoboMimic).
+The trained IL policy is then used to initialize the policy weights for
+reinforcement learning, allowing the agent to reﬁne its behavior through trial-and-error
+interaction with the environment. Finetuned RL policy is deployed in the real world to
+1
+
+--- PAGE 8 ---
+Dhruvil Prafullbhai Mahidhariya
+DEFT
+evaluate its performance under real-world conditions and assess the e"ectiveness of the
+sim-to-real transfer.
+The learned policies are evaluated in simulation using standardized benchmark metrics
+and tested in the real world to study simulation-to-real transferability. The models were
+assessed using success-based and trajectory-based metrics inspired by the NIST assem-
+bly benchmark and RoboEval framework. These include engagement rate, success rate,
+joint and Cartesian path length, as well as joint and Cartesian jerk. Such metrics allow
+comparison of di"erent policies in terms of both task completion and motion smoothness.
+In addition, real-world validation was conducted to examine how well policies trained
+entirely in simulation transfer to real-world scenarios.
+1.1 Structure of work
+The structure of this thesis is as follows:
+Chapter 2 provides a brief overview of existing deep learning pipelines for robotic assem-
+bly tasks, including traditional imitation learning and reinforcement learning algorithms,
+methods, and experiments. It also introduces the two assembly tasks selected for this work
+and highlights their limitations, laying the groundwork for the proposed approach.
+Chapter 3 details the methodology used in this thesis, covering the learning pipeline,
+observation spaces, and training strategies.
+Chapter 4 presents the neural network architecture and introduces key hyperparameters
+relevant to policy training.
+Chapters 5 and 6 describe the simulation setup and real-world deployment, respectively.
+These chapters discuss the simulation environment, simulation-to-reality considerations,
+and the identiﬁed sim-to-real gaps.
+Chapter 7 interprets the outcomes of the experiments and evaluates policy performance
+across di"erent benchmarks.
+Finally, Chapter 8 concludes the thesis with key insights and outlines directions for future
+work.
+2
+
+--- PAGE 9 ---
+2 State of the Art and Related
+Work
+2.1 Imitation learning for robotics
+Imitation learning is a method of supervised machine learning which enables robots to
+acquire skills by mimicking expert demonstrations[6][7]. The paradigm, also known as
+learning from demonstrations (LfD), has been applied in the domains of autonomous
+driving and robotics manipulation. IL is appealing for contact-rich ﬁne motoric tasks like
+peg insertion and screwing[8]. The idea is to provide examples of desired behaviour to an
+agent by the expert (a human or a classical controller), allowing the agent to generalize
+and reproduce the behavior in similar scenarios. The need for the robot to autonomously
+discover a feasible policy is not required. The concept of Learning from demonstrations
+gained traction in robotics as an alternative to manual robot programming due to its
+potential to generalize across di"erent tasks.
+The objective of IL is to minimize the di"erence between the agent’s action and the
+expert’s action [9]:
+LIL(ω) = E(s,a→)→D [ε (ϑω(s), a↑)]
+(2.1)
+where[9]:
+• (s, a↑) are state-action pairs from expert demonstrations.
+• ϑω(s) is the agent’s action prediction.
+• L(·, ·) is a loss function, e.g., mean squared error or cross-entropy.
+• D is the dataset of expert demonstrations.
+Early pioneer work by Atkeson and Schaal showed the way a robot can learn tasks like
+pendulum swing-up from a single human demonstration[7]. This can be done by extracting
+an implicit goal from the example and then improving through practice. Previous work
+showed the ALVINN system by Pomerleau which demonstrated the recording and training
+3
+
+--- PAGE 10 ---
+Dhruvil Prafullbhai Mahidhariya
+DEFT
+of a supervised model to mimic autonomous driving [9]. This ALVINN system showed
+one of the ﬁrst early successes of Behavior cloning (BC).
+BC is a process where a policy learns to directly map the states to expert actions using
+a supervised approach [10]:
+LBC(ω) = →1
+|D|
+!
+(s,a)↓D
+log ϑω(a | s).
+(2.2)
+Here, D = {(s, a)} is the expert state-action dataset and ϑω(a | s) is the policy’s probabil-
+ity of action a in state s. Minimizing LBC maximizes the likelihood of the demonstrated
+actions, driving the policy to imitate the expert. Despite its simplicity, BC su"ers from
+covariate shift—small errors compound, leading the learner into unfamiliar states.
+In the early 2000s, an approach of inverse reinforcement learning (IRL) was introduced
+as a way to address the limitations of imitation learning. IRL focused on optimizing the
+reward function [11]. IRL methods enabled robots to internalize the intent behind demon-
+strations, rather than merely cloning actions. The key insight is that by learning a reward
+function that the expert appears to maximize, a policy can be derived that potentially
+generalizes better than direct behavior cloning. Building upon this idea, Abbeel and Ng
+introduced apprenticeship learning via IRL [12]. The authors ﬁrst used IRL to infer a
+reward that the expert was implicitly optimizing, then tried RL to ﬁnd a policy which is
+as good as the expert.
+Returning to covariate shift, a paper published in 2011 by Ross et al. on Dataset Aggrega-
+tion (DAgger) [10] addressed the problem and provided an e!cient solution. In DAgger,
+the robot’s current policy is run to generate trajectories, while the expert provides cor-
+rective actions for the states visited [10].
+D1 = Dexpert,
+Dk+1 = Dk ↑{(st, a↑
+t)},
+ωk+1 = arg min
+ω
+!
+(s,a)↓Dk+1
+ε
+"
+ϑω(s), a
+#
+.
+(2.3)
+Here, Dk is the dataset at iteration k, a↑
+t are expert labels for the learner’s visited states
+st, and ε is a supervised loss (e.g. negative log-likelihood). By aggregating expert correc-
+tions on the learner’s state distribution, DAgger eliminates covariate shift and stabilizes
+training[10].
+In the context of industrial and collaborative robots (also known as co-bots, that can
+be safely guided by experts), IL o"ers a data-e!cient route to learning—especially when
+precise trajectories are easier to demonstrate than to hard-code or learn via pure reinforce-
+ment learning. A research conducted by Sagar Gubbi et al. on imitation learning for high
+precision tasks showed the peg-insertion task with GAIL [3]. A similar previous research
+conducted by Fares J. Abu-Dakka on solving peg-in-hole tasks by human demonstration
+4
+
+--- PAGE 11 ---
+Dhruvil Prafullbhai Mahidhariya
+DEFT
+and exception strategy [13] achieved the task completion by acquiring forces and torques
+on top of the trajectories.
+Although large scale datasets for grasping were already published [14][15], acquiring data
+for contact-rich tasks by hand was still tedious and lengthy. To mitigate this problem,
+synthetic data generation using imitation learning [16] was introduced by a research team
+at NVIDIA. This paper provided a brief introduction on how to generate synthetic data in
+simulation via imitation learning. The generated data then can be used to train imitation
+learning models to achieve more generalization and data distribution. A follow-up work on
+synthetic data generation for robot learning, MimicGen [17], was introduced in 2023 which
+generated over 50 thousand demonstrations for 18 tasks with diverse scene conﬁgurations.
+The paper further discussed the e"ectiveness and utility of MimicGen over manual demo
+collection. It showed an economical approach towards scaling up robot learning.
+Numerous surveys has already been published on imitation learning. Some of them include
+a survey by Tsuji et al. [8] on imitation learning for contact-rich manipuation tasks and
+Zare et al. [18] on algorithms, recent developments and challenges.
+In relation to the scope of this thesis, a recent study at Stanford University in 2024
+elaborated the use of imitation learning to bootstrap reinforcement learning for better and
+faster convergence. The imitation-bootstrapped reinforcement learning [19] was evaluated
+on 6 simulation and 3 real-world tasks where it outperformed prior methods.
+2.2 Reinforcement learning for robotics
+While imitation learning relies on external demonstrations, RL enables robots to au-
+tonomously learn skills through trial-and-error interactions with the environment. The
+agent explores actions and receives rewards as feedback, based on which the policy is
+gradually improved. In robotics, due to continuous state/action spaces, RL presents a
+great challenge. Moreover, the risk of unsafe actions and impractically slow exploration
+on physical hardware makes it harder to implement [20]. In robotics, RL promises au-
+tonomous acquisition of control strategies for tasks such as ﬁne assembly, manipulation,
+and locomotion, without manually crafting controllers. The goal in reinforcement learning
+is to maximize the expected return[21]:
+J(ϑω) = Eε→p(ε|ϑω)
+$ ↔
+!
+t=0
+ϖtr(st, at)
+%
+(2.4)
+where:
+• ϑω(at | st) is the parameterized policy.
+• ϱ = (s0, a0, s1, a1, . . .) is the trajectory.
+• r(st, at) is the reward at time t.
+5
+
+--- PAGE 12 ---
+Dhruvil Prafullbhai Mahidhariya
+DEFT
+• ϖ ↓[0, 1] is the discount factor.
+Early work in continuous-control RL introduced the idea of directly parameterizing a
+stochastic policy ϑω(a | s) and updating its parameters by gradient ascent on an expected
+discounted return[21].
+J(ω) = Eε→ϑω
+& ↔
+!
+t=0
+ϖt r(st, at)
+'
+,
+(2.5)
+where ϖ ↓(0, 1) is the discount factor. Williams’s REINFORCE algorithm (1992) [22]
+provided a Monte Carlo estimator of the gradient,
+↔ωJ(ω) = Eε
+& ↔
+!
+t=0
+↔ω log ϑω(at | st) Gt
+'
+,
+(2.6)
+Where,Gt is the monte carlo estimator. REINFORCE proved that one can converge to
+a locally optimal policy by following the gradient of the expected return. It treated the
+policy as a parameterized probability distribution and derived an update rule to increase
+the probability of actions that yield higher returns. However, REINFORCE su"ered from
+high variance in gradient estimates and slow convergence.
+In the early 2000s, the actor-critic architecture emerged as a solution to high variance,
+in which a critic estimates the value function while the actor updates the policy. With
+the rise of deep learning (DL), the combination of RL and DL became inevitable. This
+wave was catalyzed by the success of Deep Q-Network (DQN) in video games and soon
+extended to deep deterministic policy gradient (DDPG) for continuous actions [23]. By
+2013, researchers at DeepMind Technologies presented the ﬁrst deep reinforcement learn-
+ing model to play Atari games [24]. The authors successfully demonstrated a learned
+control policy directly from high-dimensional sensor inputs using reinforcement learning.
+The policy outperformed human experts on three games out of seven. Lillicrap et al. in-
+troduced DDPG as an actor-critic method to handle high-dimensional continuous actions.
+DDPG solved a variety of simulated physics tasks from classic control (e.g., cartpole) to
+manipulation. This demonstrated the potential of deep reinforcement learning (DRL) to
+train robots for ﬁne motor skills using high-dimensional sensor inputs.
+Schulman et al.
+proposed proximal policy optimization (PPO) [25], one of the most
+popular and reliable algorithms for reinforcement learning. PPO uses a clipped surrogate
+objective to keep policy updates within a safe range. Nowadays, PPO is the most popular
+among robotic simulations and real robot applications. It achieved state-of-the-art results
+across benchmark continuous control tasks (e.g., MuJoCo locomotion suite) [26]:
+LPPO(ω) = Et
+(
+LCLIP
+t
+(ω)
+)
+(2.7)
+This allows multiple epochs of minibatch experience, improving sample e!ciency while
+avoiding destructive policy updates.
+6
+
+--- PAGE 13 ---
+Dhruvil Prafullbhai Mahidhariya
+DEFT
+Another milestone was achieved by Haarnoja et al. with the introduction of soft actor-
+critic (SAC) in 2018. SAC brought the maximum entropy reinforcement learning frame-
+work into deep actor-critic algorithms. It encouraged the policy to be as random as pos-
+sible while still succeeding at the task. This can be done by augmenting the reward with
+an entropy term. The approach addressed the exploration-exploitation trade-o". The
+authors demonstrated stability and performance across di"erent random seeds compared
+to other o"-policy algorithms [27].
+J(ϑ) =
+!
+t
+E(st,at)→ϑ [r(st, at) + ςH(ϑ(·|st))] ,
+(2.8)
+where H denotes the entropy and ς is a temperature parameter controlling the stochastic-
+ity of the policy. SAC outperformed many previous algorithms on both sample e!ciency
+and robustness to initialization.
+In 2018, an early approach of combined IL and RL was demonstrated by Junhyuk et
+al. on self-imitation learning [28]. The approach showed major improvements for advan-
+tage actor-critic (A2C) on Atari games[28]. The goal was to imitate the agent’s past
+good experiences in the actor-critic framework by storing these experiences in the replay
+bu"er[28]:
+D = {(st, at, Rt)},
+where st, at are a state and an action at time-step t, and
+Rt =
+↔
+!
+k=t
+ϖk↗trk
+is the discounted sum of rewards with a discount factor ϖ.
+To exploit only good state-action pairs in the replay bu"er, the following actor-critic
+o"-policy loss was proposed[28]:
+Lsil = E(s,a,R)→D
+(
+Lpolicy
+sil
++ φsilLvalue
+sil
+)
+(2.9)
+Lpolicy
+sil
+= →log ϑω(a | s) · (R →Vω(s))+
+(2.10)
+Lvalue
+sil
+= 1
+2 ↗(R →Vω(s))+↗2
+(2.11)
+Here, (·)+ = max(·, 0) denotes the positive part, ϑω is the policy, Vω(s) is the estimated
+value, and φsil is a weighting factor for the value loss. [28]
+7
+
+--- PAGE 14 ---
+Dhruvil Prafullbhai Mahidhariya
+DEFT
+In conclusion, reinforcement learning o"ers a powerful framework for autonomous skill
+acquisition. While foundational algorithms like REINFORCE and Actor-to-Critic (A2C)
+laid the groundwork for RL, SAC and PPO have enabled scalable and stable learning.
+The incorporation of entropy-based exploration strategies, hybrid policy architectures,
+and vision-based sensory input, when combined with system identiﬁcation techniques,
+has signiﬁcantly expanded the scope of reinforcement learning applications in robotics.
+Entropy-based exploration encourages diverse behavior during training, improving the
+agent’s ability to generalize across tasks. Hybrid architectures, which may integrate clas-
+sical control with learning-based components or combine model-free and model-based RL,
+enhance both stability and adaptability. Furthermore, leveraging high-dimensional visual
+data as input enables policies to learn from raw sensory observations. When these com-
+ponents are uniﬁed with system identiﬁcation—allowing the model to adapt to variations
+between simulation and real-world dynamics—the robustness and real-world transferabil-
+ity of RL agents are greatly improved. Despite these advances, challanges like simulation
+to reality transfer and reward engineering remains only partially solved. This opened up
+the opportunity for testing di"erent tasks in the domain of serial manipulators.
+2.3 Simulation to reality transfer
+As robotics is moving further with virtual training in simulated physics engines[29][30][31],
+simulation to reality transfer still poses a challenging question for robotic manipulation.
+To address the problem, a paper published on domain randomization (DR) by Tobin et
+al. elaborated the use of randomizing the environment variables for robust policy training
+[20]. The idea of DR in DRL is to randomize the scene or environment variables in such
+a way that the the real-world system behavior is included inside the training distribution
+as one of the di"erent realizations.
+This allowed the authors to successfully transfer
+a grasping task from simulation to reality. This was the ﬁrst attempt at successfully
+transferring a policy that was trained only on RGB images.
+Other research has focused on learning without domain randomization and has shown
+promising outcomes. One study on simulation-to-real transfer without DR achieved this
+by performing system identiﬁcation, aligning the simulation more closely with the real-
+world system [32]. However, applying system identiﬁcation to each hardware setup, simu-
+lation model, and task conﬁguration is resource-intensive. In a collaborative e"ort, scien-
+tists from multiple institutions successfully transferred a dexterous manipulation policy
+[33] from simulation to the physical world. The evaluated tasks included grasping, reorien-
+tation, ﬂick-to-reorientation, drop-and-regrasp, and lifting. The experiments employed an
+actor-critic learning framework along with fused sensory modalities. A detailed discussion
+of the simulation-to-reality gap appears later in the thesis.
+A study on robotic assembly for high-precision tasks was conducted by Inoue et al. [1].
+The authors trained a model to solve a peg-in-hole task using deep reinforcement learning.
+During training, industrial force-torque sensors were integrated to ensure accurate perfor-
+mance in scenarios with tight clearances. In addition, parts were rotated systematically
+8
+
+--- PAGE 15 ---
+Dhruvil Prafullbhai Mahidhariya
+DEFT
+to increase the task complexity. An recurrent neural network (RNN) architecture (specif-
+ically, an Long Short-Term Memory (LSTM)) was adopted for training the RL agent.
+The learned policies were then evaluated using a 7-degrees of freedom (DOF) robotic
+arm equipped with a two-ﬁnger gripper mounted on the end-e"ector. A related study on
+industrial assembly was carried out by Hebecker et al., demonstrating several such tasks,
+with some achieving success rates of up to 90 percent in simulation. However, transferring
+these trained neural networks to real hardware remained a signiﬁcant challenge.
+The follow-up paper on ﬁne motoric motion tasks was published in 2023, named Indus-
+tReal [2], led by Tang et al. IndustReal focused more on the task execution method.
+New signed distance ﬁeld (SDF)-based rewards were developed to help the agent learn
+the policy faster for contact-rich manipulation tasks (e.g., nut-threading, gear insertion,
+etc.). simulation aware policy updates (SAPU) and sampling-based curricula allowed the
+agent to receive rewards when simulation predictions were more reliable. It helped to
+prevent overﬁtting in earlier stages of the curriculum.
+In SAPU, the agent learns to avoid interpenetrations[2]. The idea was that for a given
+environment of plug and socket mesh, SAPU samples N number of points on/inside the
+mesh of the plug. It then transforms these points into the socket frame and computes the
+distance between the plug and socket mesh. The algorithm returns maximum penetration
+depth for each episode. The depth is used to weight the cumulative rewards during the
+policy training [2]. SAPU was evaluated on the peg and hole task for insertion policy
+on four di"erent parameters—baseline, ﬁlter only, weight only, and ﬁlter and weight.
+The parameters implemented respective logics through which it was realized that the
+baseline, ﬁlter only, and weight only strategies were unable to achieve a success rate
+above 40 percent. However, the strategy with ﬁlter and weight performed extremely well
+over di"erent scenarios, with success rates of over 84 percent. The proposed algorithm 1
+provided by IndustReal [2] for SAPU:
+Algorithm 1 Interpenetration Checking Per Env.
+Input: plug mesh mp, socket mesh ms, plug pose pp, socket pose ps, number of query
+points N.
+1: sample N points in mp ↘v, v = {v0, . . . , vN↗1};
+2: transform v to current mp pose pp in ms frame;
+3: for every vertex v ↓v do
+4:
+compute closest point on ms to v;
+5:
+if v inside ms then
+6:
+calculate interpenetration distance;
+7:
+end if
+8: end for
+9: dmax
+ip
+= max interpenetration from all v ↓v to ms;
+10: return dmax
+ip ;
+9
+
+--- PAGE 16 ---
+Dhruvil Prafullbhai Mahidhariya
+DEFT
+A brief discussion on curriculum learning was done in the work; sampling based curricu-
+lum (SBC) was introduced. SBC initializes the agent with access to the entire range of
+starting state conditions from the beginning of training[2]. The lower bound is increased
+at each stage of the curriculum for e!cient learning. The curriculum learning was evalu-
+ated in three di"erent categories—baseline, standard, and sampling-based. The authors
+demonstrated that SBC signiﬁcantly outperformed the other two methods in success rates
+and position errors. It achieved a success rate of more than 88 percent with a positional
+error of 3.8 mm, compared to others with 66 percent success and 10.7 mm positional
+errors. The authors used the Factory [34] framework within IsaacGym, through which
+the contact dynamics between highly complex geometries were solved.
+For the deployment on a real robot, a Franka Emika robot with Realsense D435 camera
+was used to carry out the tasks in the real world.
+Use of any task-speciﬁc grippers
+and force-torque sensor (F/T) sensors was avoided.
+task impedance controller (TIC)
+was employed to control the output targets from the policy. The targets are processed
+with the frankapy Python library to stream the commands via robot operating syatem
+(ROS) to the Franka interface library. The Franka interface then sends these commands
+to libfranka, which maps TSI commands to low-level joint torques.
+The control rate
+during the training was 60 Hz. To close the gap between simulation and reality transfer,
+policy level action integrator (PLAI) was introduced. In modern robotic controllers, the
+propotional and derivative (PD) controller is a common one. The idea behind using the
+PD controller was to avoid the accumulation of errors via internal gain (I), to stabilize
+robot arms with stationary accuracy. However, in ﬁne motoric tasks like insertion, it
+is beneﬁcial to integrate errors for better positional accuracy.
+Addressing this, PLAI
+integrates the error only at the policy level. Instead of applying actions to the current
+state, PLAI applies them to the desired state recursively. The basline follows[2]:
+st+1 = st ≃at = st ≃!(ot)
+(2.12)
+where sd
+t+1 is the next state at time t + 1, at is an incremental delta action at time t, st is
+the actual state, ot is the actual observation, ! is the policy, and ≃computes the state
+update (e.g., for states deﬁned by position and orientation, ≃computes composition with
+a translation and rotation) [2].
+In contrast, PLAI applies the action to the previous desired state rather than the current
+one. This means the desired state at t + 1 is updated using the desired state at t, not the
+actual state, as follows[2]:
+sd
+t+1 = sd
+t ≃at = sd
+t ≃!(ot)
+(2.13)
+For t = 0 . . . T,
+10
+
+--- PAGE 17 ---
+Dhruvil Prafullbhai Mahidhariya
+DEFT
+sd
+T = sd
+0 ≃
+T↗1
+!
+i=0
+ai = sd
+0 ≃
+T↗1
+!
+i=0
+!(oi)
+(2.14)
+PLAI shares similarities with classical propotional, integral and derivative (PID) con-
+trollers, especially when paired with PD control. IndustReal validated this relationship
+empirically. Results showed that PLAI is easy to implement and tune. Like PID con-
+trollers, PLAI can su"er from windup. Windup occurs when large accumulated errors
+cause overshoot, slow recovery, and poor performance. To counteract this, Leaky PLAI
+was introduced, which clamps the accumulated control e"orts [2].
+A brief comparison was conducted to evaluate PLAI’s e"ect on simulation-to-reality trans-
+fer. Tang et al. found that PLAI (applying actions to the desired state) signiﬁcantly
+improved performance and reduced positional error compared to the nominal method
+(applying actions to the current state). The evaluation was done on several tasks—Pick,
+Place, Sort, Insert, and Pick-Place-Insert. This work set the benchmark for state-of-the-
+art research in robotic assemblies.
+Recent works like Force-Mimic [35] and DROID [36] demonstrate how large-scale datasets
+and hybrid learning strategies integrate IL and RL for the improvement of contact-rich
+skill acquisition. Imitation-bootstrapped RL [19] accelerated convergence and reduced
+unsafe exploration.
+A new study on force-based control policies proposed a method to train an RL agent with
+force-torque sensor feedback. force-guided exploration for robust contact-rich manipula-
+tion under uncertainty (FORGE) [37] managed to complete three ﬁne motoric tasks—peg
+insertion, gear insertion, and nut-threading—proving the importance of force-torque feed-
+back during simulation. FORGE formulated the problem as a partially observed markov
+decision process (POMDP).
+A POMDP is deﬁned by the tuple: (S, A, ”, T, O, R, ϖ). The goal is to learn a parame-
+terized policy, ϑω(at | o1, . . . , ot), that maximizes the expected return [37]:
+J(ϑω) = Eε→p(ε|ϑω,!)
+$ ↔
+!
+t=0
+ϖtrt
+%
+(2.15)
+where ϱ = (s0, a0, o0, s1, a1, o1, . . .) is the trajectory of states, actions, and observations
+resulting from the robot following policy ϑω.
+Unlike markov decision process (MDP)
+(where the policy has the information about all the states at all time), the policy in
+POMDP depends on observations to take actions.
+The main idea of FORGE to get the force-torque feedback from the force-torque sensor
+and incorporate it in the simulation during training. Force penalties were introduced to
+allow the agent to learn based on this feedback[37]:
+Rcontact
+pen
+(F ee
+t ) = →φ · max (0, ↗F ee
+t ↗→Fth)
+(2.16)
+11
+
+--- PAGE 18 ---
+Dhruvil Prafullbhai Mahidhariya
+DEFT
+where Fth is the force threshold and φ is the penalty weight. During training, the policy is
+penalized if the contact force, F ee
+t , experienced by the arm exceeds the threshold[37].
+At ﬁrst during training, di"erent rewards and penalties are given to the agent. The re-
+wards include dense rewards (also used in IndustReal [2]) and sparse rewards. Dense
+rewards are characterized by frequent, often continuous feedback across the state-action
+space, enabling gradual policy improvement. In contrast, sparse rewards are only emitted
+under speciﬁc conditions—typically upon reaching a goal state—o"ering limited learning
+signals. Three di"erent categories were introduced in the dense rewards section—baseline,
+coarse, and ﬁne. To terminate the agent after each successful episode, early termination
+conditions based on keypoint distance were introduced. Three tasks were trained and
+validated, including peg-insertion, gear-insertion, and nut-threading. The authors then
+trained models with three di"erent seeds for each task, and the ﬁnal results were aver-
+aged. Constant gaussian distribution noise on observations and domain randomization
+on task speciﬁc part positions were used during training to facilitate simulation-to-reality
+transfer.
+As the research moved further, more datasets and methodologies were developed. Re-
+cently, a study conducted by Tang et al. on specialist and generalist assembly policies
+achieved great success in solving complex manipulation tasks. AutoMate [38] demon-
+strated a learning framework that consisted of a dataset of more than 100 assemblies in
+simulation and the real world, and a novel simulation-based approach for learning special-
+ist policies and generalist policies. Specialist policies are part-speciﬁc policies, whereas
+generalist policies are more uniﬁed. The results of this research showed more than 80
+percent success in specialist policies for 80 di"erent assemblies in simulation and general-
+ist policies for 20 di"erent assemblies. The follow-up research in this year demonstrated
+the method for skill retrieval and skill adaptation. Another novel framework was de-
+signed to address precision control task problems.
+Skill retrieval and skill adaptation
+(SRSA) [39] signiﬁcantly outperformed the baseline methods. A self-imitation learning
+followed by reinforcement learning training was performed to achieve skill adaptation and
+retrieval.
+2.4 Selection of Tasks
+In this thesis, as mentioned in the introduction, two tasks need to be trained for the
+validation of the pre-existing pipeline. Numerous research studies on ﬁne motoric assembly
+tasks have already been published. Hence, it is important to choose the tasks based on
+its comparability with available benchmarks. One of the most common tasks used by
+scientists to benchmark IL and RL performance is insertion.
+Be it peg-in-hole, gear
+insertion, or any assembly task related to insertion, these challenges have been addressed
+using various methods over time.
+In 1995, an early attempt to model the round peg-in-hole task using a robotic manipulator
+was formulated with the help of a model-based solution [40]. Faras J. Abu-Dakka et al.
+12
+
+--- PAGE 19 ---
+Dhruvil Prafullbhai Mahidhariya
+DEFT
+published a paper addressing the peg-in-hole task using di"erent geometrical shapes (e.g.,
+square peg, round peg, etc.) and sizes [13]. Imitation learning for peg-in-hole tasks was
+solved by Yaskawa robots with high precision [3]. A set of benchmark assembly tasks was
+introduced by NIST, designed to be used for evaluating robotic capabilities. NIST task
+boards were developed to assess a robot’s performance in high-precision tasks such as
+gear meshing, nut threading, and insertion. The components varied in shape, size, type,
+and placement. NIST also provided computer aided design (CAD) models for each part
+to support simulation in virtual environments. A structured guideline was provided to
+simplify real-world implementation of the benchmarking process.
+An extensive study was conducted on six o#ine learning and algorithms for robot manip-
+ulation across ﬁve simulated and three real-world multi-stage manipulation tasks. Man-
+dlekar et al. [41] demonstrated a range of tasks with increasing complexity and varied
+dataset quality. The study analyzed the e"ects of observation space and multi-dimensional
+hyperparameters on the overall success rate. Furthermore, it evaluated the impact of
+dataset size on policy improvement.
+The industry gradually shifted towards simulation for automation tasks, particularly after
+the work by Narang et al., a joint research e"ort between NVIDIA and the University of
+Washington, who introduced Factory [34]. Before Factory, foundational work on simula-
+tion and sim-to-real transfer had already been conducted [42], [43], [44]. Although many
+promising results had been achieved in this domain [45], [46], [47], [48], [49], [50], contact-
+rich tasks remained a longstanding challenge [51], [52], [53], [54]. Factory proved to be a
+groundbreaking development. The paper presented a set of physics simulation techniques
+and robot learning tools for contact-rich assembly applications. With over 60 part models,
+it o"ered a diverse range of robotic assembly environments, including contact-rich scenes
+and controllers for virtual testing and training. The authors also trained proof-of-concept
+RL policies for nut-and-bolt assembly. The toolkit was released as open-source, enabling
+engineers to train their own policies with ease.
+Narang et al. achieved a combined pick, place, and screw task. The goal was to pick
+a screw, place it on top of a bolt, and screw it in. This was accomplished by training
+subpolicies within a uniﬁed policy. Consider screwing: a robot must twist a nut into a
+bolt. The ﬁrst subpolicy handles the picking of the bolt—challenging due to required
+accuracy. Factors such as part orientation and position contribute to complexity. The
+second subpolicy involves placing the nut onto the bolt, which is di!cult due to assembly
+tolerances. Following that, the third subpolicy completes the screwing action, which is the
+most di!cult, as the agent must learn a twisting motion. This motion takes longer to learn
+due to the complexity of optimizing rotational actions. During experiments, researchers
+observed challenges when randomizing the robot’s state. Grasp stability degraded with
+increasing randomization. Moreover, the convex representation of the part was inadequate
+for simulating contact-rich interactions. A convex decomposition was used to mimic the
+bolt’s geometry; however, spatial artifacts introduced instability and inaccuracy. Factory
+established a foundation for simulation and RL training based on NIST task boards.
+13
+
+--- PAGE 20 ---
+Dhruvil Prafullbhai Mahidhariya
+DEFT
+Tang et al. [2] demonstrated peg-and-hole assemblies with various types of pegs (e.g.,
+square, rectangular, and circular). The authors ﬁrst trained a reach policy where the
+robot learned to move the end-e"ector (EE) to randomized positions. The reach policy
+was then ﬁne-tuned to perform a pick-and-place task. The success criteria were redeﬁned
+accordingly during retraining. They found that training in free space and ﬁne-tuning
+on contact was more e!cient than training from scratch. Domain randomization was
+deliberately avoided; however, its absence did not a"ect overall performance.
+A key methodology of IndustReal was the use of SDF-based dense rewards, as proposed in
+Factory. The authors introduced keypoint rewards based on Euclidean distances between
+components. For instance, in a peg-in-hole task, keypoint rewards compute distances be-
+tween speciﬁc peg and hole positions. This is referred to as the collinear keypoints reward.
+The paper compared various reward types—collinear keypoints, 6-DOF keypoints, cham-
+fer keypoints, and SDF query distances. The SDF query reward performed consistently
+best among them. This work tackled multiple insertion tasks, including the plug-socket
+insertion (also known as NEMA connector insertion). NEMA connectors are standard-
+ized electrical plug systems. This paper focused primarily on peg-in-hole and plug-socket
+insertion.
+Overall, this section provided an overview of industrial assembly tasks. It discussed core
+methodologies involved in executing those tasks. However, some limitations remain:
+Simulation-to-reality gap: One of the most common challenges is transferring policies
+from simulation to the real world. Policies are trained in ideal simulated conditions but
+tested under real-world dynamics. This gap is signiﬁcant. To reduce it, techniques such as
+domain randomization, system identiﬁcation, and noise injection should be applied.
+Part geometry: In certain cases, part geometry is so complex that standard training
+approaches become ine"ective. The issue lies not in geometric quality but in how it is used.
+Take, for example, the Factory nut-threading task. The bolt has high structural detail
+(e.g., number of triangles), but resolving the geometry requires signiﬁcant computational
+resources. This raises the question: should we prioritize geometric detail or faster training?
+The solution lies in striking a balance between both.
+Physical properties: As discussed in the IndustReal paper, simulating physical prop-
+erties such as friction introduces additional challenges. System identiﬁcatio or DR could
+help address this issue.
+Simulation ﬁdelity: Tasks with greater complexity (e.g., cable assembly on pulleys)
+are limited by the ﬁdelity of the simulator. Many simulators are neither accurate nor
+e!cient enough to support robust sim-to-real policy transfer [2]. Improvements in mesh
+modeling, such as those proposed by [34], can enhance simulation realism—although the
+scale of improvement remains uncertain.
+Generalization: For complex industrial environments, achieving zero-shot sim-to-real
+transfer is a key objective. Recent research on skill retrieval and adaptation [39] can help
+generalize policies across task variations.
+14
+
+--- PAGE 21 ---
+3 Methodology
+In this chapter, a brief introduction to the existing pipeline is given. At ﬁrst, deep learn-
+ing pipline overview is provided, followed by data collection method. The chapter then
+focuses on synthetic data generation and imitation learning model training. Afterwards,
+a comprehensive overview on reinforcement learnig model training as well as methods to
+transfer control policies from simulation into the reality is given.
+3.1 Workﬂow overview
+Due to the large number of components (e.g. software and hardware), it is necessary to
+maintain a ﬂow in the robotic communication. Just like robots that are working on Robot
+operating system 2 (ROS2) require robustness in the communication, artiﬁcial intelligent
+systems consisting of both hardware and software require robust input and output data
+ﬂow. Figure 3.1 provides an overview of the ﬂow (a.k.a pipeline).
+The pipeline starts from demonstration collection. For any imitation learning training,
+data is required. The data generally includes ground truth information of states and
+actions. Data collection can be done by collecting actions of the agent at a particular
+state, based on which an imitation learning model can be trained. This data collection
+can be done in either simulation or real environment with the help of tele-operation.
+Tele-operation using Isaac Lab and IsaacSim allows the users to collect data in a simulation
+environment. However, collecting too much data can be time-consuming. Hence, around
+20–40 demonstrations are generally taken. Collected data is saved in hierarchical data
+format (HDF5) ﬁle format. HDF5 is designed to store and organize large amounts of data
+in a hierarchical manner. Data augmentation or synthetic data generation tool called
+MimicGen[17] is leveraged to generate thousands of successful demonstrations based on
+the original demonstrations.
+The generated data is employed to train imitation learning models using Robomimic
+[41].
+Standard imitation learning algorithms like BC are already implemented in the
+RoboMimic. After training, a checkpoint/neural network with weights is generated, which
+is in the PyTorch.pth format.
+15
+
+--- PAGE 22 ---
+Dhruvil Prafullbhai Mahidhariya
+DEFT
+Fig. 3.1: Workﬂow overview
+Let this checkpoint be called imitation learning checkpoint. To train an RL model, the
+imitation learning checkpoint is provided as a bootstrapped checkpoint. Since IL and RL
+rely on di"erent libraries and implementation frameworks, a checkpoint conversion step
+is necessary to ensure compatibility, allowing the integration of a pre-trained IL agent
+within the RL training pipeline. The weights and biases are transferred, making it a
+reinforcement learning checkpoint. The agent is then trained with reinforcement learning
+to improve the policy. After successful training, an RL checkpoint is generated, consisting
+of weights and biases.
+All of the above procedure is done in the simulation environment. Hence, it is necessary to
+deploy these models/checkpoints to see the performance in a real-world setup. To deploy
+and infer models, all the checkpoints are required to be in the form of standard pytorch
+policy. The process is rather simple. At ﬁrst, a PyTorch model is created with random
+initialization of weights and biases. Then, A transfer of weights from either imitation
+learning or reinforcement learning checkpoints is done to the pytorch model. Pytorch
+policy is ready to be used for the inference.
+16
+
+--- PAGE 23 ---
+Dhruvil Prafullbhai Mahidhariya
+DEFT
+This workﬂow can be applied to train a policy for any new task. Detailed discussion on
+demo collection, data generation, model training and simulation to reality transfer is done
+in the following sections.
+3.2 Demonstration collection
+Demo collection is an essential part of imitation learning. Before the development of
+realistic simulation tools, demonstration collection was done from the real robot. It is
+an iterative and common, but time taking and money consuming problem. Addressing
+this, Isaac Lab instroduced a demo collection pipeline that can collect, store and replay
+demonstrations. Isaac Lab built upon Isaac Sim allows users to train IL and RL agents
+in a gym environment. Gym(Gymnasium) is a standard interface for RL environments.
+A gym environment commonly consists deﬁnitions for observations, actions, rewards, and
+terminations.
+In this pipeline, a joint space demonstration collection pipeline is used. The ﬁrst and
+foremost question was to decide on which action space should be used for the agent
+training and deployment.
+To collect data, a gym environment is necessary. After successful creation of gym envi-
+ronment, record manager(a class with helping functions for demo recording) is leveraged
+to systematically record the demonstrations. It can be recorded either with keyboard,
+space mouse or via hand-guiding in real-time.
+Launch Isaac Sim
+Parse Task Config
+Attach Teleop Interface
+(keyboard and hand-tracking)
+Convert Action to Cartesian Pose
+Differential IK to get joint commands
+Step Environment and Execute
+Actions
+Check Success Condition
+Record & Export to HDF5
+Fig. 3.2: Demo Collection
+17
+
+--- PAGE 24 ---
+Dhruvil Prafullbhai Mahidhariya
+DEFT
+Figure 3.2 shows the method for how the demo is collected in the simulation environment.
+The pipeline is initiated by launching Isaac Sim simulator, followed by conﬁguration from
+recording environment. The environment can be initiated using task-speciﬁc conﬁgura-
+tion. This can be passed through Isaac Lab application programming interface (API). An
+interface is attached to the end e"ector of the robot which allows 7-DOF control input
+from the operator. Each action input from the teleoperation device is converted into a
+target cartesian pose for the EE. The pose is then processed using di"erential inverse
+kinematics (DIK) controller to compute joint position commands. The calculated joint
+positions are converted to incremental changes from the previous measured values and
+passed as actions to the environment.
+The robot executes the teleoperated trajectory. Success condition checker is used to mon-
+itor whether the robot has completed the task,as deﬁned by pre-conﬁgured termination
+criterion. Once the task success is triggered, the task is marked as a successful demon-
+stration. The demonstration is saved in HDF5 ﬁle.
+3.3 Synthetic data generation
+Synthetic data generation has become an important part of robot learning. In context of
+robotics, training a generalized model requires large, diverse and high-quality data, cover-
+ing the relevant target distribution. Manual demonstration collection is often tedious and
+time-consuming. To address this, Isaac Lab supports synthetic data generation through
+the use of simulation environments and augmentation of expert trajectories.
+Data generation in Isaac Lab is enabled by a tool called MimicGen [17]. Designed to scale
+up imitation learning by synthesizing thoudands of demonstrations, MimicGen operates
+by replaying demonstrations in simulation and introducing scene variations such as object
+pose, background and lighting. This leads to more diverse dataset that enhances policy
+robustness and generalization.
+At ﬁrst, Data annotations are done on the collected data. To leverage the annotation
+tool, an environment is required. This environmet should be build on the top of main
+reinforcement learning gym environment. During the thesis, it is mentioned as Isaac Lab
+mimic environment. After annotating the collected data, data generation can be done
+with ﬁnal dataset of chosen numbers of trajectories exported in hdf5 format. This data
+can also be replayed to manually check the authenticity and quality.
+3.3.1 Data annotation
+Built on top of the reinforcement learning environment, the Isaac Lab mimic environment
+allows users to generate data within the same scene that is used for reinforcement learning.
+The environment uses the same physical properties (e.g., gravity, friction, mass of the
+objects, etc.) as the learning environment. Only data annotation and data generation use
+18
+
+--- PAGE 25 ---
+Dhruvil Prafullbhai Mahidhariya
+DEFT
+this mimic environment; the rest of the tasks (e.g., agent training, reward design, etc.)
+are carried out in the standard reinforcement learning environment.
+To facilitate structured learning in complex tasks, it is essential to enrich raw demon-
+strations with task-relevant metadata. The annotation process augments collected data
+by identifying and labeling subtask boundaries and providing detailed scene and robot
+information, such as the robot end-e"ector position. Subtasks are checkpoints deﬁned
+in the environment that indicate the success of a particular logic. For example, check-
+ing whether the robot is engaged with an object, or whether the task is half completed
+or fully completed, etc. The annotations are achieved through a post-processing script
+which replays demonstration trajectories and records environment state information for
+each timestep.
+Depending on the conﬁguration, annotations can be conducted either manually or in auto-
+matic mode. For this thesis, manually annotating every demonstration is time-consuming;
+hence, the automatic mode is used. In automatic mode, the subtask signals(i.e., success
+logics) are automatically detected by the environment based on programmed logic. The
+annotations are stored in HDF5 format and serve as a structured foundation for data
+generation.
+3.3.2 Data generation
+The annotated data is provided to the synthetic data generation script as an input. The
+script initializes a data generator class that performs trajectory sampling and perturba-
+tion. Iterating over episodes in the annotated HDF5 ﬁle, it applies conﬁguration aug-
+mentation strategies. Conﬁguration augmentation in Isaac Lab refers to the randomized
+variation of task and environment parameters during data generation to enhance policy
+robustness and generalization. It saves the synthesized rollouts with success labeling and
+metadata in the same HDF5 format.
+Annotated Demos
+Waypoint Sampling
+Rollout Generation
+Success Filter
+Final Dataset
+Fig. 3.3: Synthetic data generation pipeline
+As shown in Figure 3.3, for ﬁne-grained motion generation, the system uses a waypoint
+class that extracts and perturbs intermediate waypoints from the trajectories.
+Here,
+relevant states—usually those close to successful subtask completion—are extracted as
+waypoints. Each waypoint deﬁnes a target conﬁguration or an objective for the rollout
+episode.
+Next, the data generation module, deﬁned in data_generator, takes the waypoints and
+initializes the environment scene in various randomized conditions.
+With the help of
+domain randomization(i.e., randomization on asset positions, robot positions etc.), ro-
+bustness is achieved in the simulated rollouts from the sampled start states to the target
+goals. However, not all generated rollouts are suitable for export. A success ﬁlter, de-
+ﬁned in the Isaac Lab mimic environment, is applied. The module replays each generated
+19
+
+
+[... truncated at page 25 of 88 ...]

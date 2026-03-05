@@ -1,0 +1,73 @@
+% ============================================================================
+% frontmatter/abstract.tex
+% ============================================================================
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+Human Activity Recognition (HAR) using wrist-worn inertial measurement units
+has demonstrated strong classification performance on curated benchmark datasets.
+However, a significant gap persists between research-grade evaluation and
+reliable real-world operation: deployed HAR models degrade over time due to
+domain shift caused by inter-user variability, sensor placement differences,
+and gradual calibration drift, yet no ground-truth activity labels are available
+in production to detect or quantify this degradation.
+
+This thesis designs, implements, and evaluates an end-to-end MLOps pipeline
+that closes this gap for an anxiety-related behavioural activity recognition
+context.
+The pipeline comprises 14 composable stages spanning data ingestion,
+preprocessing, windowed inference, three-layer monitoring (confidence, temporal
+consistency, and statistical drift), automated trigger policy, model retraining,
+and safe deployment with canary evaluation and rollback.
+
+The monitoring framework operates exclusively on unlabelled production
+predictions, combining mean confidence tracking, activity transition rate
+analysis, Population Stability Index, and Kolmogorov--Smirnov tests into a
+composite health signal.
+A voting-based trigger engine translates monitoring signals into retraining
+decisions using multi-metric confirmation to suppress false alarms.
+Two adaptation strategies are implemented and compared: Adaptive Batch
+Normalisation followed by TENT entropy minimisation (AdaBN+TENT), and
+curriculum pseudo-labelling with Elastic Weight Consolidation regularisation.
+
+Empirical evaluation on 26 Garmin wrist sensor recording sessions demonstrates
+that the pipeline detects a physical sensor unit mismatch (milliG vs.\ m/$\text{s}^2$)
+that reduced cross-user accuracy to 14.5\,\%, identifies the root cause through
+automated drift diagnostics, and recovers model reliability through the
+adaptation cycle without any manual re-labelling.
+
+The pipeline is fully containerised with Docker, tracked with MLflow and DVC,
+and deployed with a FastAPI inference server behind a GitHub Actions CI/CD
+workflow.
+All source code, configuration, and experimental artefacts are reproducible
+from the repository.
+
+\vspace{0.5cm}
+\noindent\textbf{Keywords:} human activity recognition, MLOps, domain adaptation,
+wearable sensors, drift detection, pseudo-labelling, AdaBN, TENT,
+continuous monitoring, CI/CD.
+
+% --------------------------------------------------------------------------
+% German abstract (Zusammenfassung) — required by many German universities
+% --------------------------------------------------------------------------
+\chapter*{Zusammenfassung}
+\addcontentsline{toc}{chapter}{Zusammenfassung}
+
+Die Aktivitätserkennung (Human Activity Recognition, HAR) mit handgelenksgebundenen
+inertialen Messeinheiten erzielt auf kuratierten Benchmark-Datensätzen hohe
+Klassifikationsleistungen.
+In der realen Anwendung treten jedoch erhebliche Herausforderungen auf:
+Deployed-Modelle degradieren aufgrund von Domänenwechsel, inter-persönlicher
+Variabilität und Sensordrift, ohne dass im Produktionsbetrieb Grundwahrheitslabels
+zur Erkennung dieser Degradation verfügbar sind.
+
+Diese Masterarbeit entwirft, implementiert und evaluiert eine End-to-End
+MLOps-Pipeline, welche diese Lücke für einen auf angstbezogene Verhaltensklassen
+ausgerichteten HAR-Kontext schließt.
+Die Pipeline umfasst 14 komposierbare Stufen, darunter Datenaufnahme,
+Vorverarbeitung, fensterbasierten Inferenz, dreischichtiges Monitoring
+(Konfidenz, temporale Konsistenz, statistische Driftmessung), automatisierte
+Trigger-Entscheidung, Modell-Retraining sowie sicheres Deployment mit
+Canary-Evaluierung und Rollback-Mechanismus.
+
+\cleardoublepage

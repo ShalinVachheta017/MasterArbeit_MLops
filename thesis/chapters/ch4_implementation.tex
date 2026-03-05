@@ -1,0 +1,285 @@
+% ============================================================================
+% chapters/ch4_implementation.tex
+% ============================================================================
+\chapter{Implementation}
+\label{ch:implementation}
+
+% ============================================================================
+\section{Repository Structure}
+\label{sec:repo_structure}
+% ============================================================================
+
+The implementation is organised as an installable Python package rooted in
+the \texttt{src/} directory.
+The repository follows a layered architecture separating concerns into four
+tiers: entities, components, core modules, and the pipeline orchestrator.
+
+\begin{figure}[ht]
+  \centering
+\begin{lstlisting}[language={},basicstyle=\ttfamily\footnotesize,
+                   numbers=none, backgroundcolor=\color{backcolour}]
+MasterArbeit_MLops/
+|-- run_pipeline.py          <- Single entry point (CLI)
+|-- pyproject.toml           <- Package definition, tool config
+|-- src/
+|   |-- entity/
+|   |   |-- config_entity.py   <- 14 typed config dataclasses
+|   |   `-- artifact_entity.py <- 14 typed artifact dataclasses
+|   |-- components/          <- One file per pipeline stage (14 files)
+|   |-- pipeline/
+|   |   `-- production_pipeline.py  <- Orchestrator (470 lines)
+|   |-- domain_adaptation/
+|   |   |-- tent.py          <- TENT entropy minimisation
+|   |   `-- adabn.py         <- Adaptive Batch Normalisation
+|   |-- api/
+|   |   `-- app.py           <- FastAPI inference server
+|   |-- mlflow_tracking.py   <- Experiment tracking wrapper
+|   |-- trigger_policy.py    <- Trigger engine (812 lines)
+|   `-- train.py             <- Training with CV (925 lines)
+|-- tests/                   <- 18 test files, conftest.py
+|-- config/                  <- YAML configuration files
+|-- docker/                  <- Dockerfiles and docker-compose.yml
+`-- .github/workflows/
+    `-- ci-cd.yml            <- CI/CD workflow (6 jobs)
+\end{lstlisting}
+  \caption{Repository directory structure (abbreviated).}
+  \label{fig:repo_structure}
+\end{figure}
+
+% ============================================================================
+\section{Entity and Component Layers}
+\label{sec:entity_component}
+% ============================================================================
+
+\subsection{Entity Layer}
+
+The entity layer defines the contract between stages using Python dataclasses.
+Each stage receives a typed configuration dataclass and returns a typed
+artefact dataclass.
+
+Configuration dataclasses (\texttt{config\_entity.py}, 344 lines) encode
+all parameters a stage might need with sensible defaults.
+A master \texttt{PipelineConfig} holds project-wide settings from which
+stage-specific configs derive their paths.
+
+Artefact dataclasses (\texttt{artifact\_entity.py}, 217 lines) are the typed
+outputs of each stage.
+A \texttt{PipelineResult} aggregator collects all artefacts from a run and
+enables serialisation of the full execution record to JSON.
+
+This typed contract eliminates the class of bug where a stage silently receives
+an incorrect file path or missing configuration value.
+
+\subsection{Component Layer}
+
+Each of the 14 pipeline stages is implemented as a component class following
+a uniform interface:
+
+\begin{lstlisting}[caption={Component interface pattern.},
+                   label={lst:component}]
+class DataIngestionComponent:
+    def __init__(self, config: DataIngestionConfig):
+        self.config = config
+
+    def run(self) -> DataIngestionArtifact:
+        # delegate to core module
+        result = sensor_data_pipeline.ingest(self.config)
+        return DataIngestionArtifact(output_path=result.path)
+\end{lstlisting}
+
+Components are responsible for: reading configuration, invoking the core
+module, wrapping the result in a typed artefact, and logging entry/exit
+messages.
+All algorithmic complexity resides in the core modules, which can be unit-tested
+without instantiating the pipeline.
+
+% ============================================================================
+\section{Pipeline Runner and CLI}
+\label{sec:cli}
+% ============================================================================
+
+\texttt{run\_pipeline.py} is the single entry point.
+All pipeline configurations are expressed as command-line arguments so that
+any run is fully reproducible from its recorded command:
+
+\begin{lstlisting}[caption={CLI usage examples.}]
+# Default: inference cycle (Stages 1-7)
+python run_pipeline.py
+
+# Trigger-reactive retraining with AdaBN+TENT
+python run_pipeline.py --retrain --adapt adabn_tent
+
+# Full pipeline with pseudo-labelling
+python run_pipeline.py --retrain --adapt pseudo_label \
+    --update-baseline --force-retrain
+
+# Batch processing of 26 sessions
+python batch_process_all_datasets.py
+\end{lstlisting}
+
+The runner selects stages based on flags and resolves missing upstream
+artefacts via fallback to the most recent successful artefact directory.
+This enables incremental execution: if Stage 3 artefacts already exist,
+Stages 1--2 are skipped on a re-run.
+
+% ============================================================================
+\section{Tooling Stack}
+\label{sec:tooling}
+% ============================================================================
+
+\subsection{DVC — Data Version Control}
+
+DVC \citep{dvcteam2020} tracks every data file and model checkpoint through
+pointer files committed to Git.
+Each pointer stores the MD5 hash and storage path of the tracked binary.
+\texttt{dvc pull} retrieves all tracked files at the version corresponding to
+a given Git commit, ensuring that reproduction of any prior result requires
+only \texttt{git checkout} followed by \texttt{dvc pull}.
+
+Key tracked artefacts:
+\begin{itemize}
+  \item \texttt{data/raw/sensor\_fused\_50Hz.csv} — raw ingestion output
+  \item \texttt{data/prepared/X\_train.npy}, \texttt{y\_train.npy} — training windows
+  \item \texttt{models/pretrained/fine\_tuned\_model\_1dcnnbilstm.keras} — production model
+  \item \texttt{models/normalized\_baseline.json} — reference distribution
+\end{itemize}
+
+\subsection{MLflow — Experiment Tracking and Model Registry}
+
+MLflow \citep{mlflowteam2018} records all experiment metadata in a local
+SQLite database under \texttt{mlruns/}.
+The \texttt{MLflowTracker} class in \texttt{src/mlflow\_tracking.py} wraps
+all MLflow API calls across the pipeline.
+
+Four experiments are used:
+\begin{description}
+  \item[\texttt{har-training}] Training runs: hyperparameters,
+        per-epoch metrics, model artefacts.
+  \item[\texttt{har-retraining}] Adaptation runs: pre/post confidence,
+        TENT rollback flag, entropy delta, canary results.
+  \item[\texttt{har-monitoring}] Per-session monitoring: PSI scores,
+        drift flags, z-scores, trigger decisions.
+  \item[\texttt{har-evaluation}] Evaluation runs: F1 per class,
+        ECE, calibration plot artefact.
+\end{description}
+
+Model promotion is controlled through the MLflow Model Registry.
+A model version may be in one of three states: \texttt{Staging},
+\texttt{Production}, or \texttt{Archived}.
+A canary evaluation gate must be passed before promotion from Staging to
+Production.
+
+\subsection{Docker — Containerised Deployment}
+
+Two Docker services are defined in \texttt{docker-compose.yml}:
+
+\begin{description}
+  \item[\texttt{har-mlflow}] MLflow tracking server on port 5000.
+        Mounts \texttt{./mlruns} and \texttt{./models} for persistence.
+  \item[\texttt{har-inference}] FastAPI inference server on port 8000.
+        Built from \texttt{docker/Dockerfile.inference} using
+        Python 3.11-slim base image.
+        Sets \texttt{PYTHONPATH=/app:/app/src} and entrypoint
+        \texttt{uvicorn src.api.app:app}.
+\end{description}
+
+\subsection{FastAPI — Inference API}
+
+The inference server provides two primary endpoints:
+
+\begin{table}[ht]
+  \centering
+  \caption{FastAPI endpoint specification.}
+  \label{tab:api_endpoints}
+  \begin{tabularx}{\linewidth}{llX}
+    \toprule
+    \textbf{Endpoint} & \textbf{Method} & \textbf{Description} \\
+    \midrule
+    \texttt{/api/predict}  & POST & Accept multipart CSV upload; return
+      predictions, confidence, monitoring summary \\
+    \texttt{/api/health}   & GET  & Health check; returns
+      \texttt{200 OK} with model load status \\
+    \texttt{/docs}         & GET  & Auto-generated Swagger UI \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+The handler applies the full preprocessing pipeline (unit detection $\to$
+StandardScaler $\to$ windowing) before calling the model, and runs all three
+monitoring layers on the resulting predictions before returning the response.
+
+% ============================================================================
+\section{CI/CD Workflow}
+\label{sec:cicd}
+% ============================================================================
+
+The GitHub Actions workflow (\texttt{.github/workflows/ci-cd.yml}) runs on
+every push to \texttt{main} and on a scheduled nightly trigger.
+It is split into six jobs:
+
+\begin{enumerate}
+  \item \textbf{Lint}: \texttt{black}, \texttt{flake8}, \texttt{mypy}
+  \item \textbf{Test-fast}: \texttt{pytest -m "not slow"} (pure Python, no TF)
+  \item \textbf{Test-slow}: \texttt{pytest -m slow} (TF-dependent, longer timeout)
+  \item \textbf{Build}: Docker image build for \texttt{har-inference}
+  \item \textbf{Integration}: smoke test against the running container
+          at \texttt{/api/health} and \texttt{/api/predict}
+  \item \textbf{Push}: push to GHCR as \texttt{har-inference:latest}
+\end{enumerate}
+
+Fast and slow tests are separated to provide immediate feedback on small changes
+without timing out on TensorFlow model loading (see \Cref{sec:engineering_challenges}).
+
+% ============================================================================
+\section{Engineering Challenges}
+\label{sec:engineering_challenges}
+% ============================================================================
+
+This section summarises selected engineering problems encountered during
+development.
+A complete log with 21 entries, each backed by a Git commit reference, is
+provided in \Cref{app:engineering_log}.
+
+\subsection{Accelerometer Unit Mismatch}
+\label{sec:unit_mismatch}
+
+The most consequential problem was a sensor unit incompatibility:
+production data exported from Garmin Connect was in milli-g, while the
+pre-trained model was trained on data in m/s\textsuperscript{2}.
+After applying the training StandardScaler to the production data, the
+normalised feature values were approximately 100$\times$ out of range.
+The model exhibited 14.5\,\% cross-user accuracy with high-confidence
+wrong predictions --- below the random-chance baseline of 9.09\,\% for
+\nclasses{} classes.
+
+Root cause: the training dataset's $a_z$ mean was $-3.5$\,m/s\textsuperscript{2}
+(approximately $-1g$ vertical); the production mean was $-1001.6$\,milli-g
+(the same physical value, different unit).
+The fix was the automatic unit-detection step described in \Cref{sec:dataset}.
+Evidence: commits \texttt{c17f3dd}, \texttt{3a07e4f}, \texttt{1c403f8}.
+
+\subsection{TENT Corrupts AdaBN Running Statistics}
+
+When AdaBN and TENT are chained, TENT's training-mode forward passes update
+BN running statistics, overwriting the target-domain statistics set by AdaBN.
+The snapshot-and-restore mechanism described in \Cref{sec:tent_adabn}
+resolved this.
+Evidence: commit \texttt{f47a48b}.
+
+\subsection{Pseudo-Label Source Data Scale Mismatch}
+
+In the pseudo-label retraining loop, source-domain data was passed at raw scale
+while pseudo-labelled target data was already scaled.
+Mixing the two inflated in-loop validation accuracy but degraded production
+performance.
+Fix: scale source data with the production StandardScaler before mixing.
+Evidence: commit \texttt{3fd3c00}.
+
+\subsection{PSI Threshold Calibration}
+
+Standard textbook PSI thresholds (0.10 / 0.25) were applied to the multi-channel
+aggregated PSI.
+These thresholds are correct for single-channel distributions but are far too
+sensitive for a 24-channel aggregated score.
+Empirically calibrated thresholds (0.75 / 1.50) were substituted.
+Evidence: commit \texttt{bd8dc1e}.

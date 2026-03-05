@@ -1,0 +1,114 @@
+% ============================================================================
+% appendices/app_a_pipeline_stages.tex
+% ============================================================================
+\chapter{Complete Pipeline Stage Reference}
+\label{app:pipeline_stages}
+
+\begin{longtable}{p{0.05\linewidth}p{0.18\linewidth}p{0.24\linewidth}p{0.24\linewidth}p{0.21\linewidth}}
+  \caption{All 14 pipeline stages: component class, configuration, artefact, and module file.}
+  \label{tab:full_stages} \\
+  \toprule
+  \textbf{\#} & \textbf{Stage name}
+    & \textbf{Config class}
+    & \textbf{Artefact class}
+    & \textbf{Core module} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{\#} & \textbf{Stage name}
+    & \textbf{Config class}
+    & \textbf{Artefact class}
+    & \textbf{Core module} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+
+  1 & Data Ingestion
+    & \texttt{DataIngestionConfig}
+    & \texttt{DataIngestionArtifact}
+    & \texttt{sensor\_data\_pipeline.py} \\[2pt]
+
+  2 & Data Validation
+    & \texttt{DataValidationConfig}
+    & \texttt{DataValidationArtifact}
+    & \texttt{data\_validation.py} \\[2pt]
+
+  3 & Data Transformation
+    & \texttt{DataTransformationConfig}
+    & \texttt{DataTransformationArtifact}
+    & \texttt{data\_transformation.py} \\[2pt]
+
+  4 & Model Inference
+    & \texttt{ModelInferenceConfig}
+    & \texttt{ModelInferenceArtifact}
+    & \texttt{model\_inference.py} \\[2pt]
+
+  5 & Model Evaluation
+    & \texttt{ModelEvaluationConfig}
+    & \texttt{ModelEvaluationArtifact}
+    & \texttt{model\_evaluation.py} \\[2pt]
+
+  6 & Post-Inference Monitor
+    & \texttt{PostInferenceMonitorConfig}
+    & \texttt{PostInferenceMonitorArtifact}
+    & \texttt{post\_inference\_monitor.py} \\[2pt]
+
+  7 & Trigger Evaluation
+    & \texttt{TriggerEvaluationConfig}
+    & \texttt{TriggerEvaluationArtifact}
+    & \texttt{trigger\_policy.py} \\[2pt]
+
+  8 & Model Retraining
+    & \texttt{ModelRetrainingConfig}
+    & \texttt{ModelRetrainingArtifact}
+    & \texttt{model\_retraining.py} \\[2pt]
+
+  9 & Model Registration
+    & \texttt{ModelRegistrationConfig}
+    & \texttt{ModelRegistrationArtifact}
+    & \texttt{model\_registration.py} \\[2pt]
+
+  10 & Baseline Update
+     & \texttt{BaselineUpdateConfig}
+     & \texttt{BaselineUpdateArtifact}
+     & \texttt{baseline\_update.py} \\[2pt]
+
+  11 & Calibration \& UQ
+     & \texttt{CalibrationConfig}
+     & \texttt{CalibrationArtifact}
+     & \texttt{calibration.py} \\[2pt]
+
+  12 & Wasserstein Drift
+     & \texttt{WassersteinDriftConfig}
+     & \texttt{WassersteinDriftArtifact}
+     & \texttt{wasserstein\_drift.py} \\[2pt]
+
+  13 & Curriculum Pseudo-Label
+     & \texttt{PseudoLabelConfig}
+     & \texttt{PseudoLabelArtifact}
+     & \texttt{pseudo\_label.py} \\[2pt]
+
+  14 & Sensor Placement Adapt.
+     & \texttt{SensorPlacementConfig}
+     & \texttt{SensorPlacementArtifact}
+     & \texttt{sensor\_placement.py} \\[2pt]
+\end{longtable}
+
+\section*{Pipeline Execution Paths}
+
+The following three execution paths are supported.
+Stages listed in parentheses are run only if the relevant flag is provided.
+
+\begin{description}
+  \item[Inference-only]
+    Stages 1~$\to$~2~$\to$~3~$\to$~4~$\to$~5~$\to$~6~$\to$~7.
+    Default when no flags are given.
+  \item[Inference + Retraining]
+    Stages 1--7 followed by 8~$\to$~9~$\to$(10 if \texttt{--update-baseline}).
+    Triggered by \texttt{--retrain} or automatically when the trigger fires.
+  \item[Full pipeline]
+    Stages 1--10 followed additionally by 11 (\texttt{--calibrate}),
+    12 (\texttt{--wasserstein}), 13 (\texttt{--adapt pseudo\_label}),
+    14 (\texttt{--placement}).
+\end{description}
