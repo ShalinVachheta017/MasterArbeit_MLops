@@ -1169,3 +1169,21 @@ This project is part of a Master's Thesis at [University Name].
 
 **Last Updated:** February 26, 2026  
 **Version:** 3.1.0
+
+## GitHub Actions CI/CD
+
+### CI triggers
+- CI runs on `pull_request` targeting `main`.
+- CI runs on `push` to `main` and `develop`.
+- CI jobs: lint (`flake8`, `black --check`, `isort --check-only`), unit tests (`pytest -m "not slow and not integration"`), and Docker build check (build only, no push).
+
+### CD triggers and release tagging
+- CD runs on Git tags matching `v*.*.*` (example: `v1.4.0`) and on `workflow_dispatch`.
+- To trigger a release deployment from git:
+  - `git tag v1.4.0`
+  - `git push origin v1.4.0`
+- CD uses the release tag (`github.ref_name`) as the image tag for push and smoke-test pull.
+
+### Published image
+- Docker image is published to GHCR at:
+  - `ghcr.io/shalinvachheta017/masterarbeit_mlops/har-inference:<tag>`
