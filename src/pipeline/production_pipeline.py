@@ -27,7 +27,6 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from src.entity.artifact_entity import PipelineResult
-from src.exceptions import DataValidationError
 from src.entity.config_entity import (
     BaselineUpdateConfig,
     CalibrationUncertaintyConfig,
@@ -45,6 +44,7 @@ from src.entity.config_entity import (
     TriggerEvaluationConfig,
     WassersteinDriftConfig,
 )
+from src.exceptions import DataValidationError
 
 # Import centralized logger and artifacts manager
 from src.logger import logging

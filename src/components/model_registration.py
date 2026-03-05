@@ -78,7 +78,9 @@ class ModelRegistration:
                         logger.warning(
                             "Model REGRESSION detected: new_acc=%.4f < cur_acc=%.4f - tol=%.4f "
                             "(%s). Model registered but NOT deployed.",
-                            float(new_acc), float(cur_acc), tol,
+                            float(new_acc),
+                            float(cur_acc),
+                            tol,
                             "use --degradation-tolerance to adjust",
                         )
                     else:

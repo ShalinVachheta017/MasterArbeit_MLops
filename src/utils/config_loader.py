@@ -42,7 +42,9 @@ logger = logging.getLogger(__name__)
 _OVERRIDES_ENV = "HAR_PIPELINE_OVERRIDES"
 
 # Default path: <project_root>/config/pipeline_overrides.yaml
-_OVERRIDES_DEFAULT: Path = Path(__file__).resolve().parents[2] / "config" / "pipeline_overrides.yaml"
+_OVERRIDES_DEFAULT: Path = (
+    Path(__file__).resolve().parents[2] / "config" / "pipeline_overrides.yaml"
+)
 
 
 def load_yaml_overrides(path: Optional[Union[str, Path]] = None) -> Dict[str, Any]:
@@ -58,6 +60,7 @@ def load_yaml_overrides(path: Optional[Union[str, Path]] = None) -> Dict[str, An
         return {}
     try:
         import yaml  # PyYAML is already a transitive dependency via MLflow / DVC
+
         data = yaml.safe_load(p.read_text(encoding="utf-8"))
         if not data:
             return {}
@@ -91,7 +94,10 @@ def apply_overrides(config_obj: Any, section: Dict[str, Any]) -> None:
         except Exception as exc:  # pragma: no cover
             logger.warning(
                 "Could not apply override %s=%r to %s: %s",
-                key, val, type(config_obj).__name__, exc,
+                key,
+                val,
+                type(config_obj).__name__,
+                exc,
             )
 
 

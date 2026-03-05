@@ -405,10 +405,14 @@ class TriggerPolicyEngine:
         # Evaluate based on number of drifted channels
         if drift_zscore_critical_count >= self.thresholds.min_drifted_channels_critical:
             level = AlertLevel.CRITICAL
-            issues.append(f"{drift_zscore_critical_count} channels with critical drift (z>{self.thresholds.drift_zscore_critical}σ)")
+            issues.append(
+                f"{drift_zscore_critical_count} channels with critical drift (z>{self.thresholds.drift_zscore_critical}σ)"
+            )
         elif drift_zscore_warn_count >= self.thresholds.min_drifted_channels_warn:
             level = max(level, AlertLevel.WARNING, key=lambda x: x.value)
-            issues.append(f"{drift_zscore_warn_count} channels with elevated drift (z>{self.thresholds.drift_zscore_warn}σ)")
+            issues.append(
+                f"{drift_zscore_warn_count} channels with elevated drift (z>{self.thresholds.drift_zscore_warn}σ)"
+            )
 
         # Check aggregate drift score (z-score based)
         if aggregate_drift > self.thresholds.drift_zscore_critical:

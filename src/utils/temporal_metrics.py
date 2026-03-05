@@ -7,9 +7,7 @@ from typing import Dict, Hashable, Iterable, List
 import numpy as np
 
 
-def _validate_shapes(
-    labels: np.ndarray, session_ids: np.ndarray, timestamps: np.ndarray
-) -> None:
+def _validate_shapes(labels: np.ndarray, session_ids: np.ndarray, timestamps: np.ndarray) -> None:
     if len(labels) != len(session_ids) or len(labels) != len(timestamps):
         raise ValueError(
             "labels, session_ids, and timestamps must have the same length "
@@ -99,4 +97,3 @@ def summarize_rates(rates: Dict[Hashable, float]) -> Dict[str, float]:
         "p95": float(np.percentile(vals, 95)),
         "n_sessions": int(vals.size),
     }
-

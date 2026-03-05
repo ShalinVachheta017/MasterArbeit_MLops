@@ -33,9 +33,8 @@ from pydantic import BaseModel, Field
 # Prometheus metrics
 # ---------------------------------------------------------------------------
 try:
-    from prometheus_client import (
-        Counter, Gauge, Histogram, generate_latest, CONTENT_TYPE_LATEST
-    )
+    from prometheus_client import CONTENT_TYPE_LATEST, Counter, Gauge, Histogram, generate_latest
+
     _PROM_AVAILABLE = True
 except ImportError:  # pragma: no cover
     _PROM_AVAILABLE = False
@@ -70,6 +69,7 @@ if _PROM_AVAILABLE:
         "End-to-end /api/upload latency in milliseconds",
         buckets=[10, 25, 50, 100, 250, 500, 1000, 2500, 5000],
     )
+
 
 # Single source of truth for monitoring thresholds — shared with the pipeline.
 def _load_monitoring_thresholds():
@@ -292,9 +292,7 @@ def _run_monitoring(
         _prom_drift_detected.set(0.0 if l3_status in ("PASS", "SKIPPED") else 1.0)
         # Baseline age gauge: -1 = file missing, else age in fractional days
         if BASELINE_PATH.exists():
-            _prom_baseline_age_days.set(
-                (time.time() - BASELINE_PATH.stat().st_mtime) / 86400
-            )
+            _prom_baseline_age_days.set((time.time() - BASELINE_PATH.stat().st_mtime) / 86400)
         else:
             _prom_baseline_age_days.set(-1)
 

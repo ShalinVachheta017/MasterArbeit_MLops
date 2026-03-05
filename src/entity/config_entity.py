@@ -125,7 +125,7 @@ class DataTransformationConfig:
     #   "zscore"  → StandardScaler with training stats (Variant A, default)
     #   "none"    → no amplitude normalization (Variant B)
     #   "robust"  → RobustScaler with training stats (Variant C)
-    enable_normalization: bool = True   # toggle ON/OFF (like enable_gravity_removal)
+    enable_normalization: bool = True  # toggle ON/OFF (like enable_gravity_removal)
     normalization_variant: str = "zscore"
 
 
@@ -179,12 +179,12 @@ class PostInferenceMonitoringConfig:
     # ── Thresholds (single source of truth — also read by src/api/app.py) ──
     # Layer 1 — confidence
     confidence_warn_threshold: float = 0.60  # mean confidence below this → WARNING
-    uncertain_pct_threshold: float = 30.0    # % of low-confidence windows → WARNING
-    uncertain_window_threshold: float = 0.50 # per-window cutoff: max_prob < this → "uncertain"
+    uncertain_pct_threshold: float = 30.0  # % of low-confidence windows → WARNING
+    uncertain_window_threshold: float = 0.50  # per-window cutoff: max_prob < this → "uncertain"
     # Layer 2 — temporal
     transition_rate_threshold: float = 50.0  # % transition rate above this → WARNING
     # Layer 3 — drift
-    drift_zscore_threshold: float = 2.0      # per-channel z-score above this → WARNING
+    drift_zscore_threshold: float = 2.0  # per-channel z-score above this → WARNING
 
     # Temperature-scaling calibration (applied before Layer 1/3 analysis)
     # Set to the temperature T from Stage 11 (CalibrationUncertainty) output;
