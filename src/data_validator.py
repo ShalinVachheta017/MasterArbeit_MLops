@@ -8,10 +8,10 @@ preventing garbage-in-garbage-out scenarios.
 
 Usage:
     from data_validator import DataValidator, ValidationResult
-    
+
     validator = DataValidator()
     result = validator.validate(df)
-    
+
     if not result.is_valid:
         raise ValueError(f"Data validation failed: {result.errors}")
 """
@@ -305,7 +305,7 @@ if __name__ == "__main__":
     for w in result.warnings:
         print(f"  ⚠️ {w}")
 
-    print(f"\nStatistics (sample):")
+    print("\nStatistics (sample):")
     for key in ["Az_mean", "Az_std", "Az_max_abs"]:
         if key in result.stats:
             print(f"  {key}: {result.stats[key]:.4f}")

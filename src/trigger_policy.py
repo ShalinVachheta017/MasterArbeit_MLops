@@ -22,10 +22,10 @@ Trigger Criteria:
 
 Usage:
     from trigger_policy import TriggerPolicyEngine
-    
+
     engine = TriggerPolicyEngine()
     decision = engine.evaluate(monitoring_report)
-    
+
     if decision.should_trigger:
         trigger_retraining(decision.reason)
 
@@ -549,7 +549,7 @@ class TriggerPolicyEngine:
                 time_remaining = cooldown_period - (datetime.now() - last_retrain_dt)
 
                 self.logger.warning(
-                    f"Trigger suppressed: cooldown active. " f"Time remaining: {time_remaining}"
+                    "Trigger suppressed: cooldown active. " f"Time remaining: {time_remaining}"
                 )
 
                 decision.should_trigger = False
@@ -743,7 +743,7 @@ class ProxyModelValidator:
             "new_metrics": new_metrics,
         }
 
-        self.logger.info(f"\nValidation Result:")
+        self.logger.info("\nValidation Result:")
         self.logger.info(f"  Should Deploy: {should_deploy}")
         self.logger.info(f"  Reason: {reason}")
         self.logger.info(f"  Improvements: {improvements}")

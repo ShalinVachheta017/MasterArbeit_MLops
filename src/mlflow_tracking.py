@@ -7,7 +7,7 @@ It handles experiment setup, run management, metric logging, and model registry.
 
 Usage:
     from mlflow_tracking import MLflowTracker
-    
+
     tracker = MLflowTracker()
     with tracker.start_run(run_name="training_v1"):
         tracker.log_params({"learning_rate": 0.001, "epochs": 50})
@@ -21,7 +21,6 @@ Date: December 11, 2025
 import json
 import logging
 import os
-import sys
 import tempfile
 from contextlib import contextmanager
 from datetime import datetime
@@ -639,4 +638,4 @@ if __name__ == "__main__":
 
             print("✅ Demo run completed!")
             print(f"   Run ID: {run.run_id}")
-            print(f"   View at: mlflow ui")
+            print("   View at: mlflow ui")

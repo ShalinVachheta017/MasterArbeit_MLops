@@ -16,10 +16,10 @@ Features:
 Usage:
     # Standard training with CV
     python src/train.py
-    
+
     # Training with specific config
     python src/train.py --epochs 100 --experiment-name har-training-v2
-    
+
     # Retraining with domain adaptation (triggered by drift detection)
     python src/train.py --retrain --target-data data/prepared/drift_samples.npy
 
@@ -43,21 +43,20 @@ import pandas as pd
 # Suppress TF warnings before import
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
-import tensorflow as tf
-from sklearn.metrics import (
+from sklearn.metrics import (  # noqa: E402, F401
     accuracy_score,
     classification_report,
     cohen_kappa_score,
     confusion_matrix,
     f1_score,
 )
-from sklearn.model_selection import StratifiedKFold, train_test_split
-from sklearn.preprocessing import LabelEncoder, RobustScaler, StandardScaler
-from tensorflow import keras
+from sklearn.model_selection import StratifiedKFold, train_test_split  # noqa: E402
+from sklearn.preprocessing import LabelEncoder, RobustScaler, StandardScaler  # noqa: E402
+from tensorflow import keras  # noqa: E402
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent))
-from config import (
+from config import (  # noqa: E402, F401
     ACTIVITY_LABELS,
     DATA_PREPARED,
     DATA_RAW,
@@ -70,7 +69,7 @@ from config import (
     SENSOR_COLUMNS,
     WINDOW_SIZE,
 )
-from mlflow_tracking import MLflowTracker
+from mlflow_tracking import MLflowTracker  # noqa: E402
 
 # Setup logging
 logging.basicConfig(
@@ -1243,13 +1242,13 @@ def parse_args():
 Examples:
     # Standard training with cross-validation
     python src/train.py
-    
+
     # Quick training without CV (for testing)
     python src/train.py --skip-cv --epochs 10
-    
+
     # Custom experiment name
     python src/train.py --experiment-name my-experiment
-    
+
     # Retraining with domain adaptation
     python src/train.py --retrain --target-data drift_samples.npy
         """,

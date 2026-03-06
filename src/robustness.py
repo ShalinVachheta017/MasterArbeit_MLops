@@ -343,7 +343,7 @@ class RobustnessEvaluator:
 
         # Baseline (clean)
         baseline = self._evaluate_accuracy(X, y)
-        logger.info("Baseline accuracy: %.4f", baseline["accuracy"])
+        logger.info("Baseline accuracy: %.4", baseline["accuracy"])
 
         return {
             "baseline": baseline,

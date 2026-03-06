@@ -892,7 +892,7 @@ class GravityRemovalPreprocessor:
 
         # Log transformation results
         self.logger.info(
-            f"Gravity removal complete: "
+            "Gravity removal complete: "
             f"Az mean: {stats_before.get('Az', 0):.2f} → {stats_after.get('Az', 0):.2f} m/s²"
         )
 

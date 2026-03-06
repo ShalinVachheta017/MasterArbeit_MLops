@@ -65,7 +65,7 @@ class PreprocessLogger:
         # This prevents duplicate log lines
 
         self.logger.info("=" * 80)
-        self.logger.info(f"Preprocessing Pipeline Started")
+        self.logger.info("Preprocessing Pipeline Started")
         self.logger.info("=" * 80)
 
     def get_logger(self) -> logging.Logger:
@@ -115,7 +115,7 @@ class UnitDetector:
         min_val = accel_data.min()
         max_abs = max(abs(min_val), max_val)
 
-        self.logger.info(f"  Accelerometer statistics:")
+        self.logger.info("  Accelerometer statistics:")
         self.logger.info(f"    Mean (abs): {mean_val:.3f}")
         self.logger.info(f"    Max (abs):  {max_abs:.3f}")
         self.logger.info(f"    Range: [{min_val:.3f}, {max_val:.3f}]")
@@ -136,9 +136,9 @@ class UnitDetector:
         else:
             # Ambiguous range (50-100)
             unit = "unknown"
-            self.logger.warning(f"  ⚠ Ambiguous units detected!")
+            self.logger.warning("  ⚠ Ambiguous units detected!")
             self.logger.warning(f"    Max absolute value {max_abs:.1f} in ambiguous range [50-100]")
-            self.logger.warning(f"    Manual inspection recommended")
+            self.logger.warning("    Manual inspection recommended")
 
         return unit
 
@@ -219,8 +219,8 @@ class UnitDetector:
         else:
             self.logger.error("  → Decision: CANNOT PROCEED (ambiguous units)")
             raise ValueError(
-                f"Cannot determine accelerometer units. "
-                f"Please verify data manually or specify units explicitly."
+                "Cannot determine accelerometer units. "
+                "Please verify data manually or specify units explicitly."
             )
 
         self.logger.info("=" * 80)
@@ -404,7 +404,7 @@ class UnifiedPreprocessor:
         self.activity_to_label = {}
         self.label_to_activity = {}
 
-        self.logger.info(f"Preprocessor initialized:")
+        self.logger.info("Preprocessor initialized:")
         self.logger.info(f"  Window size: {window_size} samples")
         self.logger.info(f"  Overlap: {overlap*100:.0f}%")
         self.logger.info(f"  Step size: {self.step_size} samples")
@@ -438,7 +438,7 @@ class UnifiedPreprocessor:
         elif has_unlabeled_format:
             data_format = "unlabeled"
             sensor_cols = unlabeled_sensors
-            self.logger.info(f"  Format: UNLABELED (production data)")
+            self.logger.info("  Format: UNLABELED (production data)")
             self.logger.info(f"  Columns: {', '.join(sensor_cols)} + timestamp")
         else:
             self.logger.error("  ✗ Unknown data format!")
@@ -490,14 +490,14 @@ class UnifiedPreprocessor:
         nan_count = df[sensor_cols].isna().sum().sum()
         if nan_count > 0:
             self.logger.warning(f"  Found {nan_count} NaN values in sensor data")
-            self.logger.warning(f"  Applying forward fill + backward fill")
+            self.logger.warning("  Applying forward fill + backward fill")
             df_normalized[sensor_cols] = df_normalized[sensor_cols].ffill().bfill()
 
             # Check if any NaN remain
             remaining_nan = df_normalized[sensor_cols].isna().sum().sum()
             if remaining_nan > 0:
                 self.logger.warning(f"  {remaining_nan} NaN values remain after filling")
-                self.logger.warning(f"  Dropping rows with NaN")
+                self.logger.warning("  Dropping rows with NaN")
                 df_normalized = df_normalized.dropna(subset=sensor_cols).reset_index(drop=True)
 
             self.logger.info(f"  After NaN handling: {len(df_normalized):,} samples")
@@ -508,7 +508,7 @@ class UnifiedPreprocessor:
             if not config_path.exists():
                 raise FileNotFoundError(
                     f"Scaler config not found: {config_path}\n"
-                    f"Please run preprocessing on training data first!"
+                    "Please run preprocessing on training data first!"
                 )
 
             with open(config_path, "r") as f:
@@ -517,7 +517,7 @@ class UnifiedPreprocessor:
             # Determine which variant was used during training (default: zscore for
             # backward compatibility with configs that pre-date this field)
             variant = config.get("normalization_variant", "zscore")
-            self.logger.info(f"  Mode: TRANSFORM (production data with saved scaler)")
+            self.logger.info("  Mode: TRANSFORM (production data with saved scaler)")
             self.logger.info(f"  Normalization variant: {variant}")
 
             if variant == "none":
@@ -652,7 +652,7 @@ class UnifiedPreprocessor:
 
         if y is not None:
             self.logger.info(f"  Labels shape: {y.shape}")
-            self.logger.info(f"  Label distribution:")
+            self.logger.info("  Label distribution:")
             for label_id in np.unique(y):
                 count = (y == label_id).sum()
                 activity = self.label_to_activity[label_id]

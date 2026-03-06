@@ -621,15 +621,15 @@ Examples:
   # Build and deploy
   python deployment_manager.py build --version v1.2.0
   python deployment_manager.py deploy --version v1.2.0
-  
+
   # Canary deployment
   python deployment_manager.py deploy --version v1.2.0 --strategy canary
   python deployment_manager.py promote-canary
-  
+
   # Rollback
   python deployment_manager.py rollback
   python deployment_manager.py rollback --to v1.1.0
-  
+
   # Status
   python deployment_manager.py status
         """,

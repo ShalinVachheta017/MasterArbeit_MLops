@@ -5,7 +5,7 @@ Utility modules for the HAR MLOps Pipeline.
 - main_utils.py: ML/pipeline-specific utility functions.
 """
 
-from src.utils.common import (
+from src.utils.common import (  # noqa: F401
     ensure_dir,
     get_file_size,
     get_timestamp,
@@ -17,7 +17,7 @@ from src.utils.common import (
     write_json,
     write_yaml,
 )
-from src.utils.main_utils import (
+from src.utils.main_utils import (  # noqa: F401
     archive_file,
     compute_class_distribution,
     get_activity_labels,

@@ -15,10 +15,10 @@ Features:
 Usage:
     # List available model versions
     python src/model_rollback.py --list
-    
+
     # Rollback to previous version
     python src/model_rollback.py --rollback
-    
+
     # Rollback to specific version
     python src/model_rollback.py --rollback --version 1.0.0
 
@@ -30,7 +30,6 @@ import argparse
 import hashlib
 import json
 import logging
-import os
 import shutil
 import sys
 from dataclasses import asdict, dataclass

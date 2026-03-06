@@ -39,7 +39,6 @@ class PostInferenceMonitoring:
         logger.info("STAGE 6 — Post-Inference Monitoring")
         logger.info("=" * 60)
 
-        import os
         import sys
 
         # Ensure scripts/ is importable

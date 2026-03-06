@@ -222,7 +222,7 @@ class MCDropoutEstimator:
             all_probs       : (n_passes, N, C) — raw stochastic outputs
         """
         try:
-            import tensorflow as tf
+            import tensorflow  # noqa: F401
         except ImportError:
             raise ImportError("TensorFlow required for MC Dropout.")
 
@@ -530,8 +530,8 @@ class UnlabeledCalibrationAnalyzer:
         if overconf_ratio > 0.80:
             warnings.append(
                 f"OVERCONFIDENCE: {overconf_ratio:.0%} of predictions have "
-                f"confidence > 0.95 — likely mis-calibrated. "
-                f"Apply temperature scaling."
+                "confidence > 0.95 — likely mis-calibrated. "
+                "Apply temperature scaling."
             )
         if underconf_flag:
             warnings.append(
@@ -541,6 +541,6 @@ class UnlabeledCalibrationAnalyzer:
         if mean_entropy > 1.5:
             warnings.append(
                 f"HIGH ENTROPY: Mean entropy = {mean_entropy:.2f} > 1.5 — "
-                f"model is highly uncertain. Check for OOD data."
+                "model is highly uncertain. Check for OOD data."
             )
         return warnings

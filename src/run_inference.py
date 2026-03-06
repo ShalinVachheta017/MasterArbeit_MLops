@@ -53,7 +53,6 @@ Version: 1.0.0
 import argparse
 import json
 import logging
-import os
 import sys
 from dataclasses import asdict, dataclass
 from datetime import datetime
@@ -234,7 +233,7 @@ class ModelLoader:
         input_shape = self.model.input_shape
         output_shape = self.model.output_shape
 
-        self.logger.info(f"✅ Model loaded successfully!")
+        self.logger.info("✅ Model loaded successfully!")
         self.logger.info(f"   Input shape: {input_shape}")
         self.logger.info(f"   Output shape: {output_shape}")
         self.logger.info(f"   Parameters: {self.model.count_params():,}")
@@ -308,7 +307,7 @@ class DataLoader:
         # Load data
         self.data = np.load(self.config.input_path)
 
-        self.logger.info(f"✅ Data loaded successfully!")
+        self.logger.info("✅ Data loaded successfully!")
         self.logger.info(f"   Shape: {self.data.shape}")
         self.logger.info(f"   Dtype: {self.data.dtype}")
         self.logger.info(f"   Memory: {self.data.nbytes / 1024 / 1024:.2f} MB")
@@ -419,7 +418,7 @@ class InferenceEngine:
         end_time = datetime.now()
         duration = (end_time - start_time).total_seconds()
 
-        self.logger.info(f"✅ Inference complete!")
+        self.logger.info("✅ Inference complete!")
         self.logger.info(f"   Duration: {duration:.2f} seconds")
         self.logger.info(f"   Speed: {n_windows / duration:.1f} windows/sec")
 
@@ -429,7 +428,7 @@ class InferenceEngine:
         low_conf = np.sum((confidences > 0.50) & (confidences <= 0.70))
         very_low = np.sum(confidences <= 0.50)
 
-        self.logger.info(f"📈 Confidence Distribution:")
+        self.logger.info("📈 Confidence Distribution:")
         self.logger.info(f"   HIGH (>90%):     {high_conf:5d} ({100*high_conf/n_windows:.1f}%)")
         self.logger.info(f"   MODERATE (70-90%): {mod_conf:5d} ({100*mod_conf/n_windows:.1f}%)")
         self.logger.info(f"   LOW (50-70%):    {low_conf:5d} ({100*low_conf/n_windows:.1f}%)")
@@ -786,13 +785,13 @@ def parse_args():
 Examples:
   # Run with defaults (batch mode)
   python run_inference.py
-  
+
   # Specify input file
   python run_inference.py --input data/prepared/production_X.npy
-  
+
   # Change confidence threshold
   python run_inference.py --threshold 0.6
-  
+
   # Run in real-time mode (for streaming)
   python run_inference.py --mode realtime
         """,

@@ -9,7 +9,6 @@ data/
 docker/
 docker-compose.yml
 docs/
-Fourth March/
 generate_summary_report.py
 logs/
 mlruns/
@@ -18,31 +17,37 @@ notebooks/
 outputs/
 pyproject.toml
 pytest.ini
-qna explain.md
+pytest-cache-files-wx0d7jnt/
 README.md
 repo_structure.txt
 reports/
 run_pipeline.py*
 scripts/
 setup.py
-solution.md
 src/
-tech.md
 tests/
-the march todo.md
-Thesis_report/
+thesis/
 
 ./archive:
+_index/
 ai_conversations/
 Archived(prepare traning- production- conversion)/
-CLEANUP_SUMMARY.md
+code_old/
 docs_feb2026/
+docs_old/
+markdown_old/
+misc/
 misc_papers/
 old_docs/
 old_planning_docs/
 papers/
 research_papers/
 scripts_feb2026/
+snapshots/
+
+./archive/_index:
+ARCHIVE_INVENTORY.md
+PAPERS_CATALOG.md
 
 ./archive/ai_conversations:
 ai_helps/
@@ -69,16 +74,23 @@ label_garmin_data.py*
 train_with_cv.py*
 validate_labels.py*
 
+./archive/code_old:
+20260305/
+
+./archive/code_old/20260305:
+diagnostic_pipeline_check.py
+
 ./archive/docs_feb2026:
-APPENDIX_PAPER_INDEX.md
-Bibliography_From_Local_PDFs.md
-HAR_MLOps_QnA_With_Papers.md
-HOW_TO_READ_DOCS.md
-MENTOR_QA_SIMPLE_WITH_PAPERS.md
-ORGANIZATION_MAP.md
-PIPELINE_DEEP_DIVE_opus.md
-PIPELINE_STAGE_PROGRESS_DASHBOARD.md
-THESIS_MASTER_PROGRESS_2026-01-31.md
+
+./archive/docs_old:
+
+./archive/markdown_old:
+76_papers_suggestions.md
+76_papers_summarizzation.md
+COMPREHENSIVE_RESEARCH_PAPERS_SUMMARY.md
+ICTH_2025_Oleh_Paper_MLOps_Summary.md
+
+./archive/misc:
 
 ./archive/misc_papers:
 
@@ -140,33 +152,19 @@ papers/
 978-3-030-03493-1.pdf
 978-3-030-98886-9.pdf
 A_Deep_Learning_Assisted_Method_for_Measuring_Uncertainty_in_Activity_Recognition_with_Wearable_Sensors.pdf
-A_Survey_on_Human_Activity_Recognition_using_Wearable_Sensors.pdf
-ACM_CONFERENCE_PAPERS_ANALYSIS_GROUP10.md
-ACTIVE_LEARNING_MLOPS_HUMAN_IN_LOOP_PAPERS_ANALYSIS.md
 AdaptNet_Human_Activity_Recognition_via_Bilateral_Domain_Adaptation_Using_Semi-Supervised_Deep_Translation_Networks.pdf
 applsci-15-12661.pdf
 Ausarbeitung Pratyusha Bhattacharya.pdf
 Curriculum_Labeling_Self-paced_Pseudo-Labeling_for.pdf
-DOMAIN_ADAPTATION_PAPERS_ANALYSIS.md
-ELSEVIER_SCIENCEDIRECT_PAPERS_ANALYSIS_GROUP11.md
-Enhancing_Human_Activity_Recognition_in_Wrist-Worn_Sensor_Data_Through_Compensation_Strategies_for_Sensor_Displacement.pdf
 FULLTEXT01.pdf
-GENERAL_HAR_SURVEYS_PAPERS_ANALYSIS.md
 Human_in_the_Loop_in_Digital_Twins_Enabled_Active_Learning_A_Proposed_Architecture.pdf
-Improved_Deep_Representation_Learning_for_Human_Activity_Recognition_using_IMU_Sensors.pdf
 imwut-selfhar.pdf
 istributed Machine Learning for Anomalous Human Activity Recognition.pdf
 journal.pone.0298888.pdf
 Lara2025.pdf
 Learning_Sinkhorn_Divergences_for_Change_Point_Detection.pdf
-Lifelong_Learning_in_Sensor-Based_Human_Activity_Recognition.pdf
-LIFEWATCH_Lifelong_Wasserstein_Change_Point_Detection.pdf
-Normalizing_Self-Supervised_Learning_for_Provably_Reliable_Change_Point_Detection.pdf
-Optimal_Transport_Based_Change_Point_Detection_and_Time_Series_Segment_Clustering.pdf
 out.pdf
 Out-of-distribution_in_Human_Activity_Recognition.pdf
-Personalizing_Activity_Recognition_Models_Through_Quantifying_Different_Types_of_Uncertainty_Using_Wearable_Sensors.pdf
-PSEUDO_LABELING_SELF_TRAINING_PAPERS_ANALYSIS.md
 roy-et-al-2023-classifying-falls-using-out-of-distribution-detection-in-human-activity-recognition.pdf
 s00521-023-08863-9.pdf
 s11042-021-11219-x.pdf
@@ -174,8 +172,6 @@ s12652-020-02808-z.pdf
 s13042-025-02569-1.pdf
 s41598-025-02395-z.pdf
 SCAGOT_Semi-Supervised_Disentangling_Context_and_Activity_Features_Without_Target_Data_for_Sensor-Based_HAR.pdf
-Scaling Human Activity Recognition via Deep Learning-based Domain Adaptation.pdf
-SENSOR_PLACEMENT_POSITION_PAPERS_ANALYSIS.md
 sensors-19-00057-v2.pdf
 sensors-21-01669-v2.pdf
 sensors-21-06566-v3.pdf
@@ -184,27 +180,20 @@ sensors-22-05507-v2.pdf
 sensors-22-06881-v2.pdf
 sensors-24-07975.pdf
 sensors-25-06988-v2.pdf
-THESIS_BOOKS_MAJOR_REFERENCES_ANALYSIS.md
-THESIS_QUESTIONS_AND_ANSWERS_2026-01-30.md
 Thesis-Andrea-Rosales-Sanabria-complete-version.pdf
 Transfer_Learning_of_Human_Activities_Based_on_IMU_Sensors_A_Review.pdf
-UNCERTAINTY_CONFIDENCE_PAPERS_ANALYSIS.md
 Unsupervised_Domain_Adaptation_in_Activity_Recognition_A_GAN-Based_Approach.pdf
-WATCH_Wasserstein_Change_Point_Detection_for_High-Dimensional_Time_Series_Data.pdf
-XAI-BayesHAR_A_novel_Framework_for_Human_Activity_Recognition_with_Integrated_Uncertainty_and_Shapely_Values.pdf
 XHAR_Deep_Domain_Adaptation_for_Human_Activity_Recognition_with_Smart_Devices.pdf
 
 ./archive/old_docs/papers_jan25:
 SelfHAR.pdf
 
 ./archive/old_planning_docs:
-FINAL_3_PATHWAYS_TO_COMPLETE_THESIS.md
-HOW_TO_READ_THIS_REPOSITORY.md
-MASTER_FILE_ANALYSIS_AND_NEXT_STEPS.md
-PIPELINE_EXECUTION_GUIDE.md
 
 ./archive/papers:
 anxiety_detection/
+by_chapter/
+by_topic/
 domain_adaptation/
 mlops_production/
 new paper/
@@ -213,16 +202,85 @@ research_papers/
 uncertainty_confidence/
 
 ./archive/papers/anxiety_detection:
+
+./archive/papers/by_chapter:
+ch1_intro/
+ch2_related_work/
+ch3_methodology/
+ch4_pipeline_implementation/
+ch5_experiments_results/
+ch6_discussion_limitations/
+ch7_conclusion_future_work/
+
+./archive/papers/by_chapter/ch1_intro:
+
+./archive/papers/by_chapter/ch2_related_work:
+
+./archive/papers/by_chapter/ch3_methodology:
+
+./archive/papers/by_chapter/ch4_pipeline_implementation:
+
+./archive/papers/by_chapter/ch5_experiments_results:
+
+./archive/papers/by_chapter/ch6_discussion_limitations:
+
+./archive/papers/by_chapter/ch7_conclusion_future_work:
+
+./archive/papers/by_topic:
+cicd_devops/
+data_prep/
+datasets_garmin_wearables/
+deployment_docker/
+domain_adaptation_tta/
+drift_detection/
+evaluation_metrics/
+har_models/
+misc/
+mlops_reproducibility/
+monitoring_observability/
+
+./archive/papers/by_topic/cicd_devops:
+
+./archive/papers/by_topic/data_prep:
+
+./archive/papers/by_topic/datasets_garmin_wearables:
+
+./archive/papers/by_topic/deployment_docker:
+
+./archive/papers/by_topic/domain_adaptation_tta:
+2010.03759v4.pdf
+Domain Adaptation for Inertial Measurement Unit-based Human.pdf
+Lifelong_Learning_in_Sensor-Based_Human_Activity_Recognition.pdf
+Scaling Human Activity Recognition via Deep Learning-based Domain Adaptation.pdf
+Transfer Learning in Human Activity Recognition  A Survey.pdf
+
+./archive/papers/by_topic/drift_detection:
+LIFEWATCH_Lifelong_Wasserstein_Change_Point_Detection.pdf
+NeurIPS-2021-adaptive-conformal-inference-under-distribution-shift-Paper.pdf
+Normalizing_Self-Supervised_Learning_for_Provably_Reliable_Change_Point_Detection.pdf
+Optimal_Transport_Based_Change_Point_Detection_and_Time_Series_Segment_Clustering.pdf
+WATCH_Wasserstein_Change_Point_Detection_for_High-Dimensional_Time_Series_Data.pdf
+
+./archive/papers/by_topic/evaluation_metrics:
+1706.04599v2 (1).pdf
+1706.04599v2.pdf
+NeurIPS-2020-energy-based-out-of-distribution-detection-Paper.pdf
+
+./archive/papers/by_topic/har_models:
+A_Survey_on_Human_Activity_Recognition_using_Wearable_Sensors.pdf
+activear.pdf
+Enhancing_Human_Activity_Recognition_in_Wrist-Worn_Sensor_Data_Through_Compensation_Strategies_for_Sensor_Displacement.pdf
+Improved_Deep_Representation_Learning_for_Human_Activity_Recognition_using_IMU_Sensors.pdf
+Personalizing_Activity_Recognition_Models_Through_Quantifying_Different_Types_of_Uncertainty_Using_Wearable_Sensors.pdf
+XAI-BayesHAR_A_novel_Framework_for_Human_Activity_Recognition_with_Integrated_Uncertainty_and_Shapely_Values.pdf
+
+./archive/papers/by_topic/misc:
 A Survey on Wearable Sensors for Mental Health Monitoring.pdf
 ADAM-sense_Anxietydisplayingactivitiesrecognitionby.pdf
 Anxiety Detection Leveraging Mobile Passive Sensing.pdf
 Are Anxiety Detection Models Generalizable-A Cross-Activity and Cross-Population Study Using Wearables.pdf
 
-./archive/papers/domain_adaptation:
-Domain Adaptation for Inertial Measurement Unit-based Human.pdf
-Transfer Learning in Human Activity Recognition  A Survey.pdf
-
-./archive/papers/mlops_production:
+./archive/papers/by_topic/mlops_reproducibility:
 Building-Scalable-MLOps-Optimizing-Machine-Learning-Deployment-and-Operations.pdf
 Demystifying MLOps and Presenting a Recipe for the Selection of Open-Source Tools 2021.pdf
 Developing a Scalable MLOps Pipeline for Continuou.pdf
@@ -238,21 +296,21 @@ Roadmap for a Scalable MLOps Pipeline in Mental Health Monitoring (Master’s Th
 The Role of MLOps in Healthcare Enhancing Predictive Analytics and Patient Outcomes.pdf
 Thesis_MLOps_FullPlan_with_GanttChart.pdf
 
+./archive/papers/by_topic/monitoring_observability:
+
+./archive/papers/domain_adaptation:
+
+./archive/papers/mlops_production:
+
 ./archive/papers/new paper:
-1706.04599v2 (1).pdf
-1706.04599v2.pdf
 1711.10160v1.pdf
 1802.03916v3.pdf
 1-s2.0-S1574119220300353-main.pdf
 1-s2.0-S1574119223000755-main (1).pdf
 1-s2.0-S1574119223000755-main.pdf
-2010.03759v4.pdf
 2404.15331v1.pdf
 2406.01416v2.pdf
 2505.04608v2.pdf
-activear.pdf
-NeurIPS-2020-energy-based-out-of-distribution-detection-Paper.pdf
-NeurIPS-2021-adaptive-conformal-inference-under-distribution-shift-Paper.pdf
 preprints202601.0069.v1 (1).pdf
 preprints202601.0069.v1.pdf
 s10489-025-06708-7.pdf
@@ -336,7 +394,6 @@ generate_paper_summary_excel.py
 Human Activity Recognition using Multi-Head CNN followed by LSTM.pdf
 Human Activity Recognition Using Tools of Convolutional Neural Networks.pdf
 ICTH_16.pdf
-ICTH_2025_Oleh_Paper_MLOps_Summary.md
 Identifying Objective Physiological Markers and Modifiable Behaviors for Self-Reported Stress and Mental Health Status Using Wearable Sensors and Mobile Phones Observational Study 2018.pdf
 I-ETL an interoperability-aware health (meta)data pipeline to enable federated analyses.pdf
 Implications on Human Activity Recognition Research.pdf
@@ -414,11 +471,8 @@ When Does Optimizing a Proper Loss Yield Calibration.pdf
 
 ./archive/papers/research_papers:
 76 papers/
-76_papers_suggestions.md
-76_papers_summarizzation.md
 all_users_data_labeled.csv.dvc
 anxiety_dataset.csv.dvc
-COMPREHENSIVE_RESEARCH_PAPERS_SUMMARY.md
 EHB_2025_71_extracted.txt
 Final_resorecs_paper_list.xlsx
 ICTH_16_extracted.txt
@@ -508,11 +562,8 @@ When Does Optimizing a Proper Loss Yield Calibration.pdf
 
 ./archive/research_papers:
 76 papers/
-76_papers_suggestions.md
-76_papers_summarizzation.md
 all_users_data_labeled.csv.dvc
 anxiety_dataset.csv.dvc
-COMPREHENSIVE_RESEARCH_PAPERS_SUMMARY.md
 EHB_2025_71_extracted.txt
 Final_resorecs_paper_list.xlsx
 ICTH_16_extracted.txt
@@ -611,6 +662,8 @@ preprocess_qc.py*
 update_progress_dashboard.py*
 verify_repository.py*
 
+./archive/snapshots:
+
 ./artifacts:
 20260225_111641/
 20260225_114254/
@@ -656,6 +709,22 @@ verify_repository.py*
 20260227_023518/
 20260227_023522/
 20260227_023528/
+20260306_001611/
+20260306_001616/
+20260306_001620/
+20260306_001658/
+20260306_001708/
+20260306_001722/
+20260306_001725/
+20260306_001729/
+20260306_001858/
+20260306_001911/
+20260306_001914/
+20260306_001918/
+20260306_005428/
+20260306_005443/
+20260306_005445/
+20260306_005448/
 
 ./artifacts/20260225_111641:
 data_ingestion/
@@ -1718,6 +1787,370 @@ validation/
 ./artifacts/20260227_023528/validation:
 validation_report.json
 
+./artifacts/20260306_001611:
+data_ingestion/
+data_transformation/
+evaluation/
+inference/
+monitoring/
+run_info.json
+trigger/
+validation/
+
+./artifacts/20260306_001611/data_ingestion:
+
+./artifacts/20260306_001611/data_transformation:
+
+./artifacts/20260306_001611/evaluation:
+
+./artifacts/20260306_001611/inference:
+inference_summary.json
+predictions_20260306_001616.csv
+predictions_20260306_001616_probs.npy
+
+./artifacts/20260306_001611/monitoring:
+
+./artifacts/20260306_001611/trigger:
+
+./artifacts/20260306_001611/validation:
+
+./artifacts/20260306_001616:
+data_ingestion/
+data_transformation/
+evaluation/
+inference/
+monitoring/
+run_info.json
+trigger/
+validation/
+
+./artifacts/20260306_001616/data_ingestion:
+
+./artifacts/20260306_001616/data_transformation:
+production_metadata.json
+production_X.npy
+
+./artifacts/20260306_001616/evaluation:
+evaluation_summary.json
+
+./artifacts/20260306_001616/inference:
+inference_summary.json
+predictions_20260306_001619.csv
+predictions_20260306_001619_probs.npy
+
+./artifacts/20260306_001616/monitoring:
+monitoring_report.json
+monitoring_summary.json
+
+./artifacts/20260306_001616/trigger:
+trigger_decision.json
+
+./artifacts/20260306_001616/validation:
+validation_report.json
+
+./artifacts/20260306_001620:
+data_ingestion/
+data_transformation/
+evaluation/
+inference/
+monitoring/
+run_info.json
+trigger/
+validation/
+
+./artifacts/20260306_001620/data_ingestion:
+
+./artifacts/20260306_001620/data_transformation:
+
+./artifacts/20260306_001620/evaluation:
+
+./artifacts/20260306_001620/inference:
+
+./artifacts/20260306_001620/monitoring:
+
+./artifacts/20260306_001620/trigger:
+
+./artifacts/20260306_001620/validation:
+validation_report.json
+
+./artifacts/20260306_001658:
+models/
+
+./artifacts/20260306_001658/models:
+
+./artifacts/20260306_001708:
+models/
+
+./artifacts/20260306_001708/models:
+
+./artifacts/20260306_001722:
+data_ingestion/
+data_transformation/
+evaluation/
+inference/
+monitoring/
+run_info.json
+trigger/
+validation/
+
+./artifacts/20260306_001722/data_ingestion:
+
+./artifacts/20260306_001722/data_transformation:
+
+./artifacts/20260306_001722/evaluation:
+
+./artifacts/20260306_001722/inference:
+inference_summary.json
+predictions_20260306_001725.csv
+predictions_20260306_001725_probs.npy
+
+./artifacts/20260306_001722/monitoring:
+
+./artifacts/20260306_001722/trigger:
+
+./artifacts/20260306_001722/validation:
+
+./artifacts/20260306_001725:
+data_ingestion/
+data_transformation/
+evaluation/
+inference/
+monitoring/
+run_info.json
+trigger/
+validation/
+
+./artifacts/20260306_001725/data_ingestion:
+
+./artifacts/20260306_001725/data_transformation:
+production_metadata.json
+production_X.npy
+
+./artifacts/20260306_001725/evaluation:
+evaluation_summary.json
+
+./artifacts/20260306_001725/inference:
+inference_summary.json
+predictions_20260306_001728.csv
+predictions_20260306_001728_probs.npy
+
+./artifacts/20260306_001725/monitoring:
+monitoring_report.json
+monitoring_summary.json
+
+./artifacts/20260306_001725/trigger:
+trigger_decision.json
+
+./artifacts/20260306_001725/validation:
+validation_report.json
+
+./artifacts/20260306_001729:
+data_ingestion/
+data_transformation/
+evaluation/
+inference/
+monitoring/
+run_info.json
+trigger/
+validation/
+
+./artifacts/20260306_001729/data_ingestion:
+
+./artifacts/20260306_001729/data_transformation:
+
+./artifacts/20260306_001729/evaluation:
+
+./artifacts/20260306_001729/inference:
+
+./artifacts/20260306_001729/monitoring:
+
+./artifacts/20260306_001729/trigger:
+
+./artifacts/20260306_001729/validation:
+validation_report.json
+
+./artifacts/20260306_001858:
+models/
+
+./artifacts/20260306_001858/models:
+
+./artifacts/20260306_001911:
+data_ingestion/
+data_transformation/
+evaluation/
+inference/
+monitoring/
+run_info.json
+trigger/
+validation/
+
+./artifacts/20260306_001911/data_ingestion:
+
+./artifacts/20260306_001911/data_transformation:
+
+./artifacts/20260306_001911/evaluation:
+
+./artifacts/20260306_001911/inference:
+inference_summary.json
+predictions_20260306_001914.csv
+predictions_20260306_001914_probs.npy
+
+./artifacts/20260306_001911/monitoring:
+
+./artifacts/20260306_001911/trigger:
+
+./artifacts/20260306_001911/validation:
+
+./artifacts/20260306_001914:
+data_ingestion/
+data_transformation/
+evaluation/
+inference/
+monitoring/
+run_info.json
+trigger/
+validation/
+
+./artifacts/20260306_001914/data_ingestion:
+
+./artifacts/20260306_001914/data_transformation:
+production_metadata.json
+production_X.npy
+
+./artifacts/20260306_001914/evaluation:
+evaluation_summary.json
+
+./artifacts/20260306_001914/inference:
+inference_summary.json
+predictions_20260306_001917.csv
+predictions_20260306_001917_probs.npy
+
+./artifacts/20260306_001914/monitoring:
+monitoring_report.json
+monitoring_summary.json
+
+./artifacts/20260306_001914/trigger:
+trigger_decision.json
+
+./artifacts/20260306_001914/validation:
+validation_report.json
+
+./artifacts/20260306_001918:
+data_ingestion/
+data_transformation/
+evaluation/
+inference/
+monitoring/
+run_info.json
+trigger/
+validation/
+
+./artifacts/20260306_001918/data_ingestion:
+
+./artifacts/20260306_001918/data_transformation:
+
+./artifacts/20260306_001918/evaluation:
+
+./artifacts/20260306_001918/inference:
+
+./artifacts/20260306_001918/monitoring:
+
+./artifacts/20260306_001918/trigger:
+
+./artifacts/20260306_001918/validation:
+validation_report.json
+
+./artifacts/20260306_005428:
+models/
+
+./artifacts/20260306_005428/models:
+
+./artifacts/20260306_005443:
+data_ingestion/
+data_transformation/
+evaluation/
+inference/
+monitoring/
+run_info.json
+trigger/
+validation/
+
+./artifacts/20260306_005443/data_ingestion:
+
+./artifacts/20260306_005443/data_transformation:
+
+./artifacts/20260306_005443/evaluation:
+
+./artifacts/20260306_005443/inference:
+inference_summary.json
+predictions_20260306_005445.csv
+predictions_20260306_005445_probs.npy
+
+./artifacts/20260306_005443/monitoring:
+
+./artifacts/20260306_005443/trigger:
+
+./artifacts/20260306_005443/validation:
+
+./artifacts/20260306_005445:
+data_ingestion/
+data_transformation/
+evaluation/
+inference/
+monitoring/
+run_info.json
+trigger/
+validation/
+
+./artifacts/20260306_005445/data_ingestion:
+
+./artifacts/20260306_005445/data_transformation:
+production_metadata.json
+production_X.npy
+
+./artifacts/20260306_005445/evaluation:
+evaluation_summary.json
+
+./artifacts/20260306_005445/inference:
+inference_summary.json
+predictions_20260306_005447.csv
+predictions_20260306_005447_probs.npy
+
+./artifacts/20260306_005445/monitoring:
+monitoring_report.json
+monitoring_summary.json
+
+./artifacts/20260306_005445/trigger:
+trigger_decision.json
+
+./artifacts/20260306_005445/validation:
+validation_report.json
+
+./artifacts/20260306_005448:
+data_ingestion/
+data_transformation/
+evaluation/
+inference/
+monitoring/
+run_info.json
+trigger/
+validation/
+
+./artifacts/20260306_005448/data_ingestion:
+
+./artifacts/20260306_005448/data_transformation:
+
+./artifacts/20260306_005448/evaluation:
+
+./artifacts/20260306_005448/inference:
+
+./artifacts/20260306_005448/monitoring:
+
+./artifacts/20260306_005448/trigger:
+
+./artifacts/20260306_005448/validation:
+validation_report.json
+
 ./--auto-install=yes:
 fonts/
 miktex/
@@ -2503,6 +2936,7 @@ har_dashboard.json
 datasource-prometheus.yaml
 
 ./data:
+active_learning/
 all_users_data_labeled.csv
 anxiety_dataset.csv
 prepared/
@@ -2514,6 +2948,8 @@ raw/
 raw.dvc
 raw_backup/
 samples_2005 dataset/
+
+./data/active_learning:
 
 ./data/prepared:
 config.json
@@ -2810,6 +3246,30 @@ predictions_20260227_023522_probs.npy
 predictions_20260227_023525.csv
 predictions_20260227_023525_metadata.json
 predictions_20260227_023525_probs.npy
+predictions_20260306_001616.csv
+predictions_20260306_001616_metadata.json
+predictions_20260306_001616_probs.npy
+predictions_20260306_001619.csv
+predictions_20260306_001619_metadata.json
+predictions_20260306_001619_probs.npy
+predictions_20260306_001725.csv
+predictions_20260306_001725_metadata.json
+predictions_20260306_001725_probs.npy
+predictions_20260306_001728.csv
+predictions_20260306_001728_metadata.json
+predictions_20260306_001728_probs.npy
+predictions_20260306_001914.csv
+predictions_20260306_001914_metadata.json
+predictions_20260306_001914_probs.npy
+predictions_20260306_001917.csv
+predictions_20260306_001917_metadata.json
+predictions_20260306_001917_probs.npy
+predictions_20260306_005445.csv
+predictions_20260306_005445_metadata.json
+predictions_20260306_005445_probs.npy
+predictions_20260306_005447.csv
+predictions_20260306_005447_metadata.json
+predictions_20260306_005447_probs.npy
 
 ./data/preprocessed:
 
@@ -2921,41 +3381,70 @@ main.py
 main.cpython-313.pyc
 
 ./docs:
-DEFENSE_QA.md
+00_INDEX.md
+01_PIPELINE/
+02_TECH/
+03_EXPERIMENTS/
+04_THESIS_WRITING/
+99_ARCHIVE/
 images/
+WORKLOG.md
+
+./docs/01_PIPELINE:
+DECISION_REGISTER.csv
+PIPELINE_CTO_REVIEW.md
+PIPELINE_FACTSHEET.md
+PIPELINE_GAPS.md
 PRODUCT_REVIEW.md
 REPO_INVENTORY.md
-tech_used_in_thesis/
-WHY_BOOK.md
+solution.md
+stages/
+thesis-pipeline-why-what-how.md
 WHY_BY_FILE.md
-WHY_BY_TECH.md
-YOU_SHOULD_KNOW_BEFORE_MASTER_FILE/
+WHY_BY_FILE_MASTER.md
+WHY_BY_STAGE.md
+WHY_INVENTORY.md
 
-./docs/images:
-unnamed.jpg
+./docs/01_PIPELINE/stages:
+00_STAGE_INDEX.md
+01_DATA_INGESTION.md
+02_PREPROCESSING_FUSION.md
+03_QC_VALIDATION.md
+04_TRAINING_BASELINE.md
+05_INFERENCE.md
+06_MONITORING_DRIFT.md
+07_EVALUATION_METRICS.md
+08_ALERTING_RETRAINING.md
+09_DEPLOYMENT_AUDIT.md
+10_IMPROVEMENTS_ROADMAP.md
 
-./docs/tech_used_in_thesis:
+./docs/02_TECH:
 cheat_sheet/
 CICD_EXPLAINED.md
-docker/
+docker_assets/
 DOCKER_EXPLAINED.md
 DVC_EXPLAINED.md
 EXPERIMENT_TRACKING_EXPLAINED.md
 FASTAPI_EXPLAINED.md
 GRAFANA_EXPLAINED.md
+guides/
 MLFLOW_EXPLAINED.md
 MODEL_REGISTRY_EXPLAINED.md
 MONITORING_EXPLAINED.md
-personal_notes/
 PROMETHEUS_EXPLAINED.md
+tech.md
+WHY_BOOK.md
+WHY_BOOK_MASTER.md
+WHY_BY_TECH.md
+WHY_BY_TECH_MASTER.md
 
-./docs/tech_used_in_thesis/cheat_sheet:
+./docs/02_TECH/cheat_sheet:
 1697955590966.pdf
 ci-cd-cheatsheet.pdf
 docker_cheatsheet.pdf
 DVC_cheatsheet.pdf
 
-./docs/tech_used_in_thesis/docker:
+./docs/02_TECH/docker_assets:
 cheat sheet for thesis.png
 D01.jpg
 D02.jpg
@@ -2969,21 +3458,132 @@ docker_2.png
 Docker_Build_Run_Share.pdf
 DOCKER_EXPLAINED.pdf
 
-./docs/tech_used_in_thesis/personal_notes:
+./docs/02_TECH/guides:
+guide-cicd-beginner.md
+guide-cicd-github-actions.md
+guide-data-ingestion-inference.md
+guide-manual-preprocessing-test.md
+guide-monitoring-retraining.md
+guide-pipeline-final-decisions.md
+guide-pipeline-operations-architecture.md
+guide-pipeline-rerun.md
+guide-preprocessing-comparison-adaptation.md
+README.md
 
-./docs/YOU_SHOULD_KNOW_BEFORE_MASTER_FILE:
-DECISION_REGISTER.csv
-DEFENSE_QA.md
+./docs/03_EXPERIMENTS:
 EVIDENCE_LEDGER.md
-REFERENCES.md
-thesis-pipeline-why-what-how.md
-WHY_BOOK.md
-WHY_BY_FILE.md
-WHY_BY_STAGE.md
-WHY_BY_TECH.md
-WHY_INVENTORY.md
+EVIDENCE_PACK_INDEX.md
+normalization_analysis.md
+pipeline_artifacts/
+THRESHOLD_CALIBRATION_SUMMARY.md
+TRIGGER_POLICY_EVAL.md
+WINDOWING_JUSTIFICATION.md
 
-./Fourth March:
+./docs/03_EXPERIMENTS/pipeline_artifacts:
+artifact_source_mapping.md
+
+./docs/04_THESIS_WRITING:
+chapter_drafts/
+CONCEPTS_EXPLAINED.md
+DEFENSE_QA.md
+DEFENSE_QA_MASTER.md
+FINE_TUNING_STRATEGY.md
+HANDEDNESS_WRIST_PLACEMENT_ANALYSIS.md
+KEEP_Production_Robustness_Guide.md
+KEEP_Reference_Project_Learnings.md
+KEEP_Technology_Stack_Analysis.md
+mentor_questions.md
+mentor_questions_explained.md
+MENTOR_QUESTIONS_FEBRUARY_2026.md
+PAPER_DRIVEN_QUESTIONS_MAP.md
+PIPELINE_REALITY_MAP.md
+PIPELINE_Y_EXPLAINED_WITH_CITATIONS.md
+QA_LAB_TO_LIFE_GAP.md
+qna_explain.md
+REFERENCES.md
+research/
+THESIS_DOCS_README.md
+THESIS_PARAMETER_CITATIONS.md
+THESIS_PROBLEMS_WE_FACED.md
+thesis_README.md
+THESIS_READY_UNLABELED_EVALUATION_PLAN.md
+THESIS_STRUCTURE_OUTLINE.md
+thesis-objectives-traceability.md
+thesis-training-recipe-matrix.md
+todo/
+TOOLING_ROLES_DVC_MLFLOW_DOCKER_FASTAPI.md
+UNLABELED_EVALUATION.md
+WHATS_NEXT.md
+
+./docs/04_THESIS_WRITING/chapter_drafts:
+CH1_INTRODUCTION.md
+CH3_METHODOLOGY.md
+CH4_IMPLEMENTATION.md
+
+./docs/04_THESIS_WRITING/research:
+appendix-paper-index.md
+bibliography-local-pdfs.md
+KEEP_Research_QA_From_Papers.md
+qna-har-mlops-papers.md
+qna-mentor-simple-papers.md
+RESEARCH_PAPER_INSIGHTS.md
+RESEARCH_PAPERS_ANALYSIS.md
+
+./docs/04_THESIS_WRITING/todo:
+01_REMAINING_WORK.md
+02_QUESTIONS_AND_DOUBTS.md
+CHATGPT_1_THESIS_KNOWLEDGE_BASE.md
+CHATGPT_2_PIPELINE_WORK_DONE.md
+CHATGPT_3_REMAINING_WORK.md
+
+./docs/99_ARCHIVE:
+2026-01/
+2026-02/
+2026-03/
+CLEANUP_SUMMARY.md
+thesis_archive/
+
+./docs/99_ARCHIVE/2026-01:
+old_planning_docs/
+paper_analyses/
+
+./docs/99_ARCHIVE/2026-01/old_planning_docs:
+FINAL_3_PATHWAYS_TO_COMPLETE_THESIS.md
+HOW_TO_READ_THIS_REPOSITORY.md
+MASTER_FILE_ANALYSIS_AND_NEXT_STEPS.md
+PIPELINE_EXECUTION_GUIDE.md
+
+./docs/99_ARCHIVE/2026-01/paper_analyses:
+ACM_CONFERENCE_PAPERS_ANALYSIS_GROUP10.md
+ACTIVE_LEARNING_MLOPS_HUMAN_IN_LOOP_PAPERS_ANALYSIS.md
+DOMAIN_ADAPTATION_PAPERS_ANALYSIS.md
+ELSEVIER_SCIENCEDIRECT_PAPERS_ANALYSIS_GROUP11.md
+GENERAL_HAR_SURVEYS_PAPERS_ANALYSIS.md
+PSEUDO_LABELING_SELF_TRAINING_PAPERS_ANALYSIS.md
+SENSOR_PLACEMENT_POSITION_PAPERS_ANALYSIS.md
+THESIS_BOOKS_MAJOR_REFERENCES_ANALYSIS.md
+THESIS_QUESTIONS_AND_ANSWERS_2026-01-30.md
+UNCERTAINTY_CONFIDENCE_PAPERS_ANALYSIS.md
+
+./docs/99_ARCHIVE/2026-02:
+docs_feb2026/
+
+./docs/99_ARCHIVE/2026-02/docs_feb2026:
+APPENDIX_PAPER_INDEX.md
+Bibliography_From_Local_PDFs.md
+HAR_MLOps_QnA_With_Papers.md
+HOW_TO_READ_DOCS.md
+MENTOR_QA_SIMPLE_WITH_PAPERS.md
+ORGANIZATION_MAP.md
+PIPELINE_DEEP_DIVE_opus.md
+PIPELINE_STAGE_PROGRESS_DASHBOARD.md
+THESIS_MASTER_PROGRESS_2026-01-31.md
+
+./docs/99_ARCHIVE/2026-03:
+Fourth_March/
+the_march_todo.md
+
+./docs/99_ARCHIVE/2026-03/Fourth_March:
 2026_03_04/
 normalization_analysis.md
 pipeline_artifact_sources/
@@ -2991,7 +3591,7 @@ REPO_INVENTORY.md
 tech_used_in_thesis/
 YOU_SHOULD_KNOW_BEFORE_MASTER_FILE/
 
-./Fourth March/2026_03_04:
+./docs/99_ARCHIVE/2026-03/Fourth_March/2026_03_04:
 01_data_pipeline_flow.md
 02_src_deep_dive.md
 03_scripts_reference.md
@@ -3000,10 +3600,10 @@ YOU_SHOULD_KNOW_BEFORE_MASTER_FILE/
 2026_03_04_artifact_source_mapping.md
 2026_03_04_normalization_analysis.md
 
-./Fourth March/pipeline_artifact_sources:
+./docs/99_ARCHIVE/2026-03/Fourth_March/pipeline_artifact_sources:
 artifact_source_mapping.md
 
-./Fourth March/tech_used_in_thesis:
+./docs/99_ARCHIVE/2026-03/Fourth_March/tech_used_in_thesis:
 CICD_EXPLAINED.md
 DOCKER_EXPLAINED.md
 DVC_EXPLAINED.md
@@ -3015,7 +3615,7 @@ MODEL_REGISTRY_EXPLAINED.md
 MONITORING_EXPLAINED.md
 PROMETHEUS_EXPLAINED.md
 
-./Fourth March/YOU_SHOULD_KNOW_BEFORE_MASTER_FILE:
+./docs/99_ARCHIVE/2026-03/Fourth_March/YOU_SHOULD_KNOW_BEFORE_MASTER_FILE:
 DEFENSE_QA.md
 EVIDENCE_LEDGER.md
 REFERENCES.md
@@ -3025,6 +3625,34 @@ WHY_BY_FILE.md
 WHY_BY_STAGE.md
 WHY_BY_TECH.md
 WHY_INVENTORY.md
+
+./docs/99_ARCHIVE/thesis_archive:
+APPENDIX_FILE_INVENTORY.md
+BIG_QUESTIONS_2026-01-18.md
+BIG_QUESTIONS_RISK_PAPERS_2026-01-18.md
+extranotes.md
+FRESH_START_CLEANUP_GUIDE.md
+LATER_Offline_MLOps_Guide.md
+Mondaymeet.md
+OLD_action-plan-18-20-feb.md
+OLD_copilot-evaluation-prompts.md
+OLD_copilot-pipeline-prompts.md
+OLD_evaluation-audit.md
+OLD_pipeline-audit-map.md
+OLD_pipeline-test-results.md
+OLD_pipeline-visualization.md
+OLD_qc-execution-summary.md
+OLD_repo-cleanup-recommendations.md
+OLD_root-cause-low-accuracy.md
+OLD_thesis-status-plan-jan2026.md
+OLD_tracking-audit.md
+OLD_whats-remaining-feb15.md
+REPOSITORY_CLEANUP_ANALYSIS_2026-01-18.md
+RESTRUCTURE_PIPELINE_PACKAGES.md
+THESIS_PROGRESS_DASHBOARD_2026-01-20.md
+
+./docs/images:
+unnamed.jpg
 
 ./logs:
 20260223_010849.log
@@ -3038,8 +3666,15 @@ WHY_INVENTORY.md
 20260225_132212.log
 20260225_132252.log
 20260225_135938.log
+evaluation/
+inference/
 pipeline/
+preprocessing/
 trigger/
+
+./logs/evaluation:
+
+./logs/inference:
 
 ./logs/pipeline:
 pipeline_result_20260227_001751.json
@@ -3052,6 +3687,12 @@ pipeline_result_20260227_021308.json
 pipeline_result_20260227_021416.json
 pipeline_result_20260227_021448.json
 pipeline_result_20260227_023506.json
+pipeline_result_20260306_001601.json
+pipeline_result_20260306_001708.json
+pipeline_result_20260306_001858.json
+pipeline_result_20260306_005428.json
+
+./logs/preprocessing:
 
 ./logs/trigger:
 trigger_state.json
@@ -3100,6 +3741,7 @@ mlflow.experimentKind
 20538af0dcef4feb936fb87001bb0e15/
 21cde2d65fea432eae0692cce617addc/
 24baf2a2f8aa47938d9273a433ecfc5b/
+24e0c7057b634b6cbc18a2c53bda5268/
 25c8b71108c040699c6de39edf636e0a/
 25f19c715ee949639044211b36668489/
 263b6b2d0771449c95e2fd10f250d218/
@@ -3124,11 +3766,13 @@ mlflow.experimentKind
 4583d47d68ae464388b8cc72f7a74b1c/
 46e0670c58ea49689fc4bab71005aab9/
 477143c6109a4d4c86de730c09799da8/
+47dea098444d4cb08fa9737fb744bd2b/
 484084dd533240e6b34cbbdb7e46237c/
 48a64d24298b417cb155dc19099fdbba/
 4a2ce49348784ba995701f55d0a5c9ba/
 4bc536ea9a634d23bc35caf75baaf92f/
 4cca0fe3a79c46ddb4eeea914fa0cc35/
+4e49bcac205444b4877b442e43033f5a/
 4f5dd2a5b9d64b84b52c5cbf0fbe82a3/
 50d729b279de420c943f18a70973c23a/
 50d86449aee54db9a7c03cac96d46f7a/
@@ -3136,6 +3780,7 @@ mlflow.experimentKind
 543c2b022510494090e36391ea8780c0/
 54e2766edf014beea50c68916c72053f/
 54e8a41d92f5474885144208f1644524/
+5809acfb29df4c028126fb440a624d5f/
 5847ea1f810344d8a000778f9ba7c982/
 5a23463d2f634ebcb362066f4c09608b/
 5ab4615471d7497e960bfb90bb3029a3/
@@ -3171,6 +3816,7 @@ mlflow.experimentKind
 7aad26aca8604eeb84e35dc046c73a36/
 7b435044cbd743188aceb116b2386ebf/
 7c857864b4e04e79bba86cb6f5511aea/
+7fcaaabfba80473a8575b444346ac9d0/
 801bc7fda7ae45a79ab717121881eb66/
 828f708c4aa747c981512031426b4e5e/
 82e5b0f8d99b485cbbb183a73644305d/
@@ -3202,6 +3848,7 @@ a81679d8e7d544c29f37ec679859a885/
 ac51cad2f3af4eb396114f95a004b622/
 ae2c9a34769e494d85e4c3e61cdb6681/
 b019576037d5466583a941ebffeb6473/
+b05abc219280412193dc5f18b69f5af1/
 b1811672d48d45fb8dc1d9694298c682/
 b1a329654ef94fefa2572c63dee1a257/
 b4295b3cf51c47989138564ccc361a91/
@@ -3221,6 +3868,7 @@ c3bbb4b885ef4a469a06ae972f25e0d4/
 c462ba416d3448aaac69ffde3d817788/
 c50b74e6a4474bceb8b76d52028c57fa/
 c55472de660a4798af4ae71b78d01978/
+c812a904bc144a1286abca4f32ecabf0/
 c8667a2a95534f6faf22be373fd1218d/
 c8ad11364b8143649f5c0661f82d12ed/
 c928934d69af45e4a9747aa5d6829c6e/
@@ -3230,6 +3878,7 @@ cf06062e60a74d3d9be96a40905e76df/
 cfbc183e88a74d8f91bc4b9bbe9cd426/
 cfd2ea000893460eb06888fcf545d658/
 d084e9fd14ef49afbbef65f09b0c3d23/
+d3de9d7c828b4a6c831390dac58beb8b/
 d53c6debdc8c4e6fbb4e5129e4df3deb/
 d54e3dfa33504d10ab0c3d29902b5c4c/
 d5d67fadac5241abaadfa8e7d34609fb/
@@ -4752,6 +5401,42 @@ project
 task
 version
 
+./mlruns/745412409067384126/24e0c7057b634b6cbc18a2c53bda5268:
+artifacts/
+meta.yaml
+metrics/
+params/
+tags/
+
+./mlruns/745412409067384126/24e0c7057b634b6cbc18a2c53bda5268/artifacts:
+pipeline/
+
+./mlruns/745412409067384126/24e0c7057b634b6cbc18a2c53bda5268/artifacts/pipeline:
+run_info.json
+
+./mlruns/745412409067384126/24e0c7057b634b6cbc18a2c53bda5268/metrics:
+validation_is_valid
+validation_n_errors
+validation_n_warnings
+
+./mlruns/745412409067384126/24e0c7057b634b6cbc18a2c53bda5268/params:
+n_stages_completed
+n_stages_failed
+overall_status
+retrain_forced_by_cli
+retrain_ran
+retrain_trigger_initiated
+stages_completed
+stages_failed
+
+./mlruns/745412409067384126/24e0c7057b634b6cbc18a2c53bda5268/tags:
+mlflow.runName
+mlflow.source.name
+mlflow.source.type
+mlflow.user
+pipeline
+version
+
 ./mlruns/745412409067384126/25c8b71108c040699c6de39edf636e0a:
 artifacts/
 meta.yaml
@@ -6234,6 +6919,27 @@ project
 task
 version
 
+./mlruns/745412409067384126/47dea098444d4cb08fa9737fb744bd2b:
+artifacts/
+meta.yaml
+metrics/
+params/
+tags/
+
+./mlruns/745412409067384126/47dea098444d4cb08fa9737fb744bd2b/artifacts:
+
+./mlruns/745412409067384126/47dea098444d4cb08fa9737fb744bd2b/metrics:
+
+./mlruns/745412409067384126/47dea098444d4cb08fa9737fb744bd2b/params:
+
+./mlruns/745412409067384126/47dea098444d4cb08fa9737fb744bd2b/tags:
+mlflow.runName
+mlflow.source.name
+mlflow.source.type
+mlflow.user
+pipeline
+version
+
 ./mlruns/745412409067384126/484084dd533240e6b34cbbdb7e46237c:
 artifacts/
 meta.yaml
@@ -6577,6 +7283,27 @@ model_type
 pipeline
 project
 task
+version
+
+./mlruns/745412409067384126/4e49bcac205444b4877b442e43033f5a:
+artifacts/
+meta.yaml
+metrics/
+params/
+tags/
+
+./mlruns/745412409067384126/4e49bcac205444b4877b442e43033f5a/artifacts:
+
+./mlruns/745412409067384126/4e49bcac205444b4877b442e43033f5a/metrics:
+
+./mlruns/745412409067384126/4e49bcac205444b4877b442e43033f5a/params:
+
+./mlruns/745412409067384126/4e49bcac205444b4877b442e43033f5a/tags:
+mlflow.runName
+mlflow.source.name
+mlflow.source.type
+mlflow.user
+pipeline
 version
 
 ./mlruns/745412409067384126/4f5dd2a5b9d64b84b52c5cbf0fbe82a3:
@@ -6937,6 +7664,42 @@ model_type
 pipeline
 project
 task
+version
+
+./mlruns/745412409067384126/5809acfb29df4c028126fb440a624d5f:
+artifacts/
+meta.yaml
+metrics/
+params/
+tags/
+
+./mlruns/745412409067384126/5809acfb29df4c028126fb440a624d5f/artifacts:
+pipeline/
+
+./mlruns/745412409067384126/5809acfb29df4c028126fb440a624d5f/artifacts/pipeline:
+run_info.json
+
+./mlruns/745412409067384126/5809acfb29df4c028126fb440a624d5f/metrics:
+validation_is_valid
+validation_n_errors
+validation_n_warnings
+
+./mlruns/745412409067384126/5809acfb29df4c028126fb440a624d5f/params:
+n_stages_completed
+n_stages_failed
+overall_status
+retrain_forced_by_cli
+retrain_ran
+retrain_trigger_initiated
+stages_completed
+stages_failed
+
+./mlruns/745412409067384126/5809acfb29df4c028126fb440a624d5f/tags:
+mlflow.runName
+mlflow.source.name
+mlflow.source.type
+mlflow.user
+pipeline
 version
 
 ./mlruns/745412409067384126/5847ea1f810344d8a000778f9ba7c982:
@@ -8787,6 +9550,27 @@ project
 task
 version
 
+./mlruns/745412409067384126/7fcaaabfba80473a8575b444346ac9d0:
+artifacts/
+meta.yaml
+metrics/
+params/
+tags/
+
+./mlruns/745412409067384126/7fcaaabfba80473a8575b444346ac9d0/artifacts:
+
+./mlruns/745412409067384126/7fcaaabfba80473a8575b444346ac9d0/metrics:
+
+./mlruns/745412409067384126/7fcaaabfba80473a8575b444346ac9d0/params:
+
+./mlruns/745412409067384126/7fcaaabfba80473a8575b444346ac9d0/tags:
+mlflow.runName
+mlflow.source.name
+mlflow.source.type
+mlflow.user
+pipeline
+version
+
 ./mlruns/745412409067384126/801bc7fda7ae45a79ab717121881eb66:
 artifacts/
 meta.yaml
@@ -10614,6 +11398,42 @@ project
 task
 version
 
+./mlruns/745412409067384126/b05abc219280412193dc5f18b69f5af1:
+artifacts/
+meta.yaml
+metrics/
+params/
+tags/
+
+./mlruns/745412409067384126/b05abc219280412193dc5f18b69f5af1/artifacts:
+pipeline/
+
+./mlruns/745412409067384126/b05abc219280412193dc5f18b69f5af1/artifacts/pipeline:
+run_info.json
+
+./mlruns/745412409067384126/b05abc219280412193dc5f18b69f5af1/metrics:
+validation_is_valid
+validation_n_errors
+validation_n_warnings
+
+./mlruns/745412409067384126/b05abc219280412193dc5f18b69f5af1/params:
+n_stages_completed
+n_stages_failed
+overall_status
+retrain_forced_by_cli
+retrain_ran
+retrain_trigger_initiated
+stages_completed
+stages_failed
+
+./mlruns/745412409067384126/b05abc219280412193dc5f18b69f5af1/tags:
+mlflow.runName
+mlflow.source.name
+mlflow.source.type
+mlflow.user
+pipeline
+version
+
 ./mlruns/745412409067384126/b1811672d48d45fb8dc1d9694298c682:
 artifacts/
 meta.yaml
@@ -11696,6 +12516,42 @@ project
 task
 version
 
+./mlruns/745412409067384126/c812a904bc144a1286abca4f32ecabf0:
+artifacts/
+meta.yaml
+metrics/
+params/
+tags/
+
+./mlruns/745412409067384126/c812a904bc144a1286abca4f32ecabf0/artifacts:
+pipeline/
+
+./mlruns/745412409067384126/c812a904bc144a1286abca4f32ecabf0/artifacts/pipeline:
+run_info.json
+
+./mlruns/745412409067384126/c812a904bc144a1286abca4f32ecabf0/metrics:
+validation_is_valid
+validation_n_errors
+validation_n_warnings
+
+./mlruns/745412409067384126/c812a904bc144a1286abca4f32ecabf0/params:
+n_stages_completed
+n_stages_failed
+overall_status
+retrain_forced_by_cli
+retrain_ran
+retrain_trigger_initiated
+stages_completed
+stages_failed
+
+./mlruns/745412409067384126/c812a904bc144a1286abca4f32ecabf0/tags:
+mlflow.runName
+mlflow.source.name
+mlflow.source.type
+mlflow.user
+pipeline
+version
+
 ./mlruns/745412409067384126/c8667a2a95534f6faf22be373fd1218d:
 artifacts/
 meta.yaml
@@ -12025,6 +12881,27 @@ model_type
 pipeline
 project
 task
+version
+
+./mlruns/745412409067384126/d3de9d7c828b4a6c831390dac58beb8b:
+artifacts/
+meta.yaml
+metrics/
+params/
+tags/
+
+./mlruns/745412409067384126/d3de9d7c828b4a6c831390dac58beb8b/artifacts:
+
+./mlruns/745412409067384126/d3de9d7c828b4a6c831390dac58beb8b/metrics:
+
+./mlruns/745412409067384126/d3de9d7c828b4a6c831390dac58beb8b/params:
+
+./mlruns/745412409067384126/d3de9d7c828b4a6c831390dac58beb8b/tags:
+mlflow.runName
+mlflow.source.name
+mlflow.source.type
+mlflow.user
+pipeline
 version
 
 ./mlruns/745412409067384126/d53c6debdc8c4e6fbb4e5129e4df3deb:
@@ -18516,6 +19393,7 @@ mlflow.note.content
 0c25aae5cb3e45cebaee3ed97ae29767/
 0c8847672f86443db71a1f4ff90935a1/
 10fe56377e364d1ba0ad91fcce1798af/
+1138cead95d64311be37bd3005d2ebde/
 1194c607585e42c58f081b1c5a91448b/
 13a0a160ef3f45008c3043f13a270a96/
 1750ac2a95354bcc97ed4cf397d7dbb0/
@@ -18559,6 +19437,7 @@ mlflow.note.content
 4febec81bcd44cf19140d3bbc72cc757/
 51666c51aa484548b1b0e1127630eaa5/
 54801913029d480c99da39d9a79eb707/
+5564e6fb03f045b589ecf32d216638d5/
 55ca13e8a34943a590f1997519b48993/
 5618a92985e54e8998d3e07c0315d792/
 567ac255c6a34766af86443c31147e1b/
@@ -18575,6 +19454,7 @@ mlflow.note.content
 6b6b1dcce30c4296bb13fd0e03e53893/
 6f470e5dbc1a40b2aba680d330d50521/
 73f3be0b18ae4665a23ce748ab51c300/
+73f9fe8d1905447da1f9193be2bf1f4a/
 74a040223a644134b12215710a4fe144/
 777b27b53a1c4da4934cd0bd173cbac1/
 77f730e844ec4055b697fa86ea8a38c7/
@@ -18590,6 +19470,7 @@ mlflow.note.content
 872a7ffca85346bc851b0bced55da095/
 87851c7995e3476a971f03f0088ff5cd/
 884eb39a416147d4948a89ef93ad7277/
+8d4f9a73bb2d43be98cd5e7fa3de110a/
 8ecea87283d0455a91167fe814af0e18/
 8faa1ecb992a43aeb72bff7403ae6e84/
 91fd72a1ad47406f8b4c458879cdb580/
@@ -18597,6 +19478,7 @@ mlflow.note.content
 92ea9b15f2b8447a86805cc511863709/
 93a3fe9fa0224581a3678d0d9982fed7/
 93a5e9c46f98470ca29ac1c459d793dd/
+9570235aa0ba470db2eb66af9f614d5b/
 9891f8695fb34f10a44016ccc3cbecca/
 9b2098e03e2e48438245ddec567e321c/
 9b890784889a431eb10061db62f68151/
@@ -18636,6 +19518,7 @@ bfed03c685074d82b348bfbea81ab635/
 c0e9564416194fa48c4632be252b3787/
 c12dee84edbd45599426d3e71d3db2ad/
 c15443ee3d094b6c92047990ec32eded/
+c64e2e75e90048c1b1f524b629265a74/
 c68501fe35d74c29a759108f1de95894/
 c995da2325804eed8a20c9d01ce80228/
 cd24cfe914f049a4996fd5084f2b8f52/
@@ -18656,9 +19539,11 @@ dd28c677df2e4bf0906f7e4c1abed354/
 ddd2d1e701f146deb806f56a86c5e058/
 df7a939589b04331b249ed4898d9bf17/
 e0fe61ee32b64e22a28d2c0885575d3a/
+e3cb3e750adb48cdb4ad00bf0a3fb39d/
 e727076dead14f099210a8a02437daf7/
 e91560f3dde64ade806ecb92620ef546/
 eb6512be718846f0a01770f3153de711/
+ebbce681fcd64a6bbe1abb318d02526a/
 edd7ea9e4c8f4c009695e2d95c37aea6/
 ef34daa93a7b43968631e10982f73557/
 f0e7f55be9ec4b6395dc907a53be3910/
@@ -19188,6 +20073,43 @@ timesteps
 mlflow.parentRunId
 mlflow.runName
 mlflow.source.git.commit
+mlflow.source.name
+mlflow.source.type
+mlflow.user
+
+./mlruns/950614147457743858/1138cead95d64311be37bd3005d2ebde:
+artifacts/
+meta.yaml
+metrics/
+params/
+tags/
+
+./mlruns/950614147457743858/1138cead95d64311be37bd3005d2ebde/artifacts:
+predictions_20260306_001728.csv
+predictions_20260306_001728_metadata.json
+predictions_20260306_001728_probs.npy
+
+./mlruns/950614147457743858/1138cead95d64311be37bd3005d2ebde/metrics:
+avg_confidence
+count_hand_tapping
+count_nape_rubbing
+std_confidence
+total_windows
+uncertain_count
+
+./mlruns/950614147457743858/1138cead95d64311be37bd3005d2ebde/params:
+batch_size
+channels
+confidence_threshold
+input_path
+mode
+model_params
+model_path
+n_windows
+timesteps
+
+./mlruns/950614147457743858/1138cead95d64311be37bd3005d2ebde/tags:
+mlflow.runName
 mlflow.source.name
 mlflow.source.type
 mlflow.user
@@ -21005,6 +21927,43 @@ mlflow.source.name
 mlflow.source.type
 mlflow.user
 
+./mlruns/950614147457743858/5564e6fb03f045b589ecf32d216638d5:
+artifacts/
+meta.yaml
+metrics/
+params/
+tags/
+
+./mlruns/950614147457743858/5564e6fb03f045b589ecf32d216638d5/artifacts:
+predictions_20260306_001616.csv
+predictions_20260306_001616_metadata.json
+predictions_20260306_001616_probs.npy
+
+./mlruns/950614147457743858/5564e6fb03f045b589ecf32d216638d5/metrics:
+avg_confidence
+count_hand_tapping
+count_nape_rubbing
+std_confidence
+total_windows
+uncertain_count
+
+./mlruns/950614147457743858/5564e6fb03f045b589ecf32d216638d5/params:
+batch_size
+channels
+confidence_threshold
+input_path
+mode
+model_params
+model_path
+n_windows
+timesteps
+
+./mlruns/950614147457743858/5564e6fb03f045b589ecf32d216638d5/tags:
+mlflow.runName
+mlflow.source.name
+mlflow.source.type
+mlflow.user
+
 ./mlruns/950614147457743858/55ca13e8a34943a590f1997519b48993:
 artifacts/
 meta.yaml
@@ -21692,6 +22651,43 @@ mlflow.source.name
 mlflow.source.type
 mlflow.user
 
+./mlruns/950614147457743858/73f9fe8d1905447da1f9193be2bf1f4a:
+artifacts/
+meta.yaml
+metrics/
+params/
+tags/
+
+./mlruns/950614147457743858/73f9fe8d1905447da1f9193be2bf1f4a/artifacts:
+predictions_20260306_005447.csv
+predictions_20260306_005447_metadata.json
+predictions_20260306_005447_probs.npy
+
+./mlruns/950614147457743858/73f9fe8d1905447da1f9193be2bf1f4a/metrics:
+avg_confidence
+count_hand_tapping
+count_nape_rubbing
+std_confidence
+total_windows
+uncertain_count
+
+./mlruns/950614147457743858/73f9fe8d1905447da1f9193be2bf1f4a/params:
+batch_size
+channels
+confidence_threshold
+input_path
+mode
+model_params
+model_path
+n_windows
+timesteps
+
+./mlruns/950614147457743858/73f9fe8d1905447da1f9193be2bf1f4a/tags:
+mlflow.runName
+mlflow.source.name
+mlflow.source.type
+mlflow.user
+
 ./mlruns/950614147457743858/74a040223a644134b12215710a4fe144:
 artifacts/
 meta.yaml
@@ -22337,6 +23333,43 @@ mlflow.source.name
 mlflow.source.type
 mlflow.user
 
+./mlruns/950614147457743858/8d4f9a73bb2d43be98cd5e7fa3de110a:
+artifacts/
+meta.yaml
+metrics/
+params/
+tags/
+
+./mlruns/950614147457743858/8d4f9a73bb2d43be98cd5e7fa3de110a/artifacts:
+predictions_20260306_001914.csv
+predictions_20260306_001914_metadata.json
+predictions_20260306_001914_probs.npy
+
+./mlruns/950614147457743858/8d4f9a73bb2d43be98cd5e7fa3de110a/metrics:
+avg_confidence
+count_hand_tapping
+count_nape_rubbing
+std_confidence
+total_windows
+uncertain_count
+
+./mlruns/950614147457743858/8d4f9a73bb2d43be98cd5e7fa3de110a/params:
+batch_size
+channels
+confidence_threshold
+input_path
+mode
+model_params
+model_path
+n_windows
+timesteps
+
+./mlruns/950614147457743858/8d4f9a73bb2d43be98cd5e7fa3de110a/tags:
+mlflow.runName
+mlflow.source.name
+mlflow.source.type
+mlflow.user
+
 ./mlruns/950614147457743858/8ecea87283d0455a91167fe814af0e18:
 artifacts/
 meta.yaml
@@ -22643,6 +23676,43 @@ timesteps
 mlflow.parentRunId
 mlflow.runName
 mlflow.source.git.commit
+mlflow.source.name
+mlflow.source.type
+mlflow.user
+
+./mlruns/950614147457743858/9570235aa0ba470db2eb66af9f614d5b:
+artifacts/
+meta.yaml
+metrics/
+params/
+tags/
+
+./mlruns/950614147457743858/9570235aa0ba470db2eb66af9f614d5b/artifacts:
+predictions_20260306_001619.csv
+predictions_20260306_001619_metadata.json
+predictions_20260306_001619_probs.npy
+
+./mlruns/950614147457743858/9570235aa0ba470db2eb66af9f614d5b/metrics:
+avg_confidence
+count_hand_tapping
+count_nape_rubbing
+std_confidence
+total_windows
+uncertain_count
+
+./mlruns/950614147457743858/9570235aa0ba470db2eb66af9f614d5b/params:
+batch_size
+channels
+confidence_threshold
+input_path
+mode
+model_params
+model_path
+n_windows
+timesteps
+
+./mlruns/950614147457743858/9570235aa0ba470db2eb66af9f614d5b/tags:
+mlflow.runName
 mlflow.source.name
 mlflow.source.type
 mlflow.user
@@ -24285,6 +25355,43 @@ mlflow.source.name
 mlflow.source.type
 mlflow.user
 
+./mlruns/950614147457743858/c64e2e75e90048c1b1f524b629265a74:
+artifacts/
+meta.yaml
+metrics/
+params/
+tags/
+
+./mlruns/950614147457743858/c64e2e75e90048c1b1f524b629265a74/artifacts:
+predictions_20260306_001917.csv
+predictions_20260306_001917_metadata.json
+predictions_20260306_001917_probs.npy
+
+./mlruns/950614147457743858/c64e2e75e90048c1b1f524b629265a74/metrics:
+avg_confidence
+count_hand_tapping
+count_nape_rubbing
+std_confidence
+total_windows
+uncertain_count
+
+./mlruns/950614147457743858/c64e2e75e90048c1b1f524b629265a74/params:
+batch_size
+channels
+confidence_threshold
+input_path
+mode
+model_params
+model_path
+n_windows
+timesteps
+
+./mlruns/950614147457743858/c64e2e75e90048c1b1f524b629265a74/tags:
+mlflow.runName
+mlflow.source.name
+mlflow.source.type
+mlflow.user
+
 ./mlruns/950614147457743858/c68501fe35d74c29a759108f1de95894:
 artifacts/
 meta.yaml
@@ -25140,6 +26247,43 @@ mlflow.source.name
 mlflow.source.type
 mlflow.user
 
+./mlruns/950614147457743858/e3cb3e750adb48cdb4ad00bf0a3fb39d:
+artifacts/
+meta.yaml
+metrics/
+params/
+tags/
+
+./mlruns/950614147457743858/e3cb3e750adb48cdb4ad00bf0a3fb39d/artifacts:
+predictions_20260306_005445.csv
+predictions_20260306_005445_metadata.json
+predictions_20260306_005445_probs.npy
+
+./mlruns/950614147457743858/e3cb3e750adb48cdb4ad00bf0a3fb39d/metrics:
+avg_confidence
+count_hand_tapping
+count_nape_rubbing
+std_confidence
+total_windows
+uncertain_count
+
+./mlruns/950614147457743858/e3cb3e750adb48cdb4ad00bf0a3fb39d/params:
+batch_size
+channels
+confidence_threshold
+input_path
+mode
+model_params
+model_path
+n_windows
+timesteps
+
+./mlruns/950614147457743858/e3cb3e750adb48cdb4ad00bf0a3fb39d/tags:
+mlflow.runName
+mlflow.source.name
+mlflow.source.type
+mlflow.user
+
 ./mlruns/950614147457743858/e727076dead14f099210a8a02437daf7:
 artifacts/
 meta.yaml
@@ -25265,6 +26409,43 @@ timesteps
 mlflow.parentRunId
 mlflow.runName
 mlflow.source.git.commit
+mlflow.source.name
+mlflow.source.type
+mlflow.user
+
+./mlruns/950614147457743858/ebbce681fcd64a6bbe1abb318d02526a:
+artifacts/
+meta.yaml
+metrics/
+params/
+tags/
+
+./mlruns/950614147457743858/ebbce681fcd64a6bbe1abb318d02526a/artifacts:
+predictions_20260306_001725.csv
+predictions_20260306_001725_metadata.json
+predictions_20260306_001725_probs.npy
+
+./mlruns/950614147457743858/ebbce681fcd64a6bbe1abb318d02526a/metrics:
+avg_confidence
+count_hand_tapping
+count_nape_rubbing
+std_confidence
+total_windows
+uncertain_count
+
+./mlruns/950614147457743858/ebbce681fcd64a6bbe1abb318d02526a/params:
+batch_size
+channels
+confidence_threshold
+input_path
+mode
+model_params
+model_path
+n_windows
+timesteps
+
+./mlruns/950614147457743858/ebbce681fcd64a6bbe1abb318d02526a/tags:
+mlflow.runName
 mlflow.source.name
 mlflow.source.type
 mlflow.user
@@ -26398,6 +27579,14 @@ evaluation_20260227_013829.json
 evaluation_20260227_013829.txt
 evaluation_20260227_023525.json
 evaluation_20260227_023525.txt
+evaluation_20260306_001619.json
+evaluation_20260306_001619.txt
+evaluation_20260306_001728.json
+evaluation_20260306_001728.txt
+evaluation_20260306_001917.json
+evaluation_20260306_001917.txt
+evaluation_20260306_005447.json
+evaluation_20260306_005447.txt
 monitoring_report.json
 
 ./outputs/evaluation/2026-02-13_16-40-51_20260213_164051:
@@ -26435,28 +27624,25 @@ hand_detection.json
 
 ./outputs/wasserstein_drift:
 
+./pytest-cache-files-wx0d7jnt:
+README.md
+
 ./reports:
 ABLATION_WINDOWING.csv
 ABLATION_WINDOWING.png
 BULLETPROOFING_DIFF.patch
 DECISION_REGISTER.csv
-EVIDENCE_PACK_INDEX.md
 EXTERNAL_REFERENCES.txt
 inference_smoke/
 monitoring/
 PAPER_SUPPORT_MAP.json
 per_dataset_inference_analysis.json
-PIPELINE_CTO_REVIEW.md
-PIPELINE_FACTSHEET.md
-PIPELINE_GAPS.md
 PROMETHEUS_METRICS_CHECK.txt
+repo_audit/
 THRESHOLD_CALIBRATION.csv
 THRESHOLD_CALIBRATION.png
-THRESHOLD_CALIBRATION_SUMMARY.md
 TRIGGER_POLICY_EVAL.csv
-TRIGGER_POLICY_EVAL.md
 TRIGGER_POLICY_EVAL.png
-WINDOWING_JUSTIFICATION.md
 
 ./reports/inference_smoke:
 smoke_20260109_141333.json
@@ -26503,6 +27689,13 @@ drift_report.json
 summary.json
 temporal_report.json
 
+./reports/repo_audit:
+ARCHIVE_PAPERS_AUDIT.md
+BROKEN_LINKS.md
+MOVE_LOG.md
+SRC_SCRIPTS_AUDIT.md
+SRC_SCRIPTS_REFACTOR_PLAN.md
+
 ./scripts:
 __init__.py
 __pycache__/
@@ -26511,14 +27704,12 @@ audit_artifacts.py*
 benchmark_latency.py*
 benchmark_throughput.py*
 build_normalized_baseline.py*
-build_training_baseline.py*
 export_mlflow_runs.py
 extract_papers_to_text.py
 fetch_foundation_papers.py
 generate_thesis_figures.py*
 inference_smoke.py*
 per_dataset_inference.py
-post_inference_monitoring.py
 preprocess.py*
 preprocess_qc.py*
 regenerate_support_map.py
@@ -26548,35 +27739,41 @@ update_progress_dashboard.cpython-313.pyc
 ./src:
 __init__.py
 __pycache__/
-active_learning_export.py*
+active_learning_export.py
 api/
+build_training_baseline.py
 calibration.py
 components/
 config.py
 core/
 curriculum_pseudo_labeling.py
+data/
 data_validator.py
-deployment_manager.py*
-diagnostic_pipeline_check.py
+deployment/
+deployment_manager.py
 domain_adaptation/
 entity/
 evaluate_predictions.py
 exception/
 exceptions.py
+inference/
 logger/
 mlflow_tracking.py
-model_rollback.py*
-ood_detection.py*
+model_rollback.py
+monitoring/
+ood_detection.py
 pipeline/
+post_inference_monitoring.py
 preprocess_data.py
-prometheus_metrics.py*
+prometheus_metrics.py
 README.md
 robustness.py
 run_inference.py
 sensor_data_pipeline.py
 sensor_placement.py
-train.py*
-trigger_policy.py*
+train.py
+training/
+trigger_policy.py
 utils/
 wasserstein_drift.py
 
@@ -26585,6 +27782,7 @@ __init__.cpython-311.pyc
 __init__.cpython-313.pyc
 active_learning_export.cpython-311.pyc
 active_learning_export.cpython-313.pyc
+build_training_baseline.cpython-313.pyc
 calibration.cpython-311.pyc
 calibration.cpython-313.pyc
 config.cpython-311.pyc
@@ -26594,9 +27792,12 @@ curriculum_pseudo_labeling.cpython-311.pyc
 curriculum_pseudo_labeling.cpython-313.pyc
 data_validator.cpython-311.pyc
 data_validator.cpython-313.pyc
+deployment_manager.cpython-313.pyc
+diagnostic_pipeline_check.cpython-313.pyc
 evaluate_predictions.cpython-311.pyc
 evaluate_predictions.cpython-313.pyc
 exceptions.cpython-311.pyc
+exceptions.cpython-313.pyc
 exceptions.cpython-313.pyc.1910028595760
 exceptions.cpython-313.pyc.2140565517872
 exceptions.cpython-313.pyc.2143183223344
@@ -26610,6 +27811,7 @@ model_rollback.cpython-313.pyc
 ood_detection.cpython-311.pyc
 ood_detection.cpython-313.pyc
 path_config.cpython-313.pyc
+post_inference_monitoring.cpython-313.pyc
 preprocess_data.cpython-311.pyc
 preprocess_data.cpython-313.pyc
 prometheus_metrics.cpython-311.pyc
@@ -26618,6 +27820,7 @@ robustness.cpython-311.pyc
 robustness.cpython-313.pyc
 run_inference.cpython-311.pyc
 run_inference.cpython-313.pyc
+sensor_data_pipeline.cpython-313.pyc
 sensor_placement.cpython-311.pyc
 sensor_placement.cpython-313.pyc
 train.cpython-311.pyc
@@ -26709,6 +27912,32 @@ exception.cpython-313.pyc
 logger.cpython-311.pyc
 logger.cpython-313.pyc
 
+./src/data:
+__init__.py
+__pycache__/
+data_validator.py
+preprocess_data.py
+sensor_data_pipeline.py
+
+./src/data/__pycache__:
+__init__.cpython-313.pyc
+data_validator.cpython-313.pyc
+preprocess_data.cpython-313.pyc
+sensor_data_pipeline.cpython-313.pyc
+
+./src/deployment:
+__init__.py
+__pycache__/
+deployment_manager.py*
+mlflow_tracking.py
+model_rollback.py*
+
+./src/deployment/__pycache__:
+__init__.cpython-313.pyc
+deployment_manager.cpython-313.pyc
+mlflow_tracking.cpython-313.pyc
+model_rollback.cpython-313.pyc
+
 ./src/domain_adaptation:
 __init__.py
 __pycache__/
@@ -26746,6 +27975,21 @@ config_entity.cpython-313.pyc.2629384630992
 
 ./src/exception:
 __init__.py
+__pycache__/
+
+./src/exception/__pycache__:
+__init__.cpython-313.pyc
+
+./src/inference:
+__init__.py
+__pycache__/
+evaluate_predictions.py
+run_inference.py
+
+./src/inference/__pycache__:
+__init__.cpython-313.pyc
+evaluate_predictions.cpython-313.pyc
+run_inference.cpython-313.pyc
 
 ./src/logger:
 __init__.py
@@ -26754,6 +27998,31 @@ __pycache__/
 ./src/logger/__pycache__:
 __init__.cpython-311.pyc
 __init__.cpython-313.pyc
+
+./src/monitoring:
+__init__.py
+__pycache__/
+build_training_baseline.py*
+calibration.py
+ood_detection.py*
+post_inference_monitoring.py
+prometheus_metrics.py*
+robustness.py
+sensor_placement.py
+trigger_policy.py*
+wasserstein_drift.py
+
+./src/monitoring/__pycache__:
+__init__.cpython-313.pyc
+build_training_baseline.cpython-313.pyc
+calibration.cpython-313.pyc
+ood_detection.cpython-313.pyc
+post_inference_monitoring.cpython-313.pyc
+prometheus_metrics.cpython-313.pyc
+robustness.cpython-313.pyc
+sensor_placement.cpython-313.pyc
+trigger_policy.cpython-313.pyc
+wasserstein_drift.cpython-313.pyc
 
 ./src/pipeline:
 __init__.py
@@ -26777,6 +28046,19 @@ production_pipeline.cpython-313.pyc.2393622155248
 production_pipeline.cpython-313.pyc.2493225100336
 production_pipeline.cpython-313.pyc.2629385883632
 
+./src/training:
+__init__.py
+__pycache__/
+active_learning_export.py*
+curriculum_pseudo_labeling.py
+train.py*
+
+./src/training/__pycache__:
+__init__.cpython-313.pyc
+active_learning_export.cpython-313.pyc
+curriculum_pseudo_labeling.cpython-313.pyc
+train.cpython-313.pyc
+
 ./src/utils:
 __init__.py
 __pycache__/
@@ -26795,6 +28077,7 @@ artifacts_manager.cpython-313.pyc
 common.cpython-311.pyc
 common.cpython-313.pyc
 config_loader.cpython-311.pyc
+config_loader.cpython-313.pyc
 config_loader.cpython-313.pyc.1910081554016
 config_loader.cpython-313.pyc.2140565595472
 config_loader.cpython-313.pyc.2142926890464
@@ -26804,6 +28087,7 @@ config_loader.cpython-313.pyc.2629385889104
 main_utils.cpython-311.pyc
 main_utils.cpython-313.pyc
 production_optimizations.cpython-313.pyc
+temporal_metrics.cpython-313.pyc
 temporal_metrics.cpython-313.pyc.1716066943456
 temporal_metrics.cpython-313.pyc.1910027412960
 temporal_metrics.cpython-313.pyc.1926890111456
@@ -26854,6 +28138,7 @@ test_adabn.cpython-311-pytest-9.0.2.pyc
 test_adabn.cpython-313-pytest-8.3.4.pyc
 test_adabn.cpython-313-pytest-8.3.4.pyc.82068
 test_baseline_age_gauge.cpython-311-pytest-9.0.2.pyc
+test_baseline_age_gauge.cpython-313-pytest-8.3.4.pyc
 test_baseline_age_gauge.cpython-313-pytest-8.3.4.pyc.147928
 test_baseline_age_gauge.cpython-313-pytest-8.3.4.pyc.170776
 test_baseline_age_gauge.cpython-313-pytest-8.3.4.pyc.172656
@@ -26863,6 +28148,7 @@ test_baseline_update.cpython-313-pytest-8.3.4.pyc
 test_calibration.cpython-311-pytest-9.0.2.pyc
 test_calibration.cpython-313-pytest-8.3.4.pyc
 test_config_loader.cpython-311-pytest-9.0.2.pyc
+test_config_loader.cpython-313-pytest-8.3.4.pyc
 test_config_loader.cpython-313-pytest-8.3.4.pyc.147928
 test_config_loader.cpython-313-pytest-8.3.4.pyc.170776
 test_config_loader.cpython-313-pytest-8.3.4.pyc.172656
@@ -26874,6 +28160,7 @@ test_data_validation.cpython-313-pytest-8.3.4.pyc
 test_drift_detection.cpython-311-pytest-9.0.2.pyc
 test_drift_detection.cpython-313-pytest-8.3.4.pyc
 test_model_registration_gate.cpython-311-pytest-9.0.2.pyc
+test_model_registration_gate.cpython-313-pytest-8.3.4.pyc
 test_model_registration_gate.cpython-313-pytest-8.3.4.pyc.182428
 test_model_rollback.cpython-311-pytest-9.0.2.pyc
 test_model_rollback.cpython-313-pytest-8.3.4.pyc
@@ -26895,6 +28182,7 @@ test_robustness.cpython-311-pytest-9.0.2.pyc
 test_robustness.cpython-313-pytest-8.3.4.pyc
 test_sensor_placement.cpython-311-pytest-9.0.2.pyc
 test_sensor_placement.cpython-313-pytest-8.3.4.pyc
+test_temporal_metrics.cpython-313-pytest-8.3.4.pyc
 test_temporal_metrics.cpython-313-pytest-8.3.4.pyc.147928
 test_temporal_metrics.cpython-313-pytest-8.3.4.pyc.163732
 test_temporal_metrics.cpython-313-pytest-8.3.4.pyc.169932
@@ -26902,6 +28190,7 @@ test_temporal_metrics.cpython-313-pytest-8.3.4.pyc.170776
 test_temporal_metrics.cpython-313-pytest-8.3.4.pyc.172656
 test_temporal_metrics.cpython-313-pytest-8.3.4.pyc.182428
 test_threshold_consistency.cpython-311-pytest-9.0.2.pyc
+test_threshold_consistency.cpython-313-pytest-8.3.4.pyc
 test_threshold_consistency.cpython-313-pytest-8.3.4.pyc.147928
 test_threshold_consistency.cpython-313-pytest-8.3.4.pyc.163732
 test_threshold_consistency.cpython-313-pytest-8.3.4.pyc.169932
@@ -26911,6 +28200,7 @@ test_threshold_consistency.cpython-313-pytest-8.3.4.pyc.182428
 test_trigger_policy.cpython-311-pytest-9.0.2.pyc
 test_trigger_policy.cpython-313-pytest-8.3.4.pyc
 test_validation_gate.cpython-311-pytest-9.0.2.pyc
+test_validation_gate.cpython-313-pytest-8.3.4.pyc
 test_validation_gate.cpython-313-pytest-8.3.4.pyc.147928
 test_validation_gate.cpython-313-pytest-8.3.4.pyc.163732
 test_validation_gate.cpython-313-pytest-8.3.4.pyc.169932
@@ -26920,87 +28210,46 @@ test_validation_gate.cpython-313-pytest-8.3.4.pyc.182428
 test_wasserstein_drift.cpython-311-pytest-9.0.2.pyc
 test_wasserstein_drift.cpython-313-pytest-8.3.4.pyc
 
-./Thesis_report:
-2026_03_04/
+./thesis:
+_snapshots/
+00_THESIS_INDEX.md
 2026_03_04_normalization_comparison.ipynb
-22 feb codex/
-23-5 codex/
 appendices/
 chapters/
-Comprehensive_Research_Paper_Table_Across_All_HAR_Topics.csv
-docs/
 febreport.tex
+figures/
 frontmatter/
-mentor_questions.md
-mentor_questions_explained.md
-MENTOR_QUESTIONS_FEBRUARY_2026.md
 monitoringans.txt
-normalization_analysis.md
-papers_text/
-pipeline_artifact_sources/
 pkg_check.txt
 qna .txt
 refs/
-sample reports/
-Summary_of_7_Research_Themes_in_HAR.csv
+tables/
 thesis_main.log
 thesis_main.tex
 Thesis_Plan.md
-things to do/
 
-./Thesis_report/2026_03_04:
-01_data_pipeline_flow.md
-02_src_deep_dive.md
-03_scripts_reference.md
-04_tests_reference.md
-05_config_deps_infra.md
-2026_03_04_artifact_source_mapping.md
-2026_03_04_normalization_analysis.md
+./thesis/_snapshots:
+2026-02/
+2026-03/
+sample_reports/
 
-./Thesis_report/22 feb codex:
-THESIS_COMPLETION_AND_PIPELINE_ANALYSIS_22_FEB_2026.md
-THESIS_PROGRESS_REPO_STRUCTURE_AND_BENCHMARK_AUDIT_22_FEB_2026.md
-
-./Thesis_report/23-5 codex:
-REPOSITORY_CLEANUP_AND_MLOPS_STRUCTURE_PROPOSAL_23_FEB_2026.md
-THESIS_PROGRESS_OUTPUTS_AUDIT_23_FEB_2026.md
-
-./Thesis_report/appendices:
-app_a_pipeline_stages.tex
-app_b_engineering_log.tex
-app_c_hyperparameters.tex
-
-./Thesis_report/chapters:
-ch1_introduction.tex
-ch2_background.tex
-ch3_methodology.tex
-ch4_implementation.tex
-ch5_evaluation.tex
-ch6_discussion.tex
-
-./Thesis_report/docs:
+./thesis/_snapshots/2026-02:
 19_Feb/
+22_feb_codex/
 22Feb_Opus_Understanding/
-archive/
-figures/
-PIPELINE_Y_EXPLAINED_WITH_CITATIONS.md
-README.md
-research/
-stages/
-technical/
-thesis/
-THESIS_PARAMETER_CITATIONS.md
-THESIS_PROBLEMS_WE_FACED.md
-TOOLING_ROLES_DVC_MLFLOW_DOCKER_FASTAPI.md
-WHATS_NEXT.md
+23_feb_codex/
 
-./Thesis_report/docs/19_Feb:
+./thesis/_snapshots/2026-02/19_Feb:
 DOCUMENTATION_INDEX.md
 PIPELINE_RUNBOOK.md
 REMAINING_WORK_FEB_TO_MAY_2026.md
 WORK_DONE_19_FEB.md
 
-./Thesis_report/docs/22Feb_Opus_Understanding:
+./thesis/_snapshots/2026-02/22_feb_codex:
+THESIS_COMPLETION_AND_PIPELINE_ANALYSIS_22_FEB_2026.md
+THESIS_PROGRESS_REPO_STRUCTURE_AND_BENCHMARK_AUDIT_22_FEB_2026.md
+
+./thesis/_snapshots/2026-02/22Feb_Opus_Understanding:
 00_README.md
 01_REPO_SNAPSHOT_AND_SCOPE.md
 02_FILE_FOLDER_INVENTORY_AND_ROLE_MAP.md
@@ -27024,32 +28273,43 @@ WORK_DONE_19_FEB.md
 27_REPRODUCIBILITY_AND_AUDIT_CHECKLIST.md
 28_REVIEWER_EXAMINER_RUBRIC_ALIGNMENT.md
 
-./Thesis_report/docs/archive:
-APPENDIX_FILE_INVENTORY.md
-BIG_QUESTIONS_2026-01-18.md
-BIG_QUESTIONS_RISK_PAPERS_2026-01-18.md
-extranotes.md
-FRESH_START_CLEANUP_GUIDE.md
-LATER_Offline_MLOps_Guide.md
-Mondaymeet.md
-OLD_action-plan-18-20-feb.md
-OLD_copilot-evaluation-prompts.md
-OLD_copilot-pipeline-prompts.md
-OLD_evaluation-audit.md
-OLD_pipeline-audit-map.md
-OLD_pipeline-test-results.md
-OLD_pipeline-visualization.md
-OLD_qc-execution-summary.md
-OLD_repo-cleanup-recommendations.md
-OLD_root-cause-low-accuracy.md
-OLD_thesis-status-plan-jan2026.md
-OLD_tracking-audit.md
-OLD_whats-remaining-feb15.md
-REPOSITORY_CLEANUP_ANALYSIS_2026-01-18.md
-RESTRUCTURE_PIPELINE_PACKAGES.md
-THESIS_PROGRESS_DASHBOARD_2026-01-20.md
+./thesis/_snapshots/2026-02/23_feb_codex:
+REPOSITORY_CLEANUP_AND_MLOPS_STRUCTURE_PROPOSAL_23_FEB_2026.md
+THESIS_PROGRESS_OUTPUTS_AUDIT_23_FEB_2026.md
 
-./Thesis_report/docs/figures:
+./thesis/_snapshots/2026-03:
+2026_03_04/
+
+./thesis/_snapshots/2026-03/2026_03_04:
+01_data_pipeline_flow.md
+02_src_deep_dive.md
+03_scripts_reference.md
+04_tests_reference.md
+05_config_deps_infra.md
+2026_03_04_artifact_source_mapping.md
+2026_03_04_normalization_analysis.md
+
+./thesis/_snapshots/sample_reports:
+Shalin Vachheta-1701359-M.Sc. Mechatronics.pdf
+statement-2025-11.pdf
+statement-2025-12.pdf
+statement-2026-01.pdf
+Thesis_report_MA_004_1700969_compressed_version.pdf
+
+./thesis/appendices:
+app_a_pipeline_stages.tex
+app_b_engineering_log.tex
+app_c_hyperparameters.tex
+
+./thesis/chapters:
+ch1_introduction.tex
+ch2_background.tex
+ch3_methodology.tex
+ch4_implementation.tex
+ch5_evaluation.tex
+ch6_discussion.tex
+
+./thesis/figures:
 fig1_dataset_timeline.png
 fig2_sampling_rate_qc.png
 fig3_gravity_removal_impact.png
@@ -27058,71 +28318,131 @@ fig5_drift_metrics_overview.png
 fig6_drift_over_time.png
 fig7_abcd_cases_comparison.png
 
-./Thesis_report/docs/research:
-appendix-paper-index.md
-bibliography-local-pdfs.md
-KEEP_Research_QA_From_Papers.md
-qna-har-mlops-papers.md
-qna-mentor-simple-papers.md
-RESEARCH_PAPER_INSIGHTS.md
-RESEARCH_PAPERS_ANALYSIS.md
-
-./Thesis_report/docs/stages:
-00_STAGE_INDEX.md
-01_DATA_INGESTION.md
-02_PREPROCESSING_FUSION.md
-03_QC_VALIDATION.md
-04_TRAINING_BASELINE.md
-05_INFERENCE.md
-06_MONITORING_DRIFT.md
-07_EVALUATION_METRICS.md
-08_ALERTING_RETRAINING.md
-09_DEPLOYMENT_AUDIT.md
-10_IMPROVEMENTS_ROADMAP.md
-
-./Thesis_report/docs/technical:
-guide-cicd-beginner.md
-guide-cicd-github-actions.md
-guide-data-ingestion-inference.md
-guide-manual-preprocessing-test.md
-guide-monitoring-retraining.md
-guide-pipeline-final-decisions.md
-guide-pipeline-operations-architecture.md
-guide-pipeline-rerun.md
-guide-preprocessing-comparison-adaptation.md
-README.md
-
-./Thesis_report/docs/thesis:
-chapters/
-CONCEPTS_EXPLAINED.md
-FINE_TUNING_STRATEGY.md
-HANDEDNESS_WRIST_PLACEMENT_ANALYSIS.md
-KEEP_Production_Robustness_Guide.md
-KEEP_Reference_Project_Learnings.md
-KEEP_Technology_Stack_Analysis.md
-PAPER_DRIVEN_QUESTIONS_MAP.md
-PIPELINE_REALITY_MAP.md
-QA_LAB_TO_LIFE_GAP.md
-README.md
-THESIS_READY_UNLABELED_EVALUATION_PLAN.md
-THESIS_STRUCTURE_OUTLINE.md
-thesis-objectives-traceability.md
-thesis-training-recipe-matrix.md
-UNLABELED_EVALUATION.md
-
-./Thesis_report/docs/thesis/chapters:
-CH1_INTRODUCTION.md
-CH3_METHODOLOGY.md
-CH4_IMPLEMENTATION.md
-
-./Thesis_report/frontmatter:
+./thesis/frontmatter:
 abbreviations.tex
 abstract.tex
 acknowledgements.tex
 declaration.tex
 titlepage.tex
 
-./Thesis_report/papers_text:
+./thesis/refs:
+adabn_li2016_1603.04779.pdf
+calibration_guo2017_1706.04599.pdf
+Deep CNN-LSTM With Self-Attention Model for Human Activity Recognition Using Wearable Sensor.pdf
+Deep learning for sensor-based activity recognition_ A survey.pdf
+Domain Adaptation for Inertial Measurement Unit-based Human.pdf
+Evaluating BiLSTM and CNN+GRU Approaches for Human Activity Recognition Using WiFi CSI Data.pdf
+ewc_kirkpatrick2017_1612.00796.pdf
+MACHINE LEARNING OPERATIONS A SURVEY ON MLOPS.pdf
+mc_dropout_gal2016_1506.02142.pdf
+papers_all/
+papers_text/
+parameter_citations.bib
+READING_LIST_BY_CHAPTER.md
+README.md
+tent_wang2021_openreview_uXl3bZLkr3c.pdf
+thesis.bib
+Transfer Learning in Human Activity Recognition  A Survey.pdf
+When Does Optimizing a Proper Loss Yield Calibration.pdf
+
+./thesis/refs/papers_all:
+01_mlops/
+02_monitoring_drift/
+03_har_wearables/
+04_domain_adaptation/
+05_deployment_cicd/
+06_mental_health_anxiety/
+READING_LIST_BY_CHAPTER.md
+
+./thesis/refs/papers_all/01_mlops:
+Development and Testing of Retrieval Augmented Generation in Large Language Models.pdf
+DevOps-Driven Real-Time Health Analytics.pdf
+Enabling End-To-End Machine Learning.pdf
+Enhancing Health Information Retrieval with RAG by Prioritizing Topical Relevance and Factual Accuracy.pdf
+Enhancing Multimodal Electronic Health Records.pdf
+Enhancing Retrieval-augmented Generation with Knowledge Graph-Elicited Reasoning for Healthcare Copilot.pdf
+Evaluating large language models on medical evidence summarization.pdf
+Leveraging MIMIC Datasets for Better Digital Health- A Review on Open Problems, Progress Highlights, and Future Promises.pdf
+LLM Chatbot-Creation Approaches.pdf
+MACHINE LEARNING OPERATIONS A SURVEY ON MLOPS.pdf
+Medical Graph RAG Towards Safe Medical Large Language Model via.pdf
+MLDEV DATA SCIENCE EXPERIMENT AUTOMATION AND.pdf
+MLHOps Machine Learning for Healthcare Operations.pdf
+Optimization of hepatological clinical guidelines interpretation by large language models- a retrieval augmented generation-based framework.pdf
+Reproducible workflow for online AI in digital health.pdf
+Retrieval-Augmented Generation (RAG) in Healthcare A Comprehensive Review.pdf
+Retrieval-Augmented Generation based Time Series Foundation Models are Stronger Zero-Shot Forecaster.pdf
+Scientific Evidence for Clinical Text Summarization Using Large.pdf
+
+./thesis/refs/papers_all/02_monitoring_drift:
+Comparative Study on the Effects of Noise in.pdf
+Resilience of Machine Learning Models in Anxiety Detection Assessing the Impact of Gaussian Noise on Wearable Sensors.pdf
+When Does Optimizing a Proper Loss Yield Calibration.pdf
+
+./thesis/refs/papers_all/03_har_wearables:
+A Close Look into Human Activity Recognition Models using Deep Learning.pdf
+A DIFFUSION MODEL FOR MULTIVARIATE.pdf
+A Multi-Task Deep Learning Approach for Sensor-based Human Activity Recognition and Segmentation.pdf
+A Unified Hyperparameter Optimization Pipeline for Transformer-Based Time Series Forecasting Models.pdf
+A Visual Data and Detection Pipeline for Wearable Industrial Assistants.pdf
+An End-to-End Deep Learning Pipeline for Football Activity Recognition Based on Wearable Acceleration Sensors.pdf
+Analyzing Wearable Accelerometer and Gyroscope Data for Activity Recognition.pdf
+AutoMR- A Universal Time Series Motion Recognition Pipeline.pdf
+Beyond Sensor Data- Foundation Models of Behavioral Data from Wearables Improve Health Predictions.pdf
+CNNs, RNNs and Transformers in Human Action Recognition A Survey and a Hybrid Model.pdf
+Combining Accelerometer and Gyroscope Data in Smartphone-Based.pdf
+Deep CNN-LSTM With Self-Attention Model for Human Activity Recognition Using Wearable Sensor.pdf
+Deep CNN-LSTM With Self-Attention Model for.pdf
+Deep learning for sensor-based activity recognition_ A survey.pdf
+Deep Learning in Human Activity Recognition with Wearable Sensors.pdf
+Dynamic and Distributed Intelligence over Smart Devices, Internet of Things Edges, and Cloud Computing for Human Activity Recognition Using Wearable Sensors.pdf
+Evaluating BiLSTM and CNN+GRU Approaches for Human Activity Recognition Using WiFi CSI Data.pdf
+Human Activity Recognition using Multi-Head CNN followed by LSTM.pdf
+Human Activity Recognition Using Tools of Convolutional Neural Networks.pdf
+Implications on Human Activity Recognition Research.pdf
+Learning the Language of wearable sensors.pdf
+LSM-2-Learning from Incomplete Wearable Sensor Data.pdf
+Masked Video and Body-worn IMU Autoencoder for Egocentric Action Recognition.pdf
+Multimodal Frame-Scoring Transformer for Video Summarization.pdf
+Self-supervised learning for fast and scalable time series hyper-parameter tuning.pdf
+Spatiotemporal Feature Fusion for.pdf
+Toward Foundation Model for Multivariate Wearable Sensing of Physiological Signals.pdf
+
+./thesis/refs/papers_all/04_domain_adaptation:
+Domain Adaptation for Inertial Measurement Unit-based Human.pdf
+Exploring the Capabilities of LLMs for IMU-based Fine-grained.pdf
+Transfer Learning in Human Activity Recognition  A Survey.pdf
+
+./thesis/refs/papers_all/05_deployment_cicd:
+Atechnical framework for deploying custom real-time machine.pdf
+Building Flexible, Scalable, and Machine Learning-ready Multimodal Oncology Datasets.pdf
+I-ETL an interoperability-aware health (meta)data pipeline to enable federated analyses.pdf
+Machine Learning Applied to Edge Computing and Wearable Devices for Healthcare- Systematic Mapping of the Literature.pdf
+Toward Reusable Science with Readable Code and.pdf
+Transforming Wearable Data into Personal Health.pdf
+
+./thesis/refs/papers_all/06_mental_health_anxiety:
+A Privacy-Preserving Multi-Stage Fall Detection Framework with Semi-supervised Federated Learning and Robotic Vision Confirmation.pdf
+A State-of-the-Art Review of Computational Models for Analyzing Longitudinal Wearable Sensor Data in Healthcare.pdf
+A Survey on Wearable Sensors for Mental Health Monitoring.pdf
+A Two-Stage Anomaly Detection Framework for Improved Healthcare Using Support Vector Machines and Regression Models.pdf
+ADAM-sense_Anxietydisplayingactivitiesrecognitionby.pdf
+An AI-native Runtime for Multi-Wearable Environments.pdf
+Anxiety Detection Leveraging Mobile Passive Sensing.pdf
+Are Anxiety Detection Models Generalizable-A Cross-Activity and Cross-Population Study Using Wearables.pdf
+Deep Learning Paired with Wearable Passive Sensing Data Predicts Deterioration in Anxiety Disorder Symptoms across 17–18 Years.pdf
+Designing a Clinician-Centered Wearable Data Dashboard (CarePortal) Participatory Design Study.pdf
+Development of a two-stage depression symptom detection model.pdf
+Machine Learning based Anxiety Detection using Physiological Signals and Context Features.pdf
+Momentary Stressor Logging and Reflective Visualizations Implications for.pdf
+Panic Attack Prediction Using Wearable Devices and Machine.pdf
+Provider Perspectives on Integrating Sensor-Captured Patient-Generated Data in Mental Health Care.pdf
+Real-Time Stress Monitoring Detection and Management in College Students.pdf
+Using Wearable Devices and Speech Data for Personalized Machine Learning in Early Detection of Mental Disorders Protocol for a Participatory Research Study.pdf
+Wearable Artificial Intelligence for Detecting Anxiety Systematic Review and Meta-Analysis.pdf
+Wearable Artificial Intelligence for Detecting Anxiety.pdf
+
+./thesis/refs/papers_text:
 adabn_li2016_1603.04779.txt
 calibration_guo2017_1706.04599.txt
 Deep CNN-LSTM With Self-Attention Model for Human Activity Recognition Using Wearable Sensor.txt
@@ -27142,36 +28462,6 @@ Thesis_report_MA_004_1700969_compressed_version.txt
 Transfer Learning in Human Activity Recognition  A Survey.txt
 When Does Optimizing a Proper Loss Yield Calibration.txt
 
-./Thesis_report/pipeline_artifact_sources:
-artifact_source_mapping.md
-
-./Thesis_report/refs:
-adabn_li2016_1603.04779.pdf
-calibration_guo2017_1706.04599.pdf
-Deep CNN-LSTM With Self-Attention Model for Human Activity Recognition Using Wearable Sensor.pdf
-Deep learning for sensor-based activity recognition_ A survey.pdf
-Domain Adaptation for Inertial Measurement Unit-based Human.pdf
-Evaluating BiLSTM and CNN+GRU Approaches for Human Activity Recognition Using WiFi CSI Data.pdf
-ewc_kirkpatrick2017_1612.00796.pdf
-MACHINE LEARNING OPERATIONS A SURVEY ON MLOPS.pdf
-mc_dropout_gal2016_1506.02142.pdf
-parameter_citations.bib
-README.md
-tent_wang2021_openreview_uXl3bZLkr3c.pdf
-thesis.bib
-Transfer Learning in Human Activity Recognition  A Survey.pdf
-When Does Optimizing a Proper Loss Yield Calibration.pdf
-
-./Thesis_report/sample reports:
-Shalin Vachheta-1701359-M.Sc. Mechatronics.pdf
-statement-2025-11.pdf
-statement-2025-12.pdf
-statement-2026-01.pdf
-Thesis_report_MA_004_1700969_compressed_version.pdf
-
-./Thesis_report/things to do:
-01_REMAINING_WORK.md
-02_QUESTIONS_AND_DOUBTS.md
-CHATGPT_1_THESIS_KNOWLEDGE_BASE.md
-CHATGPT_2_PIPELINE_WORK_DONE.md
-CHATGPT_3_REMAINING_WORK.md
+./thesis/tables:
+Comprehensive_Research_Paper_Table_Across_All_HAR_Topics.csv
+Summary_of_7_Research_Themes_in_HAR.csv
