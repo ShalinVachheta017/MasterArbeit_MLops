@@ -15,10 +15,10 @@ Metrics exported:
 
 Usage:
     from prometheus_metrics import MetricsExporter, start_metrics_server
-    
+
     exporter = MetricsExporter()
     exporter.record_prediction(confidence=0.95, latency_ms=50)
-    
+
     # Start HTTP server for Prometheus scraping
     start_metrics_server(port=8000)
 
@@ -559,7 +559,7 @@ def main():
 
     if args.serve:
         print(f"\nStarting metrics server on port {args.port}...")
-        print(f"Endpoints:")
+        print("Endpoints:")
         print(f"  - http://localhost:{args.port}/metrics (Prometheus)")
         print(f"  - http://localhost:{args.port}/metrics/json (JSON)")
         print(f"  - http://localhost:{args.port}/health (Health check)")

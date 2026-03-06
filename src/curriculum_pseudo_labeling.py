@@ -350,7 +350,6 @@ class CurriculumTrainer:
         dict with trained model, per-iteration metrics, and final stats.
         """
         try:
-            import tensorflow as tf
             from tensorflow import keras
         except ImportError:
             raise ImportError("TensorFlow required for curriculum training.")

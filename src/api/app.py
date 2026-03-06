@@ -26,8 +26,8 @@ import numpy as np
 import pandas as pd
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse, Response
-from pydantic import BaseModel, Field
+from fastapi.responses import HTMLResponse, Response
+from pydantic import BaseModel
 
 # ---------------------------------------------------------------------------
 # Prometheus metrics

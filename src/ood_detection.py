@@ -13,7 +13,7 @@ Higher energy = out-of-distribution (potentially novel/anomalous)
 
 Usage:
     from ood_detection import EnergyOODDetector
-    
+
     detector = EnergyOODDetector(model)
     energy_scores = detector.compute_energy(logits)
     is_ood = detector.detect_ood(energy_scores)
@@ -432,12 +432,12 @@ def main():
 
         print(f"\nTotal samples: {results['n_samples']}")
         print(f"Detected OOD: {results['n_ood']} ({results['ood_ratio']:.1%})")
-        print(f"\nEnergy breakdown:")
+        print("\nEnergy breakdown:")
         print(f"  Normal: {results['energy_breakdown']['n_normal']}")
         print(f"  Warning: {results['energy_breakdown']['n_warning']}")
         print(f"  Critical: {results['energy_breakdown']['n_critical']}")
 
-        print(f"\nIndividual score means:")
+        print("\nIndividual score means:")
         for name, stats in results["individual_scores"].items():
             print(f"  {name}: {stats['mean']:.3f}")
 

@@ -279,8 +279,8 @@ class ProductionPipeline:
                         raise DataValidationError(
                             f"Data validation failed with {len(validation_art.errors)} "
                             f"error(s): {validation_art.errors}. Pipeline aborted to prevent "
-                            f"invalid data from reaching Stage 3. Fix the source data or "
-                            f"relax DataValidationConfig thresholds."
+                            "invalid data from reaching Stage 3. Fix the source data or "
+                            "relax DataValidationConfig thresholds."
                         )
 
                 elif stage == "transformation":

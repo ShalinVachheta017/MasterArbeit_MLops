@@ -72,8 +72,8 @@ class ModelRetraining:
         elif method in ("mmd", "dann"):
             raise NotImplementedError(
                 f"Adaptation method '{method}' (MMD / DANN) is referenced in literature "
-                f"but is NOT implemented in this pipeline.  "
-                f"Use one of: adabn | tent | adabn_tent | pseudo_label."
+                "but is NOT implemented in this pipeline.  "
+                "Use one of: adabn | tent | adabn_tent | pseudo_label."
             )
         else:
             return self._run_standard(output_dir)
@@ -84,7 +84,6 @@ class ModelRetraining:
         from src.domain_adaptation.adabn import adabn_score_confidence, adapt_bn_statistics
 
         try:
-            import tensorflow as tf
             from tensorflow import keras
         except ImportError:
             raise ImportError("TensorFlow is required for AdaBN retraining.")
@@ -109,7 +108,7 @@ class ModelRetraining:
 
         # Before-adaptation confidence
         before = adabn_score_confidence(model, target_X)
-        logger.info("Before AdaBN — mean confidence: %.4f", before["mean_confidence"])
+        logger.info("Before AdaBN — mean confidence: %.4", before["mean_confidence"])
 
         # Adapt
         model = adapt_bn_statistics(
@@ -121,7 +120,7 @@ class ModelRetraining:
 
         # After-adaptation confidence
         after = adabn_score_confidence(model, target_X)
-        logger.info("After AdaBN — mean confidence: %.4f", after["mean_confidence"])
+        logger.info("After AdaBN — mean confidence: %.4", after["mean_confidence"])
 
         # Save adapted model
         save_path = output_dir / "adabn_adapted_model.keras"
@@ -247,7 +246,7 @@ class ModelRetraining:
         target_X = np.load(target_npy)
 
         before = adabn_score_confidence(model, target_X)
-        logger.info("Before AdaBN+TENT — mean confidence: %.4f", before["mean_confidence"])
+        logger.info("Before AdaBN+TENT — mean confidence: %.4", before["mean_confidence"])
 
         # Stage 1: AdaBN
         model = adapt_bn_statistics(
@@ -305,7 +304,6 @@ class ModelRetraining:
         from src.train import DomainAdaptationTrainer, TrainingConfig
 
         try:
-            import tensorflow as tf
             from tensorflow import keras
         except ImportError:
             raise ImportError("TensorFlow is required for pseudo-label retraining.")

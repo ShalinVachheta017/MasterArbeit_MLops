@@ -241,7 +241,6 @@ def benchmark_models(
 
     Returns dict with timing results.
     """
-    import tensorflow as tf
 
     # Generate dummy data matching model input
     dummy_data = np.random.randn(n_samples, 200, 6).astype(np.float32)

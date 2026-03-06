@@ -66,7 +66,6 @@ Version: 1.0.0
 import argparse
 import json
 import logging
-import os
 import sys
 from dataclasses import asdict, dataclass
 from datetime import datetime
@@ -716,7 +715,7 @@ def parse_args():
 Examples:
   # Evaluate latest predictions
   python evaluate_predictions.py
-  
+
   # Evaluate specific file
   python evaluate_predictions.py --input predictions_20251208.csv
         """,
