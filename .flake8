@@ -1,0 +1,45 @@
+[flake8]
+# Maximum line length (PEP 8 is 79, we use 100 for readability)
+max-line-length = 100
+
+# Maximum McCabe complexity
+max-complexity = 10
+
+# Errors to ignore:
+# E203 - whitespace before ':' (compatible with Black)
+# E501 - line too long (handled separately in CI)
+# W503 - line break before binary operator (Black prefers this)
+# W291 - trailing whitespace
+# F403, F401 - wildcard imports (intentional in __init__.py for re-exports)
+ignore = 
+    E203,
+    E402,
+    E501,
+    W293,
+    W291,
+    W503,
+    F401,
+    F403
+
+# Exclude directories
+exclude = 
+    .git,
+    __pycache__,
+    .venv,
+    venv,
+    env,
+    .eggs,
+    *.egg,
+    build,
+    dist,
+    .pytest_cache,
+    .tox,
+    .eggs,
+    .mypy_cache
+
+# Per-file ignores
+per-file-ignores =
+    src/utils/__init__.py:F401
+    src/entity/__init__.py:F401,F403
+    src/pipeline/__init__.py:F401,F403
+    src/train.py:E402,F401
