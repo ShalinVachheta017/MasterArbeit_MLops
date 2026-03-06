@@ -30,7 +30,6 @@ Date: February 2026
 import json
 import sys
 import time
-import traceback
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -113,7 +112,7 @@ class InferencePipeline:
         """Load raw Garmin Excel files, fuse sensors, resample → CSV."""
         stage = "data_ingestion"
         logger.info(f"\n{'='*60}")
-        logger.info(f"STAGE 1: DATA INGESTION")
+        logger.info("STAGE 1: DATA INGESTION")
         logger.info(f"{'='*60}")
         t0 = time.time()
 
@@ -174,7 +173,7 @@ class InferencePipeline:
         """Validate schema, ranges, missing values on the fused CSV."""
         stage = "data_validation"
         logger.info(f"\n{'='*60}")
-        logger.info(f"STAGE 2: DATA VALIDATION")
+        logger.info("STAGE 2: DATA VALIDATION")
         logger.info(f"{'='*60}")
         t0 = time.time()
 
@@ -231,12 +230,11 @@ class InferencePipeline:
         """Unit detection, optional gravity removal / calibration, normalization, windowing."""
         stage = "preprocessing"
         logger.info(f"\n{'='*60}")
-        logger.info(f"STAGE 3: PREPROCESSING")
+        logger.info("STAGE 3: PREPROCESSING")
         logger.info(f"{'='*60}")
         t0 = time.time()
 
         try:
-            import numpy as np
             import pandas as pd
 
             from preprocess_data import (
@@ -326,7 +324,7 @@ class InferencePipeline:
         """Run batch inference with the pretrained 1D-CNN-BiLSTM model."""
         stage = "inference"
         logger.info(f"\n{'='*60}")
-        logger.info(f"STAGE 4: INFERENCE")
+        logger.info("STAGE 4: INFERENCE")
         logger.info(f"{'='*60}")
         t0 = time.time()
 
@@ -407,7 +405,7 @@ class InferencePipeline:
         """Analyze prediction distribution, confidence, ECE."""
         stage = "evaluation"
         logger.info(f"\n{'='*60}")
-        logger.info(f"STAGE 5: EVALUATION")
+        logger.info("STAGE 5: EVALUATION")
         logger.info(f"{'='*60}")
         t0 = time.time()
 
@@ -459,7 +457,7 @@ class InferencePipeline:
         """Run 3-layer monitoring: confidence, temporal, drift."""
         stage = "monitoring"
         logger.info(f"\n{'='*60}")
-        logger.info(f"STAGE 6: POST-INFERENCE MONITORING")
+        logger.info("STAGE 6: POST-INFERENCE MONITORING")
         logger.info(f"{'='*60}")
         t0 = time.time()
 
@@ -526,7 +524,7 @@ class InferencePipeline:
         """Evaluate retraining triggers using 2-of-3 voting."""
         stage = "trigger_evaluation"
         logger.info(f"\n{'='*60}")
-        logger.info(f"STAGE 7: TRIGGER EVALUATION")
+        logger.info("STAGE 7: TRIGGER EVALUATION")
         logger.info(f"{'='*60}")
         t0 = time.time()
 

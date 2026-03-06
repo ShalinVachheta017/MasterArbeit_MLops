@@ -135,7 +135,7 @@ def find_latest_sensor_pair(raw_dir: Path) -> Tuple[Path, Path]:
     if not pairs:
         raise FileNotFoundError(
             f"No accelerometer/gyroscope file pairs found in {raw_dir} "
-            f"or its sub-folders (e.g., Decoded/)."
+            "or its sub-folders (e.g., Decoded/)."
         )
     return pairs[0]
 
@@ -476,8 +476,8 @@ class DataIngestion:
                 )
             raise FileNotFoundError(
                 f"No accelerometer/gyroscope files found in {raw_dir} "
-                f"or sub-folders (e.g., Decoded/). Place your raw files there "
-                f"or use --input-csv to provide a fused CSV directly."
+                "or sub-folders (e.g., Decoded/). Place your raw files there "
+                "or use --input-csv to provide a fused CSV directly."
             )
 
         logger.info("Found %d sensor pair(s)", len(all_pairs))

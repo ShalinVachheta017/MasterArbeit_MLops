@@ -24,7 +24,6 @@ from pathlib import Path
 from typing import Dict, Tuple
 
 import numpy as np
-import pandas as pd
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -74,7 +73,7 @@ class PipelineDiagnostic:
         train_window = self.training_config.get("window_size")
         prod_window = self.production_metadata.get("window_size")
 
-        logger.info(f"\n[CHECK 1] Window Size")
+        logger.info("\n[CHECK 1] Window Size")
         logger.info(f"  Training:   {train_window} samples")
         logger.info(f"  Production: {prod_window} samples")
 
@@ -82,10 +81,10 @@ class PipelineDiagnostic:
             self.mismatches.append(
                 f"MISMATCH: Window size differs (train={train_window}, prod={prod_window})"
             )
-            logger.error(f"  ❌ MISMATCH DETECTED")
+            logger.error("  ❌ MISMATCH DETECTED")
             return False
 
-        logger.info(f"  ✅ Match")
+        logger.info("  ✅ Match")
         return True
 
     def check_overlap(self) -> bool:
@@ -93,7 +92,7 @@ class PipelineDiagnostic:
         train_overlap = self.training_config.get("overlap")
         prod_overlap = self.production_metadata.get("overlap")
 
-        logger.info(f"\n[CHECK 2] Window Overlap")
+        logger.info("\n[CHECK 2] Window Overlap")
         logger.info(f"  Training:   {train_overlap}")
         logger.info(f"  Production: {prod_overlap}")
 
@@ -101,10 +100,10 @@ class PipelineDiagnostic:
             self.warnings.append(
                 f"WARNING: Overlap differs (train={train_overlap}, prod={prod_overlap})"
             )
-            logger.warning(f"  ⚠️  Different overlap (usually OK)")
+            logger.warning("  ⚠️  Different overlap (usually OK)")
             return True
 
-        logger.info(f"  ✅ Match")
+        logger.info("  ✅ Match")
         return True
 
     def check_sampling_rate(self) -> bool:
@@ -113,7 +112,7 @@ class PipelineDiagnostic:
         # Production metadata doesn't store Hz, but we can infer from window duration
         prod_window_size = self.production_metadata.get("window_size")
 
-        logger.info(f"\n[CHECK 3] Sampling Rate")
+        logger.info("\n[CHECK 3] Sampling Rate")
         logger.info(f"  Training target Hz: {train_hz} Hz")
         logger.info(f"  Production window:  {prod_window_size} samples")
 
@@ -135,7 +134,7 @@ class PipelineDiagnostic:
         """Check if sensor channel order matches."""
         train_cols = self.training_config.get("sensor_cols", [])
 
-        logger.info(f"\n[CHECK 4] Sensor Channel Order")
+        logger.info("\n[CHECK 4] Sensor Channel Order")
         logger.info(f"  Training expects: {train_cols}")
         logger.info(f"  Production shape: {self.production_data.shape}")
 
@@ -149,7 +148,7 @@ class PipelineDiagnostic:
             return False
 
         logger.info(f"  ✅ Channel count matches ({len(train_cols)} channels)")
-        logger.info(f"  ⚠️  Cannot verify channel ORDER without column names - verify manually!")
+        logger.info("  ⚠️  Cannot verify channel ORDER without column names - verify manually!")
         self.warnings.append("WARNING: Cannot verify sensor channel order from numpy array")
         return True
 
@@ -158,13 +157,13 @@ class PipelineDiagnostic:
         train_mean = np.array(self.training_config.get("scaler_mean", []))
         train_scale = np.array(self.training_config.get("scaler_scale", []))
 
-        logger.info(f"\n[CHECK 5] Normalization Statistics")
+        logger.info("\n[CHECK 5] Normalization Statistics")
         logger.info(f"  Training scaler mean:  {train_mean}")
         logger.info(f"  Training scaler scale: {train_scale}")
 
         # Calculate production statistics BEFORE normalization
         # (This requires access to raw production data, which we may not have)
-        logger.info(f"  Production data (AFTER normalization):")
+        logger.info("  Production data (AFTER normalization):")
         prod_mean = self.production_data.mean(axis=(0, 1))
         prod_std = self.production_data.std(axis=(0, 1))
         logger.info(f"    Mean:  {prod_mean}")
@@ -172,14 +171,14 @@ class PipelineDiagnostic:
 
         # If production data is normalized correctly, it should have mean≈0, std≈1
         if np.allclose(prod_mean, 0, atol=0.5) and np.allclose(prod_std, 1, atol=0.5):
-            logger.info(f"  ✅ Production data appears normalized (mean≈0, std≈1)")
+            logger.info("  ✅ Production data appears normalized (mean≈0, std≈1)")
             return True
         else:
             self.warnings.append(
                 f"WARNING: Production data doesn't look normalized (mean={prod_mean.mean():.2f}, std={prod_std.mean():.2f})"
             )
             logger.warning(f"  ⚠️  Production data doesn't appear normalized")
-            logger.warning(f"      Expected: mean≈0, std≈1")
+            logger.warning("      Expected: mean≈0, std≈1")
             logger.warning(
                 f"      Got:      mean≈{prod_mean.mean():.2f}, std≈{prod_std.mean():.2f}"
             )
@@ -190,9 +189,9 @@ class PipelineDiagnostic:
         label_map = self.training_config.get("label_to_activity", {})
         n_classes = self.training_config.get("n_classes")
 
-        logger.info(f"\n[CHECK 6] Label Mapping")
+        logger.info("\n[CHECK 6] Label Mapping")
         logger.info(f"  Number of classes: {n_classes}")
-        logger.info(f"  Label mapping:")
+        logger.info("  Label mapping:")
         for label_id, activity in sorted(label_map.items(), key=lambda x: int(x[0])):
             logger.info(f"    {label_id}: {activity}")
 
@@ -203,7 +202,7 @@ class PipelineDiagnostic:
             logger.error(f"  ❌ MISMATCH: {len(label_map)} labels but n_classes={n_classes}")
             return False
 
-        logger.info(f"  ✅ Label mapping consistent")
+        logger.info("  ✅ Label mapping consistent")
         return True
 
     def check_data_shape(self) -> bool:
@@ -215,7 +214,7 @@ class PipelineDiagnostic:
         )
         actual_shape = self.production_data.shape
 
-        logger.info(f"\n[CHECK 7] Data Shape")
+        logger.info("\n[CHECK 7] Data Shape")
         logger.info(f"  Expected: (n_windows, {expected_shape[1]}, {expected_shape[2]})")
         logger.info(f"  Actual:   {actual_shape}")
 
@@ -223,17 +222,17 @@ class PipelineDiagnostic:
             self.mismatches.append(
                 f"MISMATCH: Window size in data ({actual_shape[1]}) doesn't match config ({expected_shape[1]})"
             )
-            logger.error(f"  ❌ MISMATCH in dimension 1 (window size)")
+            logger.error("  ❌ MISMATCH in dimension 1 (window size)")
             return False
 
         if actual_shape[2] != expected_shape[2]:
             self.mismatches.append(
                 f"MISMATCH: Channel count in data ({actual_shape[2]}) doesn't match config ({expected_shape[2]})"
             )
-            logger.error(f"  ❌ MISMATCH in dimension 2 (channels)")
+            logger.error("  ❌ MISMATCH in dimension 2 (channels)")
             return False
 
-        logger.info(f"  ✅ Shape matches expected format")
+        logger.info("  ✅ Shape matches expected format")
         return True
 
     def check_feature_distributions(self) -> bool:
@@ -241,14 +240,14 @@ class PipelineDiagnostic:
         train_mean = np.array(self.training_config.get("scaler_mean", []))
         train_scale = np.array(self.training_config.get("scaler_scale", []))
 
-        logger.info(f"\n[CHECK 8] Feature Distribution Comparison")
-        logger.info(f"  Training data (original scale):")
+        logger.info("\n[CHECK 8] Feature Distribution Comparison")
+        logger.info("  Training data (original scale):")
         logger.info(f"    Mean:  {train_mean}")
         logger.info(f"    Scale: {train_scale}")
 
         # Production data is normalized, so we'd need to denormalize to compare
         # For now, just report that this check requires raw production data
-        logger.info(f"  ⚠️  Cannot compare distributions without raw production data")
+        logger.info("  ⚠️  Cannot compare distributions without raw production data")
         self.warnings.append(
             "WARNING: Need raw production data (before normalization) to compare distributions"
         )

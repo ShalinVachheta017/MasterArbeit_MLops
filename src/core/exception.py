@@ -3,7 +3,6 @@ Custom exception for HAR MLOps Pipeline.
 Provides rich error context (file, line, stage) for debugging.
 """
 
-import sys
 import traceback
 
 
