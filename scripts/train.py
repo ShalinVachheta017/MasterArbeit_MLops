@@ -108,7 +108,8 @@ def main():
 
         registration_cfg = ModelRegistrationConfig(auto_deploy=args.auto_deploy)
         registration = ModelRegistration(
-            config=registration_cfg, prev_artifact=retraining_artifact,
+            config=registration_cfg,
+            prev_artifact=retraining_artifact,
         )
         registration_artifact = registration.initiate_model_registration()
         logger.info("Registration complete: %s", registration_artifact)

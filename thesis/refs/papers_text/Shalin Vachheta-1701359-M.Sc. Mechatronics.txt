@@ -1,0 +1,1115 @@
+--- PAGE 1 ---
+Student Arbiet
+A BiLSTM-Based Framework for
+Sequence-to-Sequence Event Forecasting
+by
+Shalin Vachheta
+University of Siegen
+Examiner 1: Prof. Dr.-Ing. Roman Obermaisser
+Chair for Embedded Systems Department
+University of Siegen
+Examiner 2: M.Sc. Dongchen Li
+Doctoral Researcher at Embedded Systems Department
+University of Siegen
+A Student Arbeit Submitted to the Faculty of Embedded Systems Department
+International Graduate Studies in Mechatronics
+Universit¨at Siegen
+North Rhine-Westphalia, Germany
+Date of Submission: 12 May 2025
+
+--- PAGE 2 ---
+Abstract
+This thesis presents a comprehensive sequence-to-sequence event prediction framework.
+It leverages a bidirectional LSTM encoder–decoder architecture to model complex tem-
+poral dependencies in variable-length sequential data. The proposed approach addresses
+key challenges (including vanishing gradients, padding-related inconsistencies, and mask-
+ing issues) by introducing custom evaluation metrics such as masked cross-entropy loss,
+token-level accuracy, and a novel coverage metric. A systematic hyperparameter tuning
+process was conducted, utilizing grid search across multiple configurations (varying batch
+size, hidden size, and number of layers) combined with k-fold cross-validation. This ap-
+proach enabled the selection of an optimal model that achieved a test accuracy exceeding
+75%(.7563) and a test coverage of approximately 70%(.7023) on real-world datasets gen-
+erated from simulations and event logs. Experimental results demonstrate the model’s
+strong generalization ability and effectiveness in capturing critical event patterns, sur-
+passing traditional unidirectional approaches. These findings underscore the framework’s
+potential for deployment in safety-critical applications (for example autonomous systems,
+cybersecurity monitoring, industrial automation). They also lay the groundwork for fu-
+ture enhancements, such as incorporating advanced architectures like Transformers to
+further improve performance.
+1
+
+--- PAGE 3 ---
+Contents
+Abstract
+1
+Contents
+2
+List of Figures
+5
+List of Tables
+6
+1
+Introduction
+7
+1.1
+Contextual Overview . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+7
+1.2
+Problem Statement . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+7
+1.3
+Objectives of the Research . . . . . . . . . . . . . . . . . . . . . . . . . .
+8
+1.4
+Organization of the Thesis . . . . . . . . . . . . . . . . . . . . . . . . . .
+9
+2
+Background and Literature Review
+10
+2.1
+Machine Learning and Neural Networks . . . . . . . . . . . . . . . . . . .
+10
+2.1.1
+Categories of Machine Learning . . . . . . . . . . . . . . . . . . .
+10
+2.1.2
+Artificial Neural Networks (ANNs)
+. . . . . . . . . . . . . . . . .
+10
+2.2
+Sequential Data and its Challenges
+. . . . . . . . . . . . . . . . . . . . .
+11
+2.2.1
+Challenges in Modeling Sequential Data
+. . . . . . . . . . . . . .
+12
+2.2.2
+Advancements in Sequential Data Modeling
+. . . . . . . . . . . .
+12
+2.3
+Recurrent Neural Networks (RNNs) . . . . . . . . . . . . . . . . . . . . .
+12
+2.3.1
+Introduction to RNNs and Sequential Data . . . . . . . . . . . . .
+12
+2.3.2
+Types of RNNs . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+13
+2.3.3
+Challenges in RNNs: Vanishing and Exploding Gradients . . . . .
+14
+2.3.4
+Solutions to RNN Challenges
+. . . . . . . . . . . . . . . . . . . .
+14
+2.3.5
+Training Methodology
+. . . . . . . . . . . . . . . . . . . . . . . .
+14
+2.4
+Long Short-Term Memory (LSTM) Networks . . . . . . . . . . . . . . . .
+15
+2.4.1
+Introduction . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+15
+2.4.2
+Long-Term Dependency Learning . . . . . . . . . . . . . . . . . .
+15
+2.4.3
+Architecture . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+16
+2.4.4
+Applications . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+18
+2.4.5
+Training Methodology
+. . . . . . . . . . . . . . . . . . . . . . . .
+18
+2.5
+Encoder-Decoder Architectures for Sequence Modeling
+. . . . . . . . . .
+21
+2.5.1
+Introduction . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+21
+2.5.2
+Mathematical Formulation . . . . . . . . . . . . . . . . . . . . . .
+22
+2.5.3
+Word Embeddings
+. . . . . . . . . . . . . . . . . . . . . . . . . .
+22
+2.5.4
+Attention Mechanism . . . . . . . . . . . . . . . . . . . . . . . . .
+22
+2.5.5
+Illustrative Example
+. . . . . . . . . . . . . . . . . . . . . . . . .
+23
+2
+
+--- PAGE 4 ---
+2.5.6
+Architectural Variants
+. . . . . . . . . . . . . . . . . . . . . . . .
+23
+2.5.7
+Training and Optimization . . . . . . . . . . . . . . . . . . . . . .
+24
+2.5.8
+Applications . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+24
+2.5.9
+Challenges and Limitations
+. . . . . . . . . . . . . . . . . . . . .
+24
+2.5.10 Recent Advancements
+. . . . . . . . . . . . . . . . . . . . . . . .
+25
+2.6
+Bidirectionality in Neural Networks . . . . . . . . . . . . . . . . . . . . .
+25
+2.6.1
+Introduction to Bidirectionality . . . . . . . . . . . . . . . . . . .
+25
+2.6.2
+Theoretical Background
+. . . . . . . . . . . . . . . . . . . . . . .
+26
+2.6.3
+Variants of Bidirectional Networks
+. . . . . . . . . . . . . . . . .
+26
+2.6.4
+Training Methodology
+. . . . . . . . . . . . . . . . . . . . . . . .
+28
+2.6.5
+Applications of Bidirectionality
+. . . . . . . . . . . . . . . . . . .
+29
+2.6.6
+Challenges of Bidirectional Networks . . . . . . . . . . . . . . . .
+29
+2.6.7
+Recent Advancements
+. . . . . . . . . . . . . . . . . . . . . . . .
+29
+3
+Methodology
+30
+3.1
+Dataset and Preprocessing . . . . . . . . . . . . . . . . . . . . . . . . . .
+30
+3.1.1
+Dataset Description . . . . . . . . . . . . . . . . . . . . . . . . . .
+30
+3.1.2
+Data Preprocessing . . . . . . . . . . . . . . . . . . . . . . . . . .
+31
+3.2
+Model Design . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+31
+3.2.1
+Encoder-Decoder Architecture . . . . . . . . . . . . . . . . . . . .
+32
+3.2.2
+Bidirectional LSTM Networks and Hidden Size
+. . . . . . . . . .
+32
+3.3
+Evaluation Metrics . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+32
+3.3.1
+Loss: Masked Cross-Entropy . . . . . . . . . . . . . . . . . . . . .
+33
+3.3.2
+Accuracy
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+33
+3.3.3
+Coverage . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+33
+4
+Experiments and Results
+34
+4.1
+Experimental Setup . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+34
+4.1.1
+Compute Environment . . . . . . . . . . . . . . . . . . . . . . . .
+34
+4.1.2
+Model and Training Configuration . . . . . . . . . . . . . . . . . .
+34
+4.1.3
+Dataset Selection for Case Analysis . . . . . . . . . . . . . . . . .
+34
+4.2
+Hyperparameter Tuning
+. . . . . . . . . . . . . . . . . . . . . . . . . . .
+35
+4.2.1
+Visual Analysis of Hyperparameter Effects . . . . . . . . . . . . .
+36
+4.2.2
+Feature Importance using SHAP
+. . . . . . . . . . . . . . . . . .
+36
+4.2.3
+Correlation Analysis of Hyperparameters and Metrics . . . . . . .
+37
+4.2.4
+Partial Dependence of Accuracy on Hyperparameters . . . . . . .
+38
+4.2.5
+Batch Size Impact
+. . . . . . . . . . . . . . . . . . . . . . . . . .
+40
+4.3
+Cross-Validation Results . . . . . . . . . . . . . . . . . . . . . . . . . . .
+41
+4.4
+Detailed Visual Metric Analysis . . . . . . . . . . . . . . . . . . . . . . .
+42
+4.4.1
+Training and Validation Loss Behaviour Per Epoch . . . . . . . .
+42
+4.4.2
+Accuracy and Coverage Trends . . . . . . . . . . . . . . . . . . .
+43
+4.4.3
+Bidirectionality and Cross-Validation Effects . . . . . . . . . . . .
+44
+4.5
+Best Model Selection . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+45
+4.5.1
+Best Model Hyperparameters
+. . . . . . . . . . . . . . . . . . . .
+45
+4.5.2
+Why These Models Were Selected . . . . . . . . . . . . . . . . . .
+46
+4.6
+Final Test Evaluation . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+46
+4.6.1
+Retraining and Testing Procedure . . . . . . . . . . . . . . . . . .
+46
+4.6.2
+Test Results . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+47
+3
+
+--- PAGE 5 ---
+4.6.3
+Insights from Test Performance . . . . . . . . . . . . . . . . . . .
+47
+5
+Conclusion and Future Work
+48
+5.1
+Summary of Contributions . . . . . . . . . . . . . . . . . . . . . . . . . .
+48
+5.2
+Key Findings
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+48
+5.3
+Future Work . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+48
+5.4
+Final Conclusion
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+49
+Bibliography
+50
+4
+
+--- PAGE 6 ---
+List of Figures
+2.1
+Unrolled representation of a Recurrent Neural Network (RNN).[25]
+. . .
+13
+2.2
+Types of RNN: Illustration of RNN types categorized by input-output[41]
+13
+2.3
+Diagram illustrating the internal structure of an LSTM cell [31]. . . . . .
+16
+2.4
+Illustration of an encoder-decoder model leveraging LSTM layers [8].
+. .
+21
+2.5
+Encoder-decoder architecture for seq-to-seq translation. . . . . . . . . . .
+23
+2.6
+Architecture of a Bidirectional RNN (BRNN)[17]
+. . . . . . . . . . . . .
+27
+2.7
+Bidirectional LSTM model with forward and backward Sequences[43] . .
+28
+4.1
+Effect of Hidden Size of Accuracy. . . . . . . . . . . . . . . . . . . . . . .
+36
+4.2
+SHAP Importance of Hyperparameters.
+. . . . . . . . . . . . . . . . . .
+37
+4.3
+Correlation Matrix of Hyperparameters and Performance. . . . . . . . . .
+38
+4.4
+Partial Dependence of Accuracy on Hyperparameters. . . . . . . . . . . .
+39
+4.5
+Effect of Batch Size on Coverage. . . . . . . . . . . . . . . . . . . . . . .
+40
+4.6
+Accuracy by Fold and Batch Size . . . . . . . . . . . . . . . . . . . . . .
+40
+4.7
+Model Performance Metrics Across Datasets . . . . . . . . . . . . . . . .
+41
+4.8
+Training And Validation Loss Per Epoch . . . . . . . . . . . . . . . . . .
+42
+4.9
+Accuracy Trend per Epoch.
+. . . . . . . . . . . . . . . . . . . . . . . . .
+43
+4.10 Coverage Trend per Epoch.
+. . . . . . . . . . . . . . . . . . . . . . . . .
+43
+4.11 Effect of Bidirectional LSTM on Accuracy.
+. . . . . . . . . . . . . . . .
+44
+4.12 Model Performance under Cross-Validation.
+. . . . . . . . . . . . . . . .
+45
+5
+
+--- PAGE 7 ---
+List of Tables
+4.1
+Hyperparameter Search Space . . . . . . . . . . . . . . . . . . . . . . . .
+35
+4.2
+Best Model Configurations
+. . . . . . . . . . . . . . . . . . . . . . . . .
+46
+4.3
+Final Test Performance (Averaged Over 5 Runs) . . . . . . . . . . . . . .
+47
+6
+
+--- PAGE 8 ---
+Chapter 1
+Introduction
+1.1
+Contextual Overview
+Sequence modeling is a fundamental paradigm in machine learning and serves as a core
+technique for applications including natural language processing, time-series forecasting,
+and event detection. In safety-critical domains such as autonomous vehicles, aerospace
+engineering, and industrial automation, adaptive time-triggered scheduling systems are
+still emerging. Event prediction within such systems enables the pre-loading of future
+schedules to achieve dynamic adaptability. These systems facilitate deterministic and syn-
+chronized task execution, thereby providing significant advantages in reliability, precision,
+and inherent fault tolerance. The present research aims to employ a Sequence-to-Sequence
+(Seq2Seq) architecture augmented with bidirectional Long Short-Term Memory (LSTM)
+networks, in order to effectively model contextual dependencies encompassing both past
+and future temporal information.
+To ensure rigorous evaluation and enhance model
+performance, this study integrates custom-designed evaluation metrics and employs op-
+timized training strategies. These methodological enhancements include hyperparameter
+tuning with k-fold cross-validation, and they have the overarching aim of addressing
+existing challenges.
+These challenges include the effective handling of variable-length
+sequences, the mitigation of masking issues, and ensuring robust model scalability and
+robust in practical applications.
+1.2
+Problem Statement
+While sequence modeling is crucial for temporal pattern analysis, significant advance-
+ments are still required to develop robust and accurate predictive models, particularly
+when facing substantial challenges such as Recurrent Neural Networks (RNNs), are often
+limited in their ability to effectively capture long-term dependencies due to issues like
+vanishing gradients [21]. Although Long Short-Term Memory (LSTM) networks mitigate
+these limitations by including memory gates [18], their application to complex, real-world
+scenarios introduces additional difficulties. A prominent challenge in sequence modeling
+lies in managing datasets with variable-length sequences. These datasets frequently re-
+quire padding masks to align sequence lengths and duplication masks to ignore repeated
+events during evaluation. In this work, we define two masking strategies: mask (excludes
+padding positions) and mask2 (excludes both padding and duplicate events).
+These
+strategies improve training accuracy and ensure fair evaluation of predictive performance.
+7
+
+--- PAGE 9 ---
+However, improper handling of the masks can significantly impair model performance [3].
+Moreover, sequence datasets often encompass dynamic features such as cyclic patterns
+and intricate interdependencies, which are not easily modeled using conventional ap-
+proaches. Additionally, architectures that process sequences in a unidirectional manner
+fail to capture bidirectional dependencies, thereby limiting their capacity to fully model
+the contextual relationships inherent in sequential data. While Bidirectional LSTM net-
+works offer a promising solution [37], they introduce computational complexities that
+necessitate careful optimization.
+• Key challenges in sequence-to-sequence event prediction:
+– Evaluation limitations: Conventional metrics (for example, accuracy, cross-entropy
+loss) ignore masked or padded tokens, producing biased and unreliable perfor-
+mance estimates.
+– Hyperparameter complexity: Tuning critical parameters (hidden state
+size, number of layers, bidirectionality, learning rate, etc.)
+across varied
+datasets is computationally intensive and error-prone.
+– Contextual inadequacy: Unidirectional architectures fail to capture both
+past and future dependencies inherent in sequential data.
+• Proposed solution: In this thesis, we develop a mask-aware Sequence-to-Sequence
+framework built on bidirectional LSTM networks, combined with systematic hyper-
+parameter optimization (grid search utilizing cross-validation) to deliver reliable,
+scalable event-prediction performance.
+The proposed framework aims to enhance contextual understanding by leveraging bidirec-
+tional dependencies. It also incorporates mask-aware custom loss and accuracy metrics to
+ensure reliable training and evaluation. Furthermore, systematic hyperparameter tuning
+and k-fold cross-validation techniques are employed to establish a scalable and general-
+izable approach that can effectively handle the complexities inherent in diverse sequence
+datasets.
+1.3
+Objectives of the Research
+Effective sequence modeling lies at the core of many applications, such as natural lan-
+guage processing [38], time-series forecasting [4], and biomedical signal analysis [35].
+Despite the significant advancements achieved, existing solutions often struggle when
+applied to real-world scenarios involving variable-length sequences and complex tempo-
+ral dependencies.
+Traditional Sequence-to-Sequence models frequently fail to capture
+bidirectional relationships within sequences, which are crucial for enhancing predictive
+performance. Furthermore, the absence of customized evaluation metrics for masked or
+padded data undermines the reliability and accuracy of these models. This research aims
+to address gaps in the fieldby utilizing bidirectional LSTMs, hyperparameter tuning, and
+custom evaluation measures.This work aims to construct scalable and high-performing
+Sequence-to-Sequence models for real-world applications, overcoming shortcomings in
+current techniques.
+8
+
+--- PAGE 10 ---
+The main aims of this study are as follows:
+1. Develop a bidirectional LSTM-based sequence-to-sequence (Seq2Seq) architecture
+that learns from both forward and backward dependencies in sequences, enhancing
+the model’s contextual understanding.
+2. Design and implement a custom evaluation metric that properly handles masked
+and padded areas in sequences for more accurate performance assessment.
+3. Apply systematic hyperparameter-tuning techniques, which utilize k-fold cross-validation,
+to identify the optimal configuration and improve model robustness.
+4. Validate the effectiveness of the proposed framework across diverse sequential datasets
+to demonstrate its scalability and generalizability in real-world applications.
+1.4
+Organization of the Thesis
+This thesis is organized into five chapters.
+Chapter 1 (Introduction) outlines the re-
+search problem, objectives, and thesis structure, setting the groundwork for the study.
+Chapter 2 (Background and Literature Review) provides a comprehensive overview of
+sequence modeling, covering Sequence-to-Sequence frameworks, LSTM networks, bidi-
+rectional architectures, and evaluation metrics, while identifying gaps in prior research.
+Chapter 3 (Methodology) details the research approach, including dataset descriptions
+and preprocessing, the design of a Sequence-to-Sequence architecture with bidirectional
+LSTMs, custom evaluation metrics, and hyperparameter optimization strategies. Chap-
+ter 4 (Experiments and Results) presents the outcomes of training, validation, and testing,
+alongside comparative analyses of various model configurations. Chapter 5 (Conclusion
+and Future Work) analyzes the implications of the experimental results, addresses chal-
+lenges encountered, evaluates the framework’s overall effectiveness, and summarizes the
+research contributions and key findings. It also proposes directions for future work.
+9
+
+--- PAGE 11 ---
+Chapter 2
+Background and Literature Review
+2.1
+Machine Learning and Neural Networks
+Machine Learning is a subfield of Artificial Intelligence that involves developing systems
+which learn from data and improve their performance without explicit programming
+[13]. ML algorithms recognize patterns, relationships, and structures in data to make
+predictions or judgements, automating complex tasks across a wide array of domains
+including natural language processing, computer vision, robotics, and healthcare [46].
+2.1.1
+Categories of Machine Learning
+Machine Learning techniques are broadly categorized into three main types:
+• Supervised Learning: In supervised learning, the algorithm is trained on labeled
+data, where each input has a corresponding target output.
+Common examples
+include classification (for example, image recognition) and regression tasks (for
+example, predicting stock prices). Algorithms such as linear regression, decision
+trees, and neural networks are widely used for supervised learning [7].
+• Unsupervised Learning: Unsupervised learning focuses on identifying patterns
+and relationships in unlabeled data. Key techniques include clustering (for exam-
+ple, K-means, hierarchical clustering) and dimensionality reduction (for example,
+Principal Component Analysis - PCA, t-SNE) [20]. Applications include market
+segmentation and anomaly detection.
+• Reinforcement Learning (RL): In reinforcement learning, an agent learns by
+interacting with an environment and receiving rewards or penalties based on its
+actions. The goal is to maximize cumulative rewards over time [39]. RL is widely
+applied in robotics, game AI, and autonomous systems.
+2.1.2
+Artificial Neural Networks (ANNs)
+Artificial Neural Networks (ANNs) are the foundation of modern machine learning sys-
+tems, inspired by the biological structure of the brain. ANNs consist of interconnected
+layers of neurons, where each neuron processes inputs, applies weights, and transmits an
+output through an activation function.[11]
+10
+
+--- PAGE 12 ---
+The primary components of a neural network are:
+• Input Layer: Accepts raw input features.
+• Hidden Layers: Perform intermediate computations and extract hierarchical rep-
+resentations of the input.
+• Output Layer: Produces predictions or outputs.
+The training of neural networks involves adjusting the weights and biases using gradi-
+ent descent and backpropagation to minimize a loss function. The evolution of neural
+networks can be summarized as follows:
+1. Perceptron (1958): Introduced by Rosenblatt, the perceptron is a single-layer
+network capable of solving linearly separable problems [36].
+2. Multi-Layer Perceptrons (MLPs): By introducing hidden layers and non-linear
+activation functions, MLPs can model complex non-linear relationships.
+3. Convolutional Neural Networks (CNNs): CNNs, popularized by LeCun [24],
+are designed for image-related tasks by capturing spatial hierarchies.
+4. Recurrent Neural Networks (RNNs): RNNs are specialized for sequential
+data, as they maintain hidden states to capture temporal dependencies [14].
+5. LSTM and GRU Networks: Long Short-Term Memory (LSTM) and Gated
+Recurrent Unit (GRU) networks address the vanishing gradient problem, enabling
+effective learning of long-term dependencies [21].
+6. Transformers and Attention Mechanisms: Modern architectures such as the
+Transformer utilize self-attention mechanisms to process sequences in parallel, achiev-
+ing state-of-the-art results in NLP and sequential tasks [42].
+Neural networks form the backbone of applications such as speech recognition, natural
+language processing, and autonomous systems, with ongoing advancements like generative
+models (GANs) and large-scale architectures (for example, GPT models) [40].
+2.2
+Sequential Data and its Challenges
+Sequential data consists of ordered elements where relationships evolve over time. Un-
+like static data, sequential data exhibits temporal or spatial dependencies, making it
+inherently more complex to model. Such data is pervasive in real-world applications —
+for example, time-series data (measurements recorded over time, including stock market
+prices, sensor readings, and weather forecasts [9]); natural language data (sentences and
+paragraphs where word order influences meaning, as in machine translation and senti-
+ment analysis [38]); and event logs (records of events generated by systems or workflows,
+where the sequence of events reveals patterns and anomalies [45]).
+11
+
+--- PAGE 13 ---
+2.2.1
+Challenges in Modeling Sequential Data
+Modeling sequential data introduces several challenges:
+1. Variable-Length Sequences: The input and output sequences often differ in
+length, requiring models that can handle dynamic input (for example, Sequence-to-
+Sequence architectures).
+2. Long-Term Dependencies: Capturing dependencies over long sequences is diffi-
+cult due to the vanishing gradient problem in traditional RNNs. LSTMs and GRUs
+mitigate this issue by using gating mechanisms [21].
+3. Noise and Missing Values: Sequential data, especially in real-world scenarios,
+can contain noise, missing values, or irregular intervals.
+4. Dynamic Patterns: Many sequential datasets (for example, financial market or
+weather data) exhibit non-stationary behavior, where underlying patterns change
+over time.
+2.2.2
+Advancements in Sequential Data Modeling
+The citation [2, 42] clearly applies to the second sentence. The first sentence is a general
+statement. If you feel a citation is needed for the first sentence to support the idea that
+these are the ”modern approaches,” ensure it’s appropriately placed or rephrase to make
+it lead into the second sentence where specific mechanisms are cited. It currently reads
+acceptably, but it’s good you’re thinking about precise citation placement.
+A notable application of these advancements is presented by Liang [26], who developed an
+attention-based Sequence-to-Sequence model for typhoon trajectory forecasting. Their
+model dynamically assigns weights to past temporal features, enabling more accurate
+storm-path predictions. Trained on 22 years of typhoon data from the China Typhoon
+Network, the model outperformed traditional baselines (Temporal Convolutional Net-
+works, vanilla LSTMs, and standard Sequence-to-Sequence models) in 12-hour forecasting
+scenarios.”
+2.3
+Recurrent Neural Networks (RNNs)
+2.3.1
+Introduction to RNNs and Sequential Data
+Recurrent Neural Networks (RNNs) are a class of neural networks specifically designed
+for processing sequential data, where the temporal or positional order of elements is crit-
+ical. Unlike feedforward networks, which process inputs independently, RNNs introduce
+recurrent connections that allow the network to maintain a hidden state. This hidden
+state acts as memory, capturing information from previous time steps and enabling the
+network to learn temporal dependencies in tasks such as speech recognition, natural lan-
+guage processing, and time-series forecasting [14]. By using the same weights across all
+time steps, RNNs efficiently handle sequences of varying lengths. The structure of an
+RNN can be visualized in two forms: the rolled representation and the unrolled represen-
+tation. The rolled form represents the RNN as a compact model with a loop to denote
+its recurrent nature. However, for understanding the flow of information over multiple
+12
+
+--- PAGE 14 ---
+Figure 2.1: Unrolled representation of a Recurrent Neural Network (RNN).[25]
+time steps, the RNN is often unrolled into a chain-like structure where each time step
+corresponds to a copy of the network.
+The hidden state Ht is updated at each time step based on the input Xt and the previous
+hidden state Ht−1, capturing temporal dependencies across the sequence.
+2.3.2
+Types of RNNs
+Figure 2.2: Types of RNN: Illustration of RNN types categorized by input-output[41]
+Illustration Configurations: One-to-One (feed-forward), One-to-Many (sequence genera-
+tion), Many-to-One (classification), Many-to-Many (sequence-to-sequence).
+RNNs can be categorized based on the structure of their input and output. These varia-
+tions allow RNNs to address diverse sequence-based tasks:[41]
+• One-to-One: This is the standard feedforward network where one input produces
+one output. It is primarily used for tasks like image classification.
+• One-to-Many: A single input generates a sequence of outputs. This configuration
+is used in tasks like music generation and text generation from a single starting
+13
+
+--- PAGE 15 ---
+point.
+• Many-to-One (Sequence-to-One): Multiple inputs (a sequence) produce a sin-
+gle output, such as sentiment classification or sequence classification tasks.
+• Many-to-Many (Sequence-to-Sequence): This mode maps a sequence of in-
+puts to a sequence of outputs, which may differ in length. It is widely used in
+machine translation and speech recognition [38].
+2.3.3
+Challenges in RNNs: Vanishing and Exploding Gradients
+Despite their ability to model sequential data, traditional RNNs face significant chal-
+lenges, particularly the vanishing gradient and exploding gradient problems. These issues
+arise during the training process, especially when handling long sequences.The vanishing
+gradient problem occurs when gradients diminish exponentially as they are propagated
+backward through time during training. This phenomenon prevents earlier layers in the
+sequence from receiving meaningful updates, which makes it difficult for RNNs to learn
+long-term dependencies[6]. On the other hand, exploding gradients occur when gradients
+grow too large in magnitude, causing unstable updates for weights and divergence dur-
+ing the training. process. These challenges hinder the performance of standard RNNs,
+particularly for tasks involving long-range temporal relationships.
+2.3.4
+Solutions to RNN Challenges
+To address these limitations, several advancements have been proposed. Long Short-Term
+Memory (LSTM) networks, introduced by Hochreiter and Schmidhuber [21], incorporate
+a memory cell and gating mechanisms (input, forget, and output gates) that regulate
+the flow of information, enabling the network to selectively remember or forget infor-
+mation across long sequences.A simpler alternative is the Gated Recurrent Unit (GRU),
+which combines the forget and input gates into a single update gate, reducing compu-
+tational complexity while maintaining performance [10]. Additionally, gradient clipping
+has emerged as a practical solution to stabilize training by rescaling gradients that exceed
+a predefined threshold [32].
+2.3.5
+Training Methodology
+The training of RNNs relies on a modified version of backpropagation known as Back-
+propagation Through Time (BPTT). In BPTT, the RNN is conceptually unrolled across
+all time steps in a sequence, transforming it into a multi-layer feedforward network where
+each layer corresponds to a specific time step. The loss function is computed at each
+time step, and gradients are propagated backward through the unrolled network to up-
+date weights shared across all time steps.
+The key steps in BPTT are:
+1. Unrolling the RNN: The recurrent structure is unfolded over the sequence length,
+creating multiple time-step copies of the network.
+2. Forward Pass: The network computes the hidden states and outputs sequentially
+for all time steps.
+14
+
+--- PAGE 16 ---
+3. Backward Pass: Gradients of the loss function are calculated for each time step and
+propagated backward through the unrolled network to update the weights.
+4. Weight Updates: The gradients are aggregated across all time steps, and optimiza-
+tion techniques such as stochastic gradient descent (SGD) are applied to update
+the weights.
+While BPTT enables RNNs to train on sequential data, its computational cost increases
+with sequence length. Additionally, long sequences exacerbate the vanishing and explod-
+ing gradient problems, necessitating the use of LSTMs, GRUs, or gradient clipping for
+effective training. Despite these challenges, BPTT remains the fundamental methodology
+for training RNNs and their variants, allowing them to learn complex temporal patterns.
+Recurrent Neural Networks (RNNs) are fundamental models for processing sequential
+data, offering the ability to learn temporal relationships and model complex sequences.
+Through different input-output configurations, RNNs adapt to diverse tasks, such as clas-
+sification, prediction, and sequence generation. However, traditional RNNs are limited
+by vanishing and exploding gradients, particularly in long sequences. Advancements like
+LSTMs, GRUs, and gradient clipping have significantly improved RNN training and per-
+formance. Combined with training methodologies like Backpropagation Through Time,
+these innovations enable RNNs to capture short-term and long-term dependencies, facil-
+itating their widespread application in natural language processing, speech recognition,
+and time-series analysis.
+2.4
+Long Short-Term Memory (LSTM) Networks
+2.4.1
+Introduction
+Recurrent Neural Networks have become essential in modeling sequential data. However,
+it suffers from severe limitations due to the vanishing gradient problem when learning de-
+pendencies over long sequences: during backpropagation, gradients decay exponentially,
+and hence it results in ineffective learning [6]. The Long Short-Term Memory (LSTM)
+network, proposed by Hochreiter and Schmidhuber in 1997 [21], resolves this by incor-
+porating a number of gating mechanisms that control the flow of information. These
+mechanisms allow LSTMs to filter out or retain information selectively, thus capturing
+long-term dependencies effectively.
+2.4.2
+Long-Term Dependency Learning
+In standard RNNs, gradients diminish as they are propagated backward through time.
+This hampers the network’s ability to learn long-term dependencies because updates to
+weights for earlier time steps become negligible. For instance, in tasks requiring a rela-
+tionship between t1 and t100, standard RNNs fail to maintain meaningful gradients [6].
+In contrast, gradients can grow uncontrollably during backpropagation, leading to nu-
+merical instability and convergence issues. Although less common, this issue is equally
+detrimental to effective training. Traditional RNNs process one time step at a time with-
+out explicit mechanisms for storing or forgetting information. This limitation restricts
+their ability to model sequences with long-term dependencies.
+15
+
+--- PAGE 17 ---
+Long Short-Term Memory (LSTM) networks mitigate the vanishing gradient problem
+by allowing gradients to flow uninterrupted through the cell state. The gating mecha-
+nisms—Forget Gate, Input Gate, and Output Gate—control the addition, retention, and
+removal of information, enabling the network to handle long-term dependencies effec-
+tively [21]. Gated Recurrent Units (GRUs) simplify the LSTM architecture by merging
+the forget and input gates into a single update gate. Additionally, GRUs use a reset gate
+to control the influence of past information, making them computationally efficient while
+maintaining the ability to model long-term dependencies [10].
+Attention mechanisms
+assign dynamic weights to different time steps, enabling the model to selectively focus
+on relevant portions of the sequence and significantly enhancing the ability to model
+long-range dependencies [2]. Transformer models replace recurrent operations with self-
+attention mechanisms, enabling parallel computation and improved scalability for long
+sequences, excelling in tasks requiring global context such as language translation and
+text summarization [42].
+2.4.3
+Architecture
+The LSTM architecture consists of three gates—Forget Gate, Input Gate, and Output
+Gate—and a cell state that serves as memory.
+These components work together to
+manage the flow of information, allowing the network to retain or discard information as
+necessary.
+Figure 2.3: Diagram illustrating the internal structure of an LSTM cell [31].
+The figure shows the flow of information through the three main gates: Forget Gate,
+Input Gate, and Output Gate.
+Forget Gate
+The forget gate decides which information from the previous cell state should be dis-
+carded. This gate ensures that irrelevant information does not accumulate in the memory.
+16
+
+--- PAGE 18 ---
+Mathematically, it is computed as:
+ft = σ(Wf · [ht−1, xt] + bf)
+(2.1)
+where:
+• ft: Forget gate activation at time step t,
+• σ: Sigmoid activation function,
+• Wf: Weight matrix for the forget gate,
+• ht−1: Hidden state from the previous time step,
+• xt: Input at time step t,
+• bf: Bias term for the forget gate.
+Input Gate
+The input gate determines what new information should be stored in the cell state. It
+consists of two components: the input gate activation and the candidate cell state. These
+are computed as:
+it = σ(Wi · [ht−1, xt] + bi)
+(2.2)
+˜Ct = tanh(WC · [ht−1, xt] + bC)
+(2.3)
+The cell state is updated as:
+Ct = ft ⊙Ct−1 + it ⊙˜Ct
+(2.4)
+where:
+• it: Input gate activation at time step t
+• Wi: Weight matrix for the input gate
+• bi: Bias term for the input gate
+• eCt: Candidate cell state at time step t
+• WC: Weight matrix for the candidate cell state
+• bC: Bias term for the candidate cell state
+• Ct−1: Previous cell state
+• ht−1: Hidden state from the previous time step
+• xt: Input at time step t
+17
+
+--- PAGE 19 ---
+Output Gate
+The output gate decides what part of the cell state contributes to the hidden state, which
+influences both the network’s output and future computations. It is computed as:
+ot = σ(Wo · [ht−1, xt] + bo)
+(2.5)
+ht = ot ⊙tanh(Ct)
+(2.6)
+where:
+• ot: Output gate activation at time step t
+• Wo: Weight matrix for the output gate
+• bo: Bias term for the output gate
+• ht: Hidden state at time step t
+• Ct: Cell state at time step t
+• tanh: Hyperbolic tangent activation function
+2.4.4
+Applications
+Time-Series Forecasting:
+LSTMs are extensively used in predicting financial trends, energy consumption, and
+weather patterns. They excel at capturing temporal dependencies in time-series data [4].
+Healthcare Analytics:
+In healthcare, LSTMs are applied to analyze patient records and predict long-term health
+outcomes by retaining historical data [35].
+Crime Forecasting:
+In the domain of public safety, the LSTM-based Sequence-to-Sequence models have been
+applied to crime prediction. Alghamdi and Huang[1] developed an encoder-decoder archi-
+tecture that learns temporal patterns in crime data and predicts future incidents across
+regions.
+2.4.5
+Training Methodology
+The training of Long Short-Term Memory (LSTM) networks involves specialized tech-
+niques to ensure efficient learning and stability. These techniques address the unique
+challenges posed by sequential data and long-term dependency modeling.
+18
+
+--- PAGE 20 ---
+Backpropagation Through Time (BPTT)
+LSTMs are trained using Backpropagation Through Time (BPTT), an extension of the
+backpropagation algorithm specifically adapted for recurrent architectures. In BPTT, the
+network is unrolled across all time steps, and gradients are calculated for each time step.
+The gradients are then accumulated backward in time to update the model parameters.
+The loss function for a sequence of length T is expressed as:
+L =
+T
+X
+t=1
+Lt(yt, ˆyt),
+(2.7)
+where:
+• Lt: Loss at time step t,
+• yt: True output at time step t,
+• ˆyt: Predicted output at time step t.
+The gradients of the loss function with respect to each parameter are computed recur-
+sively, starting from the last time step.
+While this method is effective for capturing
+dependencies across time steps, it is computationally expensive, especially for long se-
+quences, as the memory requirements increase with the sequence length.
+Gradient Clipping
+To address the issue of exploding gradients, gradient clipping is employed.
+Gradient
+clipping involves scaling gradients that exceed a predefined threshold to ensure they
+remain within a manageable range.
+Mathematically, if the norm of the gradient vector exceeds a threshold τ, the gradient is
+scaled as follows:
+g = g ·
+τ
+||g||,
+(2.8)
+where:
+• g: Gradient vector,
+• ||g||: Norm of the gradient vector,
+• τ: Predefined threshold.
+This technique stabilizes the training process and prevents divergence due to excessively
+large gradients, especially when working with long sequences or complex tasks.
+Optimization Techniques:
+Optimization techniques play a critical role in improving the convergence speed and
+stability of LSTM training. Two widely used optimizers are:
+• Adam Optimizer: Combines the benefits of adaptive learning rates and momen-
+tum, making it particularly effective for LSTM networks. Adam uses first-order and
+second-order moment estimates of the gradients to dynamically adjust the learning
+rate for each parameter.
+19
+
+--- PAGE 21 ---
+• RMSProp: Specifically designed for recurrent networks, RMSProp normalizes
+the gradient updates by dividing them by a moving average of recent gradient
+magnitudes, preventing large oscillations during training.
+Both methods adapt the learning rate based on the gradient history, ensuring smoother
+convergence and reducing the likelihood of getting stuck in local minima.
+Regularization Techniques:
+To prevent overfitting, several regularization techniques are employed during LSTM train-
+ing:
+• Dropout: Randomly drops units (along with their connections) during training,
+forcing the network to learn robust features that generalize well to unseen data.
+• L2 Regularization: Adds a penalty proportional to the squared magnitude of the
+model parameters, discouraging overly large weights and improving generalization.
+• Early Stopping: Monitors validation performance during training and halts the
+process when overfitting is detected.
+Batching and Sequence Padding:
+For computational efficiency, LSTMs are often trained in batches. Since input sequences
+within a batch can vary in length, sequence padding is used to ensure consistent input
+dimensions. Padding involves appending zeros to shorter sequences. To avoid learning
+from these artificial padding values, masking is applied during loss computation, ensuring
+that gradients are not computed for the padded positions.
+Training Workflow:
+The typical workflow for training an LSTM involves:
+1. Preprocessing the data, including sequence padding and normalization.
+2. Initializing weights and biases, often with small random values or methods like
+Xavier initialization.
+3. Iteratively applying BPTT, gradient clipping, and optimizer updates to minimize
+the loss function.
+4. Regularly evaluating the model on a validation set to monitor performance and
+apply early stopping if necessary.
+The Long Short-Term Memory (LSTM) network addresses the critical limitations of tra-
+ditional RNNs by introducing gating mechanisms that regulate the flow of information
+through a unique cell state. These gates—the forget, input, and output gates—allow
+LSTMs to selectively retain relevant information while discarding unnecessary data, ef-
+fectively mitigating the vanishing gradient problem. This capability enables LSTMs to
+learn long-term dependencies, making them ideal for tasks requiring temporal reasoning,
+such as machine translation, time-series forecasting, and speech recognition.
+20
+
+--- PAGE 22 ---
+Beyond their immediate impact, LSTMs have inspired further innovations, including
+Gated Recurrent Units (GRUs) and attention mechanisms, which refine and expand upon
+their principles. Their success across diverse domains, such as natural language processing
+and healthcare analytics, underscores their versatility and significance in modern AI. By
+balancing computational efficiency with robust learning of sequential data, LSTMs remain
+a foundational tool for addressing complex challenges in sequential data modeling.
+2.5
+Encoder-Decoder Architectures for Sequence Mod-
+eling
+One of the earliest and most influential implementations of the encoder-decoder architec-
+ture was proposed by Sutskever et al. [38]. In their work, LSTM networks were employed
+for both the encoder and decoder, enabling successful end-to-end learning for machine
+translation tasks. The model introduced a method for handling variable-length sequences
+by encoding the entire input into a fixed-length context vector. Although effective, this
+approach faced challenges when processing long sequences due to the limited capacity
+of the context vector, which eventually motivated enhancements such as the attention
+mechanism.
+2.5.1
+Introduction
+The encoder-decoder architecture is a foundational framework in deep learning, partic-
+ularly suited for sequence modeling tasks such as machine translation, time-series fore-
+casting, event prediction, and speech recognition. Introduced by Sutskever et al. [38] for
+neural machine translation, this architecture has since been adapted for various domains
+requiring input-output sequences of differing lengths. It transforms a variable-length in-
+put sequence X = [x1, x2, . . . , xT] into a corresponding variable-length output sequence
+Y = [y1, y2, . . . , yT ′] through an intermediate context vector C.
+Figure 2.4: Illustration of an encoder-decoder model leveraging LSTM layers [8].
+In this architecture, the encoder processes the input sequence into a fixed-length hidden
+representation (context vector), while the decoder uses this context to sequentially gener-
+ate the output. This design supports many-to-many sequence transformations and forms
+the basis of modern Sequence-to-Sequence models.
+21
+
+--- PAGE 23 ---
+2.5.2
+Mathematical Formulation
+The encoder operates step-by-step to convert the input into hidden states:
+ht = f(xt, ht−1),
+(2.9)
+where ht is the hidden state at time step t, xt is the input at t, and f represents the
+non-linear transformation function (for example, LSTM or GRU).
+The decoder generates each output step yt using the context vector and previously gen-
+erated tokens:
+yt = g(ht, yt−1),
+(2.10)
+where g denotes the decoder’s non-linear transformation.
+2.5.3
+Word Embeddings
+To facilitate learning, input tokens are typically converted to dense vector representations
+using word embedding techniques. Word2Vec [29] and GloVe [33] are popular methods
+that learn fixed embeddings based on co-occurrence statistics. In contrast, BERT [12]
+provides contextual embeddings that dynamically represent words based on their sur-
+rounding context. These embeddings enhance the semantic richness of the input rep-
+resentations, allowing the model to better understand nuanced relationships within the
+sequence.
+2.5.4
+Attention Mechanism
+The original encoder-decoder model used a single fixed-length context vector C to repre-
+sent the entire input sequence, which limited its ability to capture long-term dependencies
+or complex structures. Bahdanau et al. [2] addressed this limitation by introducing the
+attention mechanism, which enables the decoder to directly access all encoder hidden
+states and compute context vectors dynamically. At each decoding step, the decoder
+assigns alignment weights to encoder states based on their relevance, allowing the model
+to focus on the most informative parts of the input. This innovation significantly im-
+proved performance in neural machine translation and laid the groundwork for subsequent
+attention-based architectures.
+The attention score for each encoder hidden state hi is computed using:
+ei = vT tanh(Wa[hi; st−1]),
+(2.11)
+and normalized through:
+αi = softmax(ei),
+(2.12)
+where v, Wa, and st−1 are learnable parameters and the decoder’s previous hidden state,
+respectively. These attention weights αi help dynamically compute a new context vector
+for each output step.
+Beyond traditional NLP tasks, attention-based Sequence-to-Sequence models have been
+successfully adapted to other domains such as cybersecurity. Yu et al.[44] proposed an
+attention-enhanced model for predicting network penetration intrusions using the MITRE
+ATT&CK framework. The attention mechanism enabled the model to focus on critical
+attack sequence patterns, improving interpretability and predictive accuracy. The system
+22
+
+--- PAGE 24 ---
+achieved up to 90% accuracy across both public and advanced persistent threat (APT)
+datasets, highlighting the practical value of attention-driven architectures in real-time
+security applications.
+2.5.5
+Illustrative Example
+Figure 2.5: Encoder-decoder architecture for seq-to-seq translation.
+In the example shown in Figure 2.5, the input sequence “Enjoy the gift” is processed by
+the encoder into a context vector. The decoder then generates the German translation
+“Genieße das Geschenk” step-by-step, using attention and previously generated outputs
+through a teacher-forcing mechanism.
+2.5.6
+Architectural Variants
+Recurrent Neural Networks (RNNs) are the most basic architecture for sequence model-
+ing. RNNs maintain a hidden state that carries forward sequential information, allowing
+the model to process temporal dependencies. However, they suffer from the vanishing
+gradient problem when dealing with long sequences, making it difficult to learn long-term
+dependencies [6].
+To address this, Long Short-Term Memory (LSTM) networks [21] and Gated Recurrent
+Units (GRUs) [10] were introduced. These architectures use gating mechanisms—such
+as input, forget, and output gates in LSTMs—to control the flow of information and
+retain relevant features over longer time horizons. GRUs offer a simpler architecture while
+achieving comparable performance in many cases. Bidirectional RNNs[37] enhance model
+performance by processing the input sequence in both forward and backward directions.
+This bi-directionality is particularly useful in tasks like named entity recognition and
+sentiment analysis, where future context provides valuable information. However, BRNNs
+are not always suitable for causal tasks like event prediction where future data is not
+accessible at inference time.
+23
+
+--- PAGE 25 ---
+The Transformer architecture, introduced by Vaswani et al.
+[42], replaces recurrence
+with multi-head self-attention and positional encodings. It enables parallel processing of
+sequence elements and significantly improves training efficiency. Transformers form the
+backbone of recent state-of-the-art models such as BERT, BART, and T5 [34].
+2.5.7
+Training and Optimization
+Training encoder-decoder models requires carefully preprocessing the data. Input and
+output sequences are first tokenized using methods like Byte Pair Encoding (BPE) or
+SentencePiece. Padding is added to ensure uniform sequence lengths across a batch, and
+masks are applied to ignore these padded positions during loss computation [42]. Token
+embeddings are typically initialized with pre-trained vectors such as GloVe or BERT to
+accelerate convergence and improve performance.
+The loss function most commonly used is cross-entropy loss. To avoid training bias due
+to padding, a masked version is applied:
+L = −
+T ′
+X
+t=1
+K
+X
+k=1
+yk
+t log(ˆyk
+t ),
+(2.13)
+where ˆyk
+t is the predicted probability for the k-th token at time t, and yk
+t is the true
+distribution.
+Optimization is performed using adaptive optimizers such as Adam, often with learning
+rate warm-up and decay schedules to ensure stable convergence and generalization across
+datasets.
+2.5.8
+Applications
+Encoder-decoder models have enabled breakthroughs across multiple domains. In neural
+machine translation, Sequence-to-Sequence models using LSTMs and later Transformers
+achieved state-of-the-art performance on bilingual datasets [38].
+Text summarization
+systems such as BART and T5 generate high-quality, abstractive summaries from long
+documents [34]. In speech recognition, encoder-decoder architectures convert raw audio
+waveforms into accurate transcriptions, enabling high-performance voice assistants and
+transcription tools [2]. Furthermore, in computer vision, CNN-based encoders paired
+with LSTM decoders can generate descriptive captions for images [22].
+2.5.9
+Challenges and Limitations
+Despite their advantages, encoder-decoder models present several challenges. Transformer
+models, in particular, are computationally expensive due to their multi-head attention
+mechanisms and high memory consumption. Large-scale training requires extensive la-
+beled datasets, making it difficult to apply these models in low-resource or domain-specific
+scenarios. Additionally, overfitting is a persistent concern, especially when training data
+is limited. Regularization techniques such as dropout, early stopping, and data augmen-
+tation are essential to mitigate these issues [42].
+24
+
+
+[... truncated at page 25 of 54 ...]

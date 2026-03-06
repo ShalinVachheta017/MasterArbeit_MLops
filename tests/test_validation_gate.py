@@ -9,6 +9,7 @@ Implements P0-1 test coverage from reports/PIPELINE_CTO_REVIEW.md.
 Gap fixed: production_pipeline.py:271-275 used to `break` silently when
 continue_on_failure=False.  Now it unconditionally raises DataValidationError.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -49,7 +50,10 @@ class TestValidationGate:
         with pytest.raises(DataValidationError) as exc_info:
             pipeline.run(stages=["validation"])
 
-        assert "error(s)" in str(exc_info.value).lower() or "validation failed" in str(exc_info.value).lower()
+        assert (
+            "error(s)" in str(exc_info.value).lower()
+            or "validation failed" in str(exc_info.value).lower()
+        )
 
     @patch("src.components.data_validation.DataValidation")
     def test_invalid_data_raises_error_with_continue_on_failure(self, mock_cls):

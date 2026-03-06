@@ -8,7 +8,7 @@ from pathlib import Path
 from unittest.mock import patch, MagicMock
 from datetime import datetime
 
-pytestmark = pytest.mark.slow   # fixtures build Keras models via TensorFlow
+pytestmark = pytest.mark.slow  # fixtures build Keras models via TensorFlow
 
 from src.entity.config_entity import PipelineConfig, ModelRetrainingConfig
 from src.entity.artifact_entity import (
@@ -58,6 +58,7 @@ def transformation_artifact(dummy_npy):
 class TestModelRetrainingInit:
     def test_creates_instance(self, pipeline_config):
         from src.components.model_retraining import ModelRetraining
+
         config = ModelRetrainingConfig()
         comp = ModelRetraining(pipeline_config, config)
         assert comp.config.adaptation_method == "adabn"
@@ -90,6 +91,7 @@ class TestModelRetrainingAdaBN:
         model.save(pretrained_dir / "fine_tuned_model_1dcnnbilstm.keras")
 
         from src.components.model_retraining import ModelRetraining
+
         config = ModelRetrainingConfig(
             enable_adaptation=True,
             adaptation_method="adabn",
@@ -97,7 +99,8 @@ class TestModelRetrainingAdaBN:
             batch_size=16,
         )
         comp = ModelRetraining(
-            pipeline_config, config,
+            pipeline_config,
+            config,
             transformation_artifact=transformation_artifact,
         )
         artifact = comp.initiate_model_retraining()

@@ -31,6 +31,7 @@ from src.robustness import (
 
 # ── Fixtures ──────────────────────────────────────────────────────────
 
+
 @pytest.fixture
 def sample_windows():
     """Create realistic sensor windows: (N, T, C) = (50, 200, 6)."""
@@ -51,6 +52,7 @@ def sample_labels():
 
 
 # ── Gaussian Noise Tests ─────────────────────────────────────────────
+
 
 class TestGaussianNoiseInjector:
     def test_zero_noise_is_identity(self, sample_windows):
@@ -89,6 +91,7 @@ class TestGaussianNoiseInjector:
 
 # ── Missing Data Tests ───────────────────────────────────────────────
 
+
 class TestMissingDataInjector:
     def test_zero_missing_is_identity(self, sample_windows):
         injector = MissingDataInjector()
@@ -119,6 +122,7 @@ class TestMissingDataInjector:
 
 # ── Sampling Jitter Tests ────────────────────────────────────────────
 
+
 class TestSamplingJitterInjector:
     def test_zero_jitter_is_identity(self, sample_windows):
         injector = SamplingJitterInjector()
@@ -140,6 +144,7 @@ class TestSamplingJitterInjector:
 
 # ── Saturation Tests ─────────────────────────────────────────────────
 
+
 class TestSaturationInjector:
     @pytest.mark.parametrize("threshold", [50.0, 20.0, 10.0, 5.0])
     def test_saturation_clips(self, sample_windows, threshold):
@@ -156,6 +161,7 @@ class TestSaturationInjector:
 
 
 # ── Integration Tests ────────────────────────────────────────────────
+
 
 class TestRobustnessConfig:
     def test_default_config(self):

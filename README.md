@@ -16,7 +16,7 @@
 
 ## 📊 Current Status
 
-> **🎯 PROGRESS OVERVIEW:** See [Thesis_report/things to do/01_REMAINING_WORK.md](Thesis_report/things%20to%20do/01_REMAINING_WORK.md) for the authoritative task list. See [Thesis_report/things to do/CHATGPT_2_PIPELINE_WORK_DONE.md](Thesis_report/things%20to%20do/CHATGPT_2_PIPELINE_WORK_DONE.md) for a complete log of what was built.
+> **🎯 PROGRESS OVERVIEW:** See [docs/04_THESIS_WRITING/todo/01_REMAINING_WORK.md](docs/04_THESIS_WRITING/todo/01_REMAINING_WORK.md) for the authoritative task list. See [docs/04_THESIS_WRITING/todo/CHATGPT_2_PIPELINE_WORK_DONE.md](docs/04_THESIS_WRITING/todo/CHATGPT_2_PIPELINE_WORK_DONE.md) for a complete log of what was built.
 
 **Completed (as of Feb 26, 2026):**
 - ✅ **14-stage pipeline** fully orchestrated (`--advanced` flag enables all 14 stages)
@@ -35,10 +35,11 @@
 **Quick Links:**
 - 🚀 [Examiner Quickstart](#-examiner-quickstart-3-commands): Reproduce results in 3 commands
 - 🧪 [Run Tests](#-testing): `pytest tests/`
-- 🔧 [Pipeline Runbook](Thesis_report/docs/19_Feb/PIPELINE_RUNBOOK.md): Full pipeline operations guide
-- 📋 [Remaining Work](Thesis_report/things%20to%20do/CHATGPT_3_REMAINING_WORK.md): What's left to do
-- 📚 [Stage Index](Thesis_report/docs/stages/00_STAGE_INDEX.md): All 14 stages documented
-- 🔍 [22-Feb Audit](Thesis_report/docs/22Feb_Opus_Understanding/00_README.md): Comprehensive Feb 2026 code audit
+- 🔧 [Pipeline Runbook](thesis/_snapshots/2026-02/19_Feb/PIPELINE_RUNBOOK.md): Full pipeline operations guide
+- 📋 [Remaining Work](docs/04_THESIS_WRITING/todo/CHATGPT_3_REMAINING_WORK.md): What's left to do
+- 📚 [Stage Index](docs/01_PIPELINE/stages/00_STAGE_INDEX.md): All 14 stages documented
+- 🔍 [22-Feb Audit](thesis/_snapshots/2026-02/22Feb_Opus_Understanding/00_README.md): Comprehensive Feb 2026 code audit
+- 📖 [Documentation Index](docs/00_INDEX.md): All docs organized by topic
 
 ---
 
@@ -46,19 +47,20 @@
 
 | Document | Purpose |
 |----------|---------|
-| [Thesis Structure Outline](Thesis_report/docs/thesis/THESIS_STRUCTURE_OUTLINE.md) | **Main document** - Thesis structure, objectives, chapter plan |
-| [Remaining Work](Thesis_report/things%20to%20do/01_REMAINING_WORK.md) | **Authoritative task list** — what is done, what is left |
-| [Work Done Log](Thesis_report/things%20to%20do/CHATGPT_2_PIPELINE_WORK_DONE.md) | Complete log of everything built |
-| [CI/CD Beginner's Guide](Thesis_report/docs/technical/guide-cicd-beginner.md) | Complete GitHub Actions tutorial from scratch |
-| [Thesis Plan (Original)](Thesis_report/Thesis_Plan.md) | Original 6-month roadmap (Oct 2025 - Apr 2026) |
-| [Pipeline Operations](Thesis_report/docs/technical/guide-pipeline-operations-architecture.md) | Complete pipeline documentation & architecture |
-| [Pipeline Runbook](Thesis_report/docs/19_Feb/PIPELINE_RUNBOOK.md) | Step-by-step pipeline operations guide |
-| [API Documentation](Thesis_report/docs/technical/guide-data-ingestion-inference.md) | FastAPI endpoints and usage |
-| [Research Papers Analysis](Thesis_report/docs/research/qna-har-mlops-papers.md) | Insights from 77+ research papers |
-| [Stage Index](Thesis_report/docs/stages/00_STAGE_INDEX.md) | All 14 pipeline stages documented |
-| [22-Feb Audit](Thesis_report/docs/22Feb_Opus_Understanding/00_README.md) | Comprehensive 28-file repo audit from Feb 2026 |
-| [Monitoring Deep Dive](Thesis_report/docs/22Feb_Opus_Understanding/12_STAGE_MONITORING_3_LAYER_DEEP_DIVE.md) | 3-layer monitoring architecture detail |
-| [Retraining & Rollback](Thesis_report/docs/22Feb_Opus_Understanding/14_STAGE_RETRAINING_TRIGGER_GOVERNANCE_ROLLBACK.md) | Retraining trigger, governance & rollback |
+| [Thesis Structure Outline](docs/04_THESIS_WRITING/THESIS_STRUCTURE_OUTLINE.md) | **Main document** - Thesis structure, objectives, chapter plan |
+| [Remaining Work](docs/04_THESIS_WRITING/todo/01_REMAINING_WORK.md) | **Authoritative task list** — what is done, what is left |
+| [Work Done Log](docs/04_THESIS_WRITING/todo/CHATGPT_2_PIPELINE_WORK_DONE.md) | Complete log of everything built |
+| [CI/CD Beginner's Guide](docs/02_TECH/guides/guide-cicd-beginner.md) | Complete GitHub Actions tutorial from scratch |
+| [Thesis Plan (Original)](thesis/Thesis_Plan.md) | Original 6-month roadmap (Oct 2025 - Apr 2026) |
+| [Pipeline Operations](docs/02_TECH/guides/guide-pipeline-operations-architecture.md) | Complete pipeline documentation & architecture |
+| [Pipeline Runbook](thesis/_snapshots/2026-02/19_Feb/PIPELINE_RUNBOOK.md) | Step-by-step pipeline operations guide |
+| [API Documentation](docs/02_TECH/guides/guide-data-ingestion-inference.md) | FastAPI endpoints and usage |
+| [Research Papers Analysis](docs/04_THESIS_WRITING/research/qna-har-mlops-papers.md) | Insights from 77+ research papers |
+| [Stage Index](docs/01_PIPELINE/stages/00_STAGE_INDEX.md) | All 14 pipeline stages documented |
+| [22-Feb Audit](thesis/_snapshots/2026-02/22Feb_Opus_Understanding/00_README.md) | Comprehensive 28-file repo audit from Feb 2026 |
+| [Monitoring Deep Dive](thesis/_snapshots/2026-02/22Feb_Opus_Understanding/12_STAGE_MONITORING_3_LAYER_DEEP_DIVE.md) | 3-layer monitoring architecture detail |
+| [Retraining & Rollback](thesis/_snapshots/2026-02/22Feb_Opus_Understanding/14_STAGE_RETRAINING_TRIGGER_GOVERNANCE_ROLLBACK.md) | Retraining trigger, governance & rollback |
+| [Documentation Index](docs/00_INDEX.md) | All documentation organized by topic |
 
 ---
 
@@ -359,21 +361,21 @@ pytest tests/ -m "not slow"
 | Document | Purpose |
 |----------|---------|
 | **[src/README.md](src/README.md)** | Source code inventory & pipeline flow |
-| **[Thesis_report/docs/technical/guide-pipeline-rerun.md](Thesis_report/docs/technical/guide-pipeline-rerun.md)** | Step-by-step pipeline execution |
-| **[Thesis_report/docs/technical/guide-pipeline-operations-architecture.md](Thesis_report/docs/technical/guide-pipeline-operations-architecture.md)** | Full pipeline operations & architecture |
-| **[Thesis_report/docs/technical/guide-monitoring-retraining.md](Thesis_report/docs/technical/guide-monitoring-retraining.md)** | Monitoring & retraining guide |
-| **[Thesis_report/docs/technical/guide-cicd-github-actions.md](Thesis_report/docs/technical/guide-cicd-github-actions.md)** | GitHub Actions CI/CD reference |
-| **[Thesis_report/docs/thesis/CONCEPTS_EXPLAINED.md](Thesis_report/docs/thesis/CONCEPTS_EXPLAINED.md)** | Technical concepts & formulas |
-| **[Thesis_report/docs/research/RESEARCH_PAPERS_ANALYSIS.md](Thesis_report/docs/research/RESEARCH_PAPERS_ANALYSIS.md)** | Reference papers & summaries |
-| **[Thesis_report/docs/stages/00_STAGE_INDEX.md](Thesis_report/docs/stages/00_STAGE_INDEX.md)** | All 14 pipeline stage docs |
-| **[docs/PRODUCT_REVIEW.md](docs/PRODUCT_REVIEW.md)** | Project product review |
+| **[docs/02_TECH/guides/guide-pipeline-rerun.md](docs/02_TECH/guides/guide-pipeline-rerun.md)** | Step-by-step pipeline execution |
+| **[docs/02_TECH/guides/guide-pipeline-operations-architecture.md](docs/02_TECH/guides/guide-pipeline-operations-architecture.md)** | Full pipeline operations & architecture |
+| **[docs/02_TECH/guides/guide-monitoring-retraining.md](docs/02_TECH/guides/guide-monitoring-retraining.md)** | Monitoring & retraining guide |
+| **[docs/02_TECH/guides/guide-cicd-github-actions.md](docs/02_TECH/guides/guide-cicd-github-actions.md)** | GitHub Actions CI/CD reference |
+| **[docs/04_THESIS_WRITING/CONCEPTS_EXPLAINED.md](docs/04_THESIS_WRITING/CONCEPTS_EXPLAINED.md)** | Technical concepts & formulas |
+| **[docs/04_THESIS_WRITING/research/RESEARCH_PAPERS_ANALYSIS.md](docs/04_THESIS_WRITING/research/RESEARCH_PAPERS_ANALYSIS.md)** | Reference papers & summaries |
+| **[docs/01_PIPELINE/stages/00_STAGE_INDEX.md](docs/01_PIPELINE/stages/00_STAGE_INDEX.md)** | All 14 pipeline stage docs |
+| **[docs/01_PIPELINE/PRODUCT_REVIEW.md](docs/01_PIPELINE/PRODUCT_REVIEW.md)** | Project product review |
 
 ### 📦 Archived / Historical Documentation
 
-Old/outdated docs archived under [archive/](archive/) and [Thesis_report/](Thesis_report/):
-- Pipeline work logs: `Thesis_report/things to do/CHATGPT_*.md`
-- 19 Feb sprint docs: `Thesis_report/docs/19_Feb/`
-- Comprehensive Feb 2026 audit: `Thesis_report/docs/22Feb_Opus_Understanding/` (28 files)
+Old/outdated docs archived under [docs/99_ARCHIVE/](docs/99_ARCHIVE/) and [thesis/_snapshots/](thesis/_snapshots/):
+- Pipeline work logs: `docs/04_THESIS_WRITING/todo/CHATGPT_*.md`
+- 19 Feb sprint docs: `thesis/_snapshots/2026-02/19_Feb/`
+- Comprehensive Feb 2026 audit: `thesis/_snapshots/2026-02/22Feb_Opus_Understanding/` (28 files)
 
 ---
 
@@ -460,7 +462,8 @@ MasterArbeit_MLops/
 │   ├── build_normalized_baseline.py # Build monitoring baseline
 │   └── analyze_drift_across_datasets.py # Cross-dataset drift analysis
 │
-├── 📂 Thesis_report/               # All thesis-related docs & plans
+├── 📂 thesis/                      # LaTeX source (chapters, refs, figures)
+├── 📂 docs/                        # All documentation (topic-based)
 │   ├── chapters/                   # LaTeX chapter files (ch1–ch6)
 │   ├── things to do/               # Task tracking & remaining work
 │   ├── docs/

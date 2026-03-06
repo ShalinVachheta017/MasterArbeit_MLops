@@ -42,6 +42,7 @@ def mock_probs(mock_logits):
 
 # ── Temperature Scaler ───────────────────────────────────────────────
 
+
 class TestTemperatureScaler:
     def test_default_temperature(self):
         scaler = TemperatureScaler()
@@ -86,6 +87,7 @@ class TestTemperatureScaler:
 
 # ── Calibration Evaluator ────────────────────────────────────────────
 
+
 class TestCalibrationEvaluator:
     def test_ece_is_bounded(self, mock_probs, mock_labels):
         evaluator = CalibrationEvaluator(n_bins=15)
@@ -128,6 +130,7 @@ class TestCalibrationEvaluator:
 
 
 # ── Unlabeled Calibration Analyzer ───────────────────────────────────
+
 
 class TestUnlabeledCalibrationAnalyzer:
     def test_analyze_returns_expected_keys(self, mock_probs):

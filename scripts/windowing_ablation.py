@@ -57,6 +57,7 @@ FREQ_HZ = 50
 # Windowing helpers
 # --------------------------------------------------------------------------- #
 
+
 def slide_windows_by_session(
     df_sorted: pd.DataFrame, window_size: int, step: int
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
@@ -99,12 +100,14 @@ def extract_features(arr_flat: np.ndarray, window_size: int, n_channels: int = 6
         row = []
         for ch in range(n_channels):
             ch_data = w[:, ch]
-            row.extend([
-                ch_data.mean(),
-                ch_data.std(),
-                np.sqrt(np.mean(ch_data**2)),  # RMS / energy
-                ch_data.max() - ch_data.min(),  # range
-            ])
+            row.extend(
+                [
+                    ch_data.mean(),
+                    ch_data.std(),
+                    np.sqrt(np.mean(ch_data**2)),  # RMS / energy
+                    ch_data.max() - ch_data.min(),  # range
+                ]
+            )
         feats.append(row)
     return np.array(feats)
 
@@ -112,6 +115,7 @@ def extract_features(arr_flat: np.ndarray, window_size: int, n_channels: int = 6
 # --------------------------------------------------------------------------- #
 # Stability metrics
 # --------------------------------------------------------------------------- #
+
 
 def stability_metrics(
     y_pred: np.ndarray,
@@ -140,6 +144,7 @@ def stability_metrics(
 # --------------------------------------------------------------------------- #
 # Main
 # --------------------------------------------------------------------------- #
+
 
 def run_ablation(data_csv: Path, use_mlflow: bool) -> pd.DataFrame:
     from sklearn.linear_model import LogisticRegression
@@ -172,7 +177,9 @@ def run_ablation(data_csv: Path, use_mlflow: bool) -> pd.DataFrame:
     prep_df["_label_enc"] = labels_enc
     prep_df["_session_id"] = session_ids.values
     prep_df["_timestamp_ns"] = timestamps.astype("int64")
-    prep_df = prep_df.sort_values(["_session_id", "_timestamp_ns"], kind="stable").reset_index(drop=True)
+    prep_df = prep_df.sort_values(["_session_id", "_timestamp_ns"], kind="stable").reset_index(
+        drop=True
+    )
 
     records = []
 

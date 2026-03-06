@@ -462,11 +462,7 @@ class InferencePipeline:
         t0 = time.time()
 
         try:
-            # post_inference_monitoring lives in scripts/
-            scripts_dir = self.cfg.project_root / "scripts"
-            if str(scripts_dir) not in sys.path:
-                sys.path.insert(0, str(scripts_dir))
-            from post_inference_monitoring import PostInferenceMonitor
+            from src.post_inference_monitoring import PostInferenceMonitor
 
             cfg = config or MonitoringConfig()
 

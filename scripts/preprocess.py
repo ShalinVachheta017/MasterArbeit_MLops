@@ -109,7 +109,8 @@ def main():
         enable_calibration=args.calibrate,
     )
     transformation = DataTransformation(
-        config=transformation_cfg, prev_artifact=validation_artifact,
+        config=transformation_cfg,
+        prev_artifact=validation_artifact,
     )
     transformation_artifact = transformation.initiate_data_transformation()
     logger.info("Transformation complete: %s", transformation_artifact)

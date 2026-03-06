@@ -38,18 +38,21 @@ class TestBaselineUpdateComponent:
         """Mock the BaselineBuilder to test the component wrapper logic."""
         # Create a fake training CSV
         import pandas as pd
+
         csv_path = pipeline_config.data_raw_dir / "all_users_data_labeled.csv"
-        df = pd.DataFrame({
-            "timestamp": range(100),
-            "Ax_w": np.random.randn(100),
-            "Ay_w": np.random.randn(100),
-            "Az_w": np.random.randn(100),
-            "Gx_w": np.random.randn(100),
-            "Gy_w": np.random.randn(100),
-            "Gz_w": np.random.randn(100),
-            "activity": ["sitting"] * 50 + ["standing"] * 50,
-            "User": [1] * 100,
-        })
+        df = pd.DataFrame(
+            {
+                "timestamp": range(100),
+                "Ax_w": np.random.randn(100),
+                "Ay_w": np.random.randn(100),
+                "Az_w": np.random.randn(100),
+                "Gx_w": np.random.randn(100),
+                "Gy_w": np.random.randn(100),
+                "Gz_w": np.random.randn(100),
+                "activity": ["sitting"] * 50 + ["standing"] * 50,
+                "User": [1] * 100,
+            }
+        )
         df.to_csv(csv_path, index=False)
 
         # Mock BaselineBuilder
@@ -65,20 +68,11 @@ class TestBaselineUpdateComponent:
             output_normalized_path=tmp_path / "normalized.json",
         )
 
-        with patch.dict("sys.modules", {"build_training_baseline": MagicMock()}):
-            import sys
-            mock_module = MagicMock()
-            mock_module.BaselineBuilder.return_value = mock_builder
+        with patch("src.build_training_baseline.BaselineBuilder", return_value=mock_builder):
+            from src.components.baseline_update import BaselineUpdate
 
-            # Add scripts to path and patch
-            scripts_dir = str(pipeline_config.scripts_dir)
-            if scripts_dir not in sys.path:
-                sys.path.insert(0, scripts_dir)
-
-            with patch.dict("sys.modules", {"build_training_baseline": mock_module}):
-                from src.components.baseline_update import BaselineUpdate
-                comp = BaselineUpdate(pipeline_config, config)
-                artifact = comp.initiate_baseline_update()
+            comp = BaselineUpdate(pipeline_config, config)
+            artifact = comp.initiate_baseline_update()
 
         assert isinstance(artifact, BaselineUpdateArtifact)
         assert artifact.n_channels == 6

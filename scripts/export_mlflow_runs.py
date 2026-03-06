@@ -91,9 +91,9 @@ def export_experiment(
     print(f"  Found {len(runs)} run(s).")
 
     # ── Collect all column names ──────────────────────────────────────
-    all_param_keys:  set[str] = set()
+    all_param_keys: set[str] = set()
     all_metric_keys: set[str] = set()
-    all_tag_keys:    set[str] = set()
+    all_tag_keys: set[str] = set()
 
     for run in runs:
         all_param_keys.update(run.data.params.keys())
@@ -101,29 +101,36 @@ def export_experiment(
         if include_tags:
             all_tag_keys.update(run.data.tags.keys())
 
-    base_cols = ["run_id", "run_name", "status", "start_time", "end_time",
-                 "duration_s", "artifact_uri"]
-    param_cols  = sorted(f"param.{k}"  for k in all_param_keys)
+    base_cols = [
+        "run_id",
+        "run_name",
+        "status",
+        "start_time",
+        "end_time",
+        "duration_s",
+        "artifact_uri",
+    ]
+    param_cols = sorted(f"param.{k}" for k in all_param_keys)
     metric_cols = sorted(f"metric.{k}" for k in all_metric_keys)
-    tag_cols    = sorted(f"tag.{k}"    for k in all_tag_keys) if include_tags else []
-    fieldnames  = base_cols + param_cols + metric_cols + tag_cols
+    tag_cols = sorted(f"tag.{k}" for k in all_tag_keys) if include_tags else []
+    fieldnames = base_cols + param_cols + metric_cols + tag_cols
 
     # ── Build rows ────────────────────────────────────────────────────
     rows = []
     for run in runs:
         start_ms = run.info.start_time
-        end_ms   = run.info.end_time
+        end_ms = run.info.end_time
         duration = ""
         if start_ms and end_ms:
             duration = f"{(end_ms - start_ms) / 1000:.1f}"
 
         row: dict = {
-            "run_id":       run.info.run_id,
-            "run_name":     run.info.run_name or "",
-            "status":       run.info.status,
-            "start_time":   datetime.fromtimestamp(start_ms / 1000).isoformat() if start_ms else "",
-            "end_time":     datetime.fromtimestamp(end_ms   / 1000).isoformat() if end_ms   else "",
-            "duration_s":   duration,
+            "run_id": run.info.run_id,
+            "run_name": run.info.run_name or "",
+            "status": run.info.status,
+            "start_time": datetime.fromtimestamp(start_ms / 1000).isoformat() if start_ms else "",
+            "end_time": datetime.fromtimestamp(end_ms / 1000).isoformat() if end_ms else "",
+            "duration_s": duration,
             "artifact_uri": run.info.artifact_uri,
         }
         for k, v in run.data.params.items():
@@ -137,9 +144,9 @@ def export_experiment(
         rows.append(row)
 
     # ── Save CSV ──────────────────────────────────────────────────────
-    ts        = datetime.now().strftime("%Y%m%d_%H%M%S")
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     safe_name = experiment_name.replace("/", "_").replace(" ", "_")
-    out_path  = output_dir / f"mlflow_export_{safe_name}_{ts}.csv"
+    out_path = output_dir / f"mlflow_export_{safe_name}_{ts}.csv"
 
     output_dir.mkdir(parents=True, exist_ok=True)
     with open(out_path, "w", newline="", encoding="utf-8") as f:
@@ -158,7 +165,8 @@ def main():
         epilog=__doc__,
     )
     parser.add_argument(
-        "--experiment", "-e",
+        "--experiment",
+        "-e",
         nargs="+",
         required=True,
         help="Experiment name(s) or numeric ID(s) to export.",

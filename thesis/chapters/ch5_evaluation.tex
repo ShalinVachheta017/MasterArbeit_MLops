@@ -1,0 +1,148 @@
+% ============================================================================
+% chapters/ch5_evaluation.tex
+% ============================================================================
+\chapter{Evaluation}
+\label{ch:evaluation}
+
+% ============================================================================
+\section{Experimental Setup}
+\label{sec:experimental_setup}
+% ============================================================================
+
+All experiments are run on the 26 Garmin Decoded recording sessions described
+in \Cref{sec:dataset}.
+Experiments are identified by artefact run codes (A1--A5) that correspond to
+MLflow run IDs stored in \texttt{mlruns/} and artefact directories under
+\texttt{artifacts/}.
+All results are reproducible via \texttt{python run\_pipeline.py} with the
+command recorded in each artefact's \texttt{run\_config.json}.
+
+\begin{table}[ht]
+  \centering
+  \caption{Ablation experiment definitions.}
+  \label{tab:ablation_experiments}
+  \begin{tabularx}{\linewidth}{clX}
+    \toprule
+    \textbf{ID} & \textbf{Name} & \textbf{Description} \\
+    \midrule
+    A1 & Baseline inference
+       & Pre-trained model, no adaptation, raw production data. \\
+    A2 & Baseline (converted)
+       & Pre-trained model, no adaptation, unit-converted data. \\
+    A3 & Fine-tuned
+       & Model fine-tuned on labelled wrist data; best fold from 5-fold CV. \\
+    A4 & AdaBN+TENT
+       & AdaBN followed by TENT on unlabelled production data. \\
+    A5 & Pseudo-label
+       & Curriculum pseudo-labelling with EWC, 9 adaptation stages. \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\section{Evaluation Metrics}
+
+\begin{description}
+  \item[Classification accuracy] fraction of windows with correct top-1
+    prediction on a held-out source-domain test set.
+  \item[Macro F1] unweighted mean of per-class F1 scores; accounts for class
+    imbalance.
+  \item[Mean confidence $\bar{c}$] mean maximum softmax probability across all
+    production windows; primary monitoring signal.
+  \item[ECE] Expected Calibration Error (Equation~\ref{eq:ece}); measures
+    calibration quality before and after temperature scaling.
+  \item[Transition rate] fraction of consecutive window pairs with different
+    predicted class; measures temporal coherence.
+\end{description}
+
+% ============================================================================
+\section{Classification Performance}
+\label{sec:classification_performance}
+% ============================================================================
+
+\begin{table}[ht]
+  \centering
+  \caption{Classification results across ablation experiments.
+           \textsuperscript{†}Production data without unit conversion.}
+  \label{tab:results}
+  \begin{tabular}{clccc}
+    \toprule
+    \textbf{ID} & \textbf{Experiment}
+      & \textbf{Val Acc (\%)} & \textbf{Macro F1}
+      & \textbf{$\bar{c}$} \\
+    \midrule
+    A1 & Baseline (raw)\textsuperscript{†} & 14.52 & \todo{TBD} & \todo{TBD} \\
+    A2 & Baseline (converted)              & \todo{TBD} & \todo{TBD} & \todo{TBD} \\
+    A3 & Fine-tuned                        & 89.90 & \todo{TBD} & 0.899 \\
+    A4 & AdaBN+TENT                        & \todo{TBD} & \todo{TBD} & 0.823 \\
+    A5 & Pseudo-label                      & 96.90 & \todo{TBD} & \todo{TBD} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\paragraph{A1 vs A2: Unit conversion impact.}
+The accelerometer unit mismatch caused cross-user accuracy to fall below the
+random-chance baseline of 9.09\,\% for 11 classes.
+After applying the milli-g to m/s\textsuperscript{2} conversion, accuracy
+recovered to the levels reported for A2.
+This experiment demonstrates that unit-compatibility validation is a
+prerequisite for any meaningful HAR evaluation.
+
+\paragraph{A3: Fine-tuned baseline.}
+The fine-tuned model achieves 89.9\,\% validation accuracy with mean confidence
+$\bar{c} = 0.899$, establishing the performance target for the adaptation
+strategies.
+
+\paragraph{A4: AdaBN+TENT.}
+The adaptation run on 2026-02-23 resulted in mean confidence
+$\bar{c} = 0.823$ ($\Delta\bar{c} = -0.076$), exceeding the 5\,\% canary
+tolerance ($-0.045$).
+The adapted model was archived; the production model remains A3.
+The TENT rollback gate was not triggered (entropy did not increase), indicating
+that the confidence drop was genuine and not an artefact of adaptation instability.
+
+\paragraph{A5: Pseudo-labelling.}
+The pseudo-label run (artefact \texttt{20260219\_134233}) completes 9
+adaptation stages, achieves in-loop validation accuracy 96.9\,\%, and passes
+12 of 12 audit checks.
+Full confusion matrix and per-class F1 scores are provided in
+\Cref{app:full_results}.
+
+% ============================================================================
+\section{Calibration Results}
+\label{sec:calibration_results}
+% ============================================================================
+
+Temperature scaling was applied to all experiment variants.
+\todo{Insert ECE before/after table after running calibration stage on all
+variants.}
+
+% ============================================================================
+\section{Drift Detection Accuracy}
+\label{sec:drift_detection}
+% ============================================================================
+
+\todo{Fill in after running batch drift analysis across 26 sessions via
+\texttt{python scripts/analyze\_drift\_across\_datasets.py}.}
+
+The drift detection framework is validated by replaying the A1 scenario
+(raw production data) through the monitoring pipeline and verifying that:
+\begin{itemize}
+  \item Layer~3 z-score alert fires for the $a_z$ channel
+        ($z_{a_z} \approx (−1001.6 − (−3.5))/3.2 \approx 312$).
+  \item PSI alert fires with aggregated PSI $\gg 1.50$ (critical threshold).
+  \item The trigger engine votes CRITICAL and initiates a retraining event.
+\end{itemize}
+
+% ============================================================================
+\section{Robustness Testing}
+\label{sec:robustness}
+% ============================================================================
+
+\todo{Run robustness tests via \texttt{src/robustness.py} after batch run
+completes.}
+
+The robustness module (\texttt{src/robustness.py}, 449 lines) injects five
+noise types --- Gaussian noise, bias shift, axis dropout, random spike
+injection, and temporal jitter --- at three severity levels (low, medium, high).
+Results will show how monitoring Layer~1 confidence responds to each noise type
+and at what severity level the trigger fires.

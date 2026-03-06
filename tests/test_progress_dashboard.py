@@ -26,7 +26,8 @@ from scripts.update_progress_dashboard import (
 # Sample YAML fixture
 # ---------------------------------------------------------------------------
 
-SAMPLE_YAML = textwrap.dedent("""\
+SAMPLE_YAML = textwrap.dedent(
+    """\
     snapshot_date: "2026-02-12"
     deadline: "2026-05-20"
 
@@ -85,7 +86,8 @@ SAMPLE_YAML = textwrap.dedent("""\
         percent: 15
         evidence:
           - "docs/thesis/THESIS_STRUCTURE_OUTLINE.md"
-""")
+"""
+)
 
 
 @pytest.fixture
@@ -105,6 +107,7 @@ def sample_yaml_file(tmp_path: Path) -> Path:
 # ---------------------------------------------------------------------------
 # TRS / ERS computation tests
 # ---------------------------------------------------------------------------
+
 
 class TestComputeTRS:
     """Tests for the Thesis Readiness Score formula."""
@@ -150,6 +153,7 @@ class TestComputeERS:
 # ---------------------------------------------------------------------------
 # Utility tests
 # ---------------------------------------------------------------------------
+
 
 class TestWeeksRemaining:
     def test_known_range(self):
@@ -214,6 +218,7 @@ class TestChecklistSummary:
 # Config loading
 # ---------------------------------------------------------------------------
 
+
 class TestLoadConfig:
     def test_loads_valid(self, sample_yaml_file: Path):
         data = load_config(sample_yaml_file)
@@ -231,6 +236,7 @@ class TestLoadConfig:
 # ---------------------------------------------------------------------------
 # Dashboard generation
 # ---------------------------------------------------------------------------
+
 
 class TestGenerateDashboard:
     def test_contains_headline_scores(self, sample_data: dict):

@@ -35,6 +35,7 @@ REPORTS_DIR = PROJECT_ROOT / "reports" / "benchmark"
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _generate_csv_bytes(n_rows: int = 600) -> bytes:
     rng = np.random.default_rng(0)
     acc = rng.normal([0.0, 0.0, -9.81], 1.0, size=(n_rows, 3)).astype(np.float32)
@@ -47,6 +48,7 @@ def _generate_csv_bytes(n_rows: int = 600) -> bytes:
 
 def _send_one(endpoint: str, payload: bytes) -> bool:
     import requests  # noqa: PLC0415
+
     try:
         r = requests.post(
             f"{endpoint}/api/upload",
@@ -62,9 +64,8 @@ def _send_one(endpoint: str, payload: bytes) -> bool:
 # HTTP concurrency scaling
 # ---------------------------------------------------------------------------
 
-def run_concurrency_level(
-    endpoint: str, n_workers: int, n_requests: int, payload: bytes
-) -> dict:
+
+def run_concurrency_level(endpoint: str, n_workers: int, n_requests: int, payload: bytes) -> dict:
     t0 = time.perf_counter()
     successes = 0
     with concurrent.futures.ThreadPoolExecutor(max_workers=n_workers) as ex:
@@ -96,8 +97,7 @@ def run_http_throughput(endpoint: str, n_requests: int) -> dict:
     for workers in levels:
         print(f"  concurrency={workers:>2}  …", end=" ", flush=True)
         r = run_concurrency_level(endpoint, workers, n_requests, payload)
-        print(f"{r['requests_per_sec']:>7.1f} req/s  "
-              f"(errors: {r['error_rate_pct']:.0f}%)")
+        print(f"{r['requests_per_sec']:>7.1f} req/s  " f"(errors: {r['error_rate_pct']:.0f}%)")
         curve.append(r)
 
     peak = max(curve, key=lambda x: x["requests_per_sec"])
@@ -114,6 +114,7 @@ def run_http_throughput(endpoint: str, n_requests: int) -> dict:
 # Local batch-size scaling
 # ---------------------------------------------------------------------------
 
+
 def run_local_throughput(batch_sizes: List[int], n_repeats: int = 20) -> dict:
     try:
         import tensorflow as tf  # noqa: PLC0415
@@ -121,9 +122,7 @@ def run_local_throughput(batch_sizes: List[int], n_repeats: int = 20) -> dict:
         sys.exit("TensorFlow required for --local mode.")
     tf.get_logger().setLevel("ERROR")
 
-    model_path = (
-        PROJECT_ROOT / "models" / "pretrained" / "fine_tuned_model_1dcnnbilstm.keras"
-    )
+    model_path = PROJECT_ROOT / "models" / "pretrained" / "fine_tuned_model_1dcnnbilstm.keras"
     if not model_path.exists():
         sys.exit(f"Model not found: {model_path}\nRun: dvc pull models/pretrained.dvc")
     model = tf.keras.models.load_model(str(model_path))
@@ -139,13 +138,16 @@ def run_local_throughput(batch_sizes: List[int], n_repeats: int = 20) -> dict:
         elapsed = time.perf_counter() - t0
         windows_per_sec = bs * n_repeats / elapsed
         latency_ms = elapsed / n_repeats * 1000
-        print(f"  batch={bs:>5}  {windows_per_sec:>10.1f} windows/s  "
-              f"  {latency_ms:>8.2f} ms/call")
-        curve.append({
-            "batch_size": bs,
-            "windows_per_sec": round(windows_per_sec, 1),
-            "latency_ms_per_call": round(latency_ms, 2),
-        })
+        print(
+            f"  batch={bs:>5}  {windows_per_sec:>10.1f} windows/s  " f"  {latency_ms:>8.2f} ms/call"
+        )
+        curve.append(
+            {
+                "batch_size": bs,
+                "windows_per_sec": round(windows_per_sec, 1),
+                "latency_ms_per_call": round(latency_ms, 2),
+            }
+        )
 
     return {
         "mode": "local_model",
@@ -159,13 +161,19 @@ def run_local_throughput(batch_sizes: List[int], n_repeats: int = 20) -> dict:
 # Main
 # ---------------------------------------------------------------------------
 
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="HAR API Throughput Benchmark")
     ap.add_argument("--endpoint", default="http://localhost:8000")
-    ap.add_argument("--requests-per-level", type=int, default=30,
-                    help="Number of requests per concurrency level (HTTP mode)")
-    ap.add_argument("--local", action="store_true",
-                    help="Benchmark local model batch scaling, no HTTP")
+    ap.add_argument(
+        "--requests-per-level",
+        type=int,
+        default=30,
+        help="Number of requests per concurrency level (HTTP mode)",
+    )
+    ap.add_argument(
+        "--local", action="store_true", help="Benchmark local model batch scaling, no HTTP"
+    )
     args = ap.parse_args()
 
     print("=" * 56)
@@ -174,9 +182,7 @@ def main() -> None:
 
     if args.local:
         print("  Mode: local batch-size scaling")
-        result = run_local_throughput(
-            batch_sizes=[1, 4, 8, 16, 32, 64, 128, 256, 512]
-        )
+        result = run_local_throughput(batch_sizes=[1, 4, 8, 16, 32, 64, 128, 256, 512])
     else:
         print(f"  Mode: HTTP concurrent load test → {args.endpoint}")
         result = run_http_throughput(args.endpoint, args.requests_per_level)

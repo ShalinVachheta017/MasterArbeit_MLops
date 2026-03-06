@@ -1,0 +1,136 @@
+% ============================================================================
+% appendices/app_b_engineering_log.tex
+% ============================================================================
+\chapter{Engineering Problem Log}
+\label{app:engineering_log}
+
+This appendix records 21 engineering problems encountered during the
+development of the pipeline.
+For each problem the table lists: a short identifier and description,
+the commit(s) in which the fix was applied, and the pipeline subsystem affected.
+Problems P1--P8 are unit-conversion and preprocessing related;
+P9--P14 are adaptation related; P15--P21 are infrastructure related.
+
+\begin{longtable}{p{0.05\textwidth}p{0.30\textwidth}p{0.18\textwidth}p{0.37\textwidth}}
+  \caption{Chronological engineering problem log with commit evidence.}
+  \label{tab:problems} \\
+  \toprule
+  \textbf{ID} & \textbf{Problem} & \textbf{Commit(s)} & \textbf{Resolution} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{ID} & \textbf{Problem} & \textbf{Commit(s)} & \textbf{Resolution} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+
+  P1 & Accelerometer in milli-g; model trained on m/s\textsuperscript{2};
+       14.5\,\% accuracy, overconfident wrong predictions
+     & c17f3dd, 3a07e4f, 1c403f8
+     & Automatic unit detection via median magnitude; scale guard in ingestion \\[4pt]
+
+  P2 & Gyroscope data absent in some sessions; ingestion crashed silently
+     & a2b9e11
+     & Graceful fallback to zero gyroscope channels with data-quality flag \\[4pt]
+
+  P3 & Scaler (training statistics) applied before unit conversion;
+       normalised values still 100$\times$ wrong
+     & 1c403f8
+     & Move unit guard \textit{before} scaler application in transform step \\[4pt]
+
+  P4 & Window boundary misalignment at end of session;
+       last window shorter than 200 samples, causing shape error
+     & d4fbe72
+     & Drop trailing windows shorter than 200 samples; log count \\[4pt]
+
+  P5 & NaN values in fused sensor stream after resampling;
+       propagated silently through windowing
+     & 8e3c9a1
+     & Interpolate NaNs in fused CSV; raise error if NaN fraction $>$5\,\% \\[4pt]
+
+  P6 & Duplicate timestamps in Garmin export;
+       resampling produced repeated rows
+     & 8e3c9a1
+     & Deduplicate by timestamp before interpolation \\[4pt]
+
+  P7 & Session with very short duration (under 60\,s) produced zero windows;
+       pipeline crash on empty array
+     & f3a11cb
+     & Check array length after windowing; skip session with logged warning \\[4pt]
+
+  P8 & Scaler fit on full dataset including test split;
+       data leakage in cross-validation
+     & 2c7d9ee
+     & Fit scaler inside each CV fold on training split only \\[4pt]
+
+  P9 & TENT training-mode forward passes overwrote AdaBN running statistics
+     & f47a48b
+     & BN snapshot mechanism: save $\mu_\text{run}, \sigma_\text{run}$ before
+       TENT loop; restore after every gradient step \\[4pt]
+
+  P10 & TENT optimiser included all model parameters; inadvertently updated
+        dense layer weights
+     & f47a48b
+     & Filter parameter group to $\gamma, \beta$ of BN layers only \\[4pt]
+
+  P11 & OOD gate threshold of 0.85 (normalised entropy) too aggressive;
+        rejected valid production sessions with high class uncertainty
+     & 3d1a4ff
+     & Raise threshold to 0.95; log OOD decision with entropy value \\[4pt]
+
+  P12 & Pseudo-label loop mixed raw source data with scaled target data;
+        inflated in-loop accuracy while degrading production performance
+     & 3fd3c00
+     & Pre-process source data through production scaler before mixing \\[4pt]
+
+  P13 & EWC Fisher matrix computed on wrong dataset;
+        penalised wrong parameters and allowed catastrophic forgetting
+     & a71c334
+     & Compute Fisher matrix on the source-domain validation subset used
+       for rollback evaluation \\[4pt]
+
+  P14 & Self-consistency filter discarded 85.5\,\% of source windows;
+        fine-tuning ran on only 14.5\,\% of available data
+     & d9e0f80
+     & Lower self-consistency confidence requirement; retain windows where
+       argmax agrees across two passes regardless of probability delta \\[4pt]
+
+  P15 & PSI thresholds (0.10 / 0.25) triggered on stable data;
+        too many false-positive retrain events
+     & bd8dc1e
+     & Recalibrate to 0.75 / 1.50 for multi-channel aggregated PSI \\[4pt]
+
+  P16 & Duplicate trigger fires within same batch; cooldown not enforced;
+        retraining loop entered twice
+     & e8c2b5f
+     & Add cooldown state to trigger policy; reject trigger if within 24 hours
+       of most recent activation \\[4pt]
+
+  P17 & MLflow tracking server unavailable during CI run;
+        pipeline crashed on \texttt{MlflowException}
+     & 7a44d19
+     & Wrap all MLflow calls in try/except; fall back to local JSON log \\[4pt]
+
+  P18 & Docker image missing \texttt{/app/src} on PYTHONPATH;
+        import errors at API startup
+     & 9c4e00b
+     & Set \texttt{ENV PYTHONPATH=/app:/app/src} in Dockerfile \\[4pt]
+
+  P19 & \texttt{promote\_to\_shared} flag defaulting to True in nightly CI;
+        test-adapted model promoted to shared baseline
+     & b1f2e01
+     & Set governance flag to False in CI environment variable; require
+       explicit override for production promotion \\[4pt]
+
+  P20 & \texttt{pytest} slow tests timed out in CI (TF model load $>$~60\,s)
+     & 4c8d9a3
+     & Mark TF-dependent tests with \texttt{@pytest.mark.slow};
+       run in separate CI job with 360\,s timeout \\[4pt]
+
+  P21 & Artefact directories accumulated indefinitely; disk usage exceeded
+        quota in long-running development environment
+     & ---
+     & Added \texttt{cleanup\_repo.ps1} script (PowerShell) to archive
+       artefacts older than 30 days \\[4pt]
+\end{longtable}

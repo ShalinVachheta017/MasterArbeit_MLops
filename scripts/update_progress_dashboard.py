@@ -30,11 +30,14 @@ W_SYSTEM = 0.20
 # Core computations
 # ---------------------------------------------------------------------------
 
+
 def compute_trs(writing_pct: float, experiments_pct: float, system_pct: float) -> float:
     """
     Thesis Readiness Score = 0.45*writing + 0.35*experiments + 0.20*system.
     """
-    return round(W_WRITING * writing_pct + W_EXPERIMENTS * experiments_pct + W_SYSTEM * system_pct, 1)
+    return round(
+        W_WRITING * writing_pct + W_EXPERIMENTS * experiments_pct + W_SYSTEM * system_pct, 1
+    )
 
 
 def compute_ers(system_pct: float) -> float:
@@ -53,6 +56,7 @@ def weeks_remaining(snapshot_date: str, deadline: str) -> int:
 # ---------------------------------------------------------------------------
 # Utilities
 # ---------------------------------------------------------------------------
+
 
 def ascii_bar(percent: float, width: int = 20) -> str:
     """
@@ -77,6 +81,7 @@ def checklist_summary(items: List[Dict[str, Any]]) -> Tuple[int, int]:
 # Config loading
 # ---------------------------------------------------------------------------
 
+
 def load_config(path: Path) -> Dict[str, Any]:
     """
     Load and validate a progress YAML file.
@@ -96,6 +101,7 @@ def load_config(path: Path) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Dashboard generation
 # ---------------------------------------------------------------------------
+
 
 def generate_dashboard(data: Dict[str, Any]) -> str:
     """
@@ -172,6 +178,7 @@ def generate_dashboard(data: Dict[str, Any]) -> str:
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
+
 
 def main():
     parser = argparse.ArgumentParser(description="Generate thesis progress dashboard")

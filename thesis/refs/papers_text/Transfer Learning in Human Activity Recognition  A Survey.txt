@@ -1,0 +1,1832 @@
+--- PAGE 1 ---
+Transfer Learning in Human Activity Recognition: A Survey
+SOURISH GUNESH DHEKANE, THOMAS PLÖTZ∗, School of Interactive Computing, College of
+Computing, Georgia Institute of Technology, USA
+Sensor-based human activity recognition (HAR) has been an active research area, owing to its applications in smart environ-
+ments, assisted living, fitness, healthcare, etc. Recently, deep learning based end-to-end training has resulted in state-of-the-art
+performance in domains such as computer vision and natural language, where large amounts of annotated data are available.
+However, large quantities of annotated data are not available for sensor-based HAR. Moreover, the real-world settings on
+which the HAR is performed differ in terms of sensor modalities, classification tasks, and target users. To address this problem,
+transfer learning has been employed extensively. In this survey, we focus on these transfer learning methods in the application
+domains of smart home and wearables-based HAR. In particular, we provide a problem-solution perspective by categorizing
+and presenting the works in terms of their contributions and the challenges they address. We also present an updated view of
+the state-of-the-art for both application domains. Based on our analysis of 205 papers, we highlight the gaps in the literature
+and provide a roadmap for addressing them. This survey provides a reference to the HAR community, by summarizing the
+existing works and providing a promising research agenda.
+Additional Key Words and Phrases: Human Activity Recognition, Transfer Learning, Domain Adaptation
+ACM Reference Format:
+Sourish Gunesh Dhekane, Thomas Plötz. 2018. Transfer Learning in Human Activity Recognition: A Survey. ACM Comput.
+Surv. 1, 1, Article 1 (January 2018), 40 pages. https://doi.org/XXXXXXX.XXXXXXX
+1
+INTRODUCTION
+Human activity recognition (HAR) for building intelligent systems has been a focal point of research over the last
+few decades, considering its applications in domains like healthcare [12], surveillance [191], and sports [6]. The
+progress in this domain has mainly been enabled by advances in sensing technologies [37], and most importantly,
+machine learning [113]. The goal of HAR is to use the data collected by sensors placed at strategic locations
+(on-body or embedded in the environment) and classify it into the intended target activities. The workflow of
+HAR has been traditionally viewed as a five-step process, containing: (i) data collection, (ii) pre-processing,
+(iii) segmentation, (iv) feature extraction, and (v) classification [31]. The biggest challenge in front of the HAR
+community lies in the first step of this workflow, i.e., data collection [139].
+Collection of sensor data, and more importantly, annotating it correctly, is a challenging task. Unlike visual or
+language data, which can be scraped from the internet, collecting sensor data requires a sensor installation process,
+user consent, and manual efforts. Moreover, unlike images, videos, or language data instances, sensor data is not
+human interpretable, which makes it extremely hard to annotate the collected data. Thus, collecting labeled data
+for every specific HAR problem and training an end-to-end system to perform activity recognition is not practical.
+∗This work is partially supported by CISCO.
+Author’s address: Sourish Gunesh Dhekane, Thomas Plötz, sourish.dhekane@gatech.edu,thomas.ploetz@gatech.edu, School of Interactive
+Computing, College of Computing, Georgia Institute of Technology, Atlanta, GA, USA.
+Permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that
+copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first
+page. Copyrights for components of this work owned by others than ACM must be honored. Abstracting with credit is permitted. To copy
+otherwise, or republish, to post on servers or to redistribute to lists, requires prior specific permission and/or a fee. Request permissions from
+permissions@acm.org.
+© 2023 Association for Computing Machinery.
+0360-0300/2018/1-ART1 $15.00
+https://doi.org/XXXXXXX.XXXXXXX
+This manuscript is under review. Please write to sourish.dhekane@gatech.edu for up-to-date information
+arXiv:2401.10185v1  [cs.LG]  18 Jan 2024
+
+--- PAGE 2 ---
+Transfer learning offers an alternate, and more practical, solution to this problem by leveraging the knowledge
+gained from performing a task on the source domain into a new task to be performed on the target domain. In
+domains like vision and language, transfer learning has been proven to be successful in achieving data efficiency,
+generalization, and adaptation to new tasks [51, 69, 88, 183, 223]. However, performing transfer learning in the
+domain of HAR is not straightforward and there are substantial challenges that need to be addressed.
+The biggest technical challenge in performing transfer learning for HAR is the difference in feature space
+induced by factors like different sensor modalities, locations, devices, etc., across domains. Unlike images, videos,
+or text, where data instances from both domains can easily be mapped on a common feature space, such is not the
+case in many HAR applications. Thus, mapping of data points on a common feature space is a de-facto challenge
+to address in such applications. Another challenge in HAR is the unavailability of massive annotated datasets
+like ImageNet [52], which enable researchers to design high-capacity neural networks that can generalize across
+settings. Instead, the HAR domain has multiple small-scale datasets, each with its own setting in terms of the
+sensor modality, device, frequency, and so on. Thus, addressing this limitation posed by the lack of such large-scale
+homogeneous labeled datasets is a prominent research interest. Finally, the transfer learning solutions should also
+be consistent with the use cases for which they are designed. In other words, these solutions must obey certain
+constraints that are imposed by the problem setting. For instance, the requirement of having a model well-suited
+for a specific set of individuals (personalization) or the requirement of data privacy (federated/distributed learning)
+are some of the additional challenges that need to be tackled, in addition to performing a successful knowledge
+transfer across domains. In conclusion, transfer learning in HAR is an active research area with several unsolved
+challenges that carry huge significance.
+Through this survey, we explored and analyzed the solutions proposed for addressing these challenges. The
+specific contributions of our survey are as follows:
+• We provide background and define the problem of HAR from the perspectives of human activities and
+sensors so that a new researcher in this field can get introduced formally to the problem setting. We also
+define transfer learning and provide both the problem and the solution perspectives suitable for HAR.
+• As our main contributions, we select the application domains of smart homes and wearables to collect
+over 205 works that perform transfer learning. We classify these works based on the challenges that they
+address as well as the methods they employ. We present this analysis in the problem-solution perspective,
+where for each challenge, its description, relevance, source and target domain settings, and approaches for
+addressing it are presented.
+• After presenting this analysis, we enumerate the state-of-the-art transfer learning works from both smart
+home and wearable HAR domains along with their contributions in terms of the challenges addressed,
+novel methodologies used, comparisons performed, and performances obtained.
+• Based on our literature exploration and review of the state-of-the-art, we locate the gaps in the literature
+in terms of unaddressed challenges and unused methodologies that have the potential to perform well
+in addressing said challenges. We then provide a roadmap for the HAR community to focus on those
+highlighted challenges and methods in future works.
+With this survey, we aim to direct the focus of the HAR community toward the unaddressed challenges and
+opportunities present in the domain of transfer learning with our stated research agenda. Although several works
+have obtained decent levels of performance in specific HAR settings, learning a generalized HAR framework
+that can perform inference across diverse settings, without a lot of additional adjustments is essential for the
+community to move forward in this field. We hope that this survey serves that purpose.
+This manuscript is under review. Please write to sourish.dhekane@gatech.edu for up-to-date information
+
+--- PAGE 3 ---
+Activity
+Taxonomy
+Sensors
+Transfer
+Learning
+Scope
+Movements, Activities, Actions, Behaviors
+Movement, Physiological, Physical, Contextual, Visual
+Inductive (Self-taught & Multi-task), Unsupervised,
+Transductive (Domain adaptation & Sample Selection Bias)
+Transfer
+Learning
+Application 
+Domains
+Instance, Feature, Parameter, Knowledge-Base
+Activities of Daily Living, Smart Homes
+Narrative
+Fig. 1. Concept map, where we present both the scope and the narrative of our survey. The items highlighted are included in
+the scope. The narrative shows the categorization of the solution space presented in the survey.
+2
+BACKGROUND
+This survey covers two main concepts: human activity recognition and transfer learning. Before moving into their
+exploration, we first provide the necessary background and introduce terminologies present in these domains.
+We also use these terminologies to define the scope of our survey and present the concept map in Figure 1.
+2.1
+Human Activities
+Numerous works have contributed towards describing the term activity in the context of human activity recogni-
+tion [29, 130, 193]. Vrigkas et al. [193] describe activity as a task performed by a human using physical motion and
+classify it into (i) a gesture (primitive movements), (ii) an atomic action (single motion piece), (iii) an interaction
+with the environment, (iv) a behavior (sequence of actions representing the emotional state), or (v) an event
+(high-level context-aware occurrences). These categories cover the entire range of abstraction levels (Figure 2),
+starting from gestures and atomic actions (granular) to behaviors and events (abstract), where activities lie in
+between these extremes. This extent of interpretation forms the basis of the taxonomy of human activities.
+One of the initial hierarchies for activities was proposed by Nagel [130], where the terms changes, events,
+verbs, and histories were used to describe deviations in signals, activity descriptors, activities, and extended
+sequences of activities, respectively. Bobick’s work [29] added more description to each level of this hierarchy
+and presented a new system consisting of movements, activities, and actions. Bobick defined movements as
+atomic, predictable, and consistent motion units characterized by a space-time trajectory. Based on this, activities
+were defined as sequences of movements with consistent patterns, and actions were defined as large-scale events
+with a context that lies at the intersection of perception and cognition. Here, actions lie on a higher level of
+abstraction than activities, however, a majority of literature [32, 83, 129, 185] either considers actions as more
+granular than activities or uses these two terms interchangeably, depending on the use case. Thus, in this survey,
+we consider both activities and actions as in scope (Figure 1). In Figure 2, we plot these previously discussed
+terms based on their levels of abstraction and provide examples to clarify their real-life interpretations.
+2.2
+Sensors
+The National Institute of Standards and Technology (NIST) defines sensors as "transducers that convert a physical,
+biological, or chemical parameter into electrical signals" [1]. In the domain of HAR, sensors are considered
+as such physical devices that can collect data originating from human movements, activities, actions, and
+behaviors occurring in their environment. From the perspective of data modalities, various physical quantities
+including motion (e.g., acceleration, angular velocities, orientation), physiological measures (e.g., heart rate, blood
+This manuscript is under review. Please write to sourish.dhekane@gatech.edu for up-to-date information
+
+--- PAGE 4 ---
+Bobick 
+Movements
+Activities
+Actions
+Changes
+Verbs
+Events
+Histories
+Nagel
+Gesture
+Atomic action
+Interactions
+Behavior
+Event
+Vrigkas
+Abstraction Levels
+Swinging of a bat: 
+primitive, atomic,
+consistent motion piece
+Rowing of a boat: 
+sequence of multiple
+motion pieces 
+Taking a shower: 
+sequence of multiple
+motion pieces with context
+Routines / Behaviors: 
+high-level description of a
+sequence of standalone
+actions or activities  
+Granular
+Abstract
+Fig. 2. Illustration of the taxonomy of human activities: The interpretation of the term activity varies across different
+abstraction levels. We plot the terminologies proposed by Bobick [29], Nagel [130], and Vrigkas et al. [193] as per their level
+of abstraction from a granular to abstract direction. We also provide examples to visualize these terminologies.
+pressure, oxygen levels, sweating), temperature, contextual information (e.g., relative positioning, radio-frequency
+identifiers, open/close detection), audio, visual (e.g., RGB, depth, thermal) data can be measured [37].
+In the HAR literature, different types of sensing modalities are used in different application domains. Broadly,
+they are categorized into wearable and external sensors [113]. The most commonly used wearable sensors are
+on-body inertial measurement units (IMUs) located at different sensing positions like wrist, chest, waist, and
+ankle. An IMU typically consists of accelerometer, gyroscope, and magnetometer sensors, which collect tri-axial
+accelerations, angular velocities, and magnetic field readings, respectively. Some wearable devices are also capable
+of measuring physical (temperature and humidity) or physiological (ECG and blood pressure) signals.
+In the case of external sensors, they are typically installed in locations of interest in a smart environment.
+The data collected by these sensors either represents an interaction of humans with target objects like doors,
+kitchen appliances, and switches or a measurement of physical quantities like motion, temperature, and pressure
+in the vicinity of the installed sensor. Such sensors, also called ambient sensors, are mostly used in smart home
+environments to recognize activities of daily living (ADL). Visual sensors such as RGB, Kinect, and depth cameras
+are also considered among external sensors, which are primarily useful for security, surveillance, and interactive
+applications. The focus of this survey, as shown in Figure 1, will be on sensor-based HAR. In particular, we
+focus on sensors that measure aspects related to movements (e.g., IMU, motion sensors), physical measures (e.g.,
+temperature, pressure sensors), and contextual measures (e.g., open/close switches) in the scope of our survey.
+2.3
+Human Activity Recognition
+Referring to the description of human activities and sensors, we provide a formal definition of HAR, inspired
+from the work by Lara & Labrador [113]. A typical HAR setup consists of a set of sensors 𝑆= {𝑆1,𝑆2, ...,𝑆𝑛}
+deployed for data collection, where each sensor 𝑆𝑖collects sensor readings {𝑆𝑖
+𝑡1,𝑆𝑖
+𝑡1+1, ...,𝑆𝑖
+𝑡2} in the time interval
+𝑇from timestamps 𝑡1 to 𝑡2. The problem of HAR is defined as: (i) partitioning 𝑇into intervals {𝑇1,𝑇2, ...,𝑇𝑘} such
+that Ð𝑘
+𝑖=1𝑇𝑖= 𝑇and (ii) allotting each of this 𝑇𝑖= {𝑡𝑚,𝑡𝑚+1, ...,𝑡𝑛} an activity label using the corresponding
+sensor data {𝑆𝑖
+𝑡𝑚,𝑆𝑖
+𝑡𝑚+1, ...,𝑆𝑖
+𝑡𝑛}. This problem is complex in nature as a large number of activities may take place
+This manuscript is under review. Please write to sourish.dhekane@gatech.edu for up-to-date information
+
+--- PAGE 5 ---
+Transfer
+Learning
+Same Task
+Different Tasks
+Transductive
+TL
+Inductive
+TL
+Assumption:
+ONLY Source Annotations Available
+Assumption:
+Target Annotations Available
+Same
+Domain
+Different
+Domains
+Domain
+Adaptation
+Sample Selection Bias
+Covariance Shift
+Source Labels
+Available
+Source Labels
+Not Available
+Multi-Task
+Learning
+Self-Taught
+Learning
+No Source/Target Labels
+Unsupervised
+TL
+Instance
+Transfer
+Feature
+Transfer
+Parameter
+Transfer
+Knowledge-Base
+Transfer
+Data Instances Feature Spaces
+Parameters
+Domain Knowledge
+Target Labels
+Available
+Target Labels
+Not Available
+Supervised
+Transfer
+Unsupervised
+Transfer
+Problem Perspective
+Solution Perspective
+Fig. 3. Categorizations in Transfer Learning inspired from the works of [136] and [199]. Here we provide both the problem
+perspective, where transfer learning approaches are classified based on the characteristics of the problem setting, and the
+solution perspective, where the classification is based on the kind of knowledge which is transferred across the domains.
+in overlapping intervals. Thus, a relaxed version of this problem can be formulated by assuming a sliding window
+protocol and defining a target activity set. In particular, we can divide the time interval 𝑇in partially-overlapping
+windows of equal size {𝑊1,𝑊2, ...,𝑊𝑛} and assume a target activity set 𝑌= {𝑌1,𝑌2, ...,𝑌𝑙} to reformulate the HAR
+problem as assigning each window 𝑊𝑖with an activity label 𝑌𝑗.
+The commonly used approach to solve this problem is via the activity recognition chain [31], which consists
+of five stages: (i) data acquisition, (ii) signal preprocessing, (iii) segmentation, (iv) feature extraction, and (v)
+classification. The research works in HAR focus on improving these individual stages by targeting challenges
+in developing sensing technologies, setting up data acquisition systems, better feature extraction & inference/-
+classification frameworks, and many more areas. One such area is improving the ability of the HAR systems to
+generalize in the presence of a change in sensing environments and target activities. Transfer learning is the
+most intuitive way in which this challenge can be addressed.
+2.4
+Transfer Learning
+In machine learning, a supervised classification problem aims at learning a predictive function 𝑓: 𝑋→𝑌, where
+𝑋= {𝑋1,𝑋2, ...,𝑋𝑚} represents the set of data points and 𝑌= {𝑌1,𝑌2, ...,𝑌𝑘} represents the set of class labels. Each
+data point 𝑋𝑖can be represented by an 𝑛dimensional feature vector [𝑋1
+𝑖,𝑋2
+𝑖, ...,𝑋𝑛
+𝑖] from the vector space 𝜒. The
+set of data points 𝑋follows a marginal distribution 𝑃(𝑋). Referring to this notation, a domain 𝐷is defined by the
+underlying feature vector space 𝜒and the marginal distribution 𝑃(𝑋). A task 𝑇, such as supervised classification,
+is defined by the label set 𝑌and the predictive function 𝑓.
+A domain 𝐷1 differs from another domain 𝐷2 if their underlying feature spaces or marginal probability
+distributions differ, i.e., 𝜒1 ≠𝜒2 or 𝑃(𝑋1) ≠𝑃(𝑋2). Likewise, a task𝑇1 differs from another task𝑇2 if their respective
+label sets or predictive functions, in terms of conditional probabilities, differ, i.e., 𝑌1 ≠𝑌2 or 𝑃(𝑌1|𝑋1) ≠𝑃(𝑌2|𝑋2).
+On the basis of this formulation, transfer learning is defined as a set of methodologies that help improve the
+performance of task 𝑇𝑡on domain 𝐷𝑡using the knowledge gained by performing the task 𝑇𝑠on the domain 𝐷𝑠,
+where either 𝐷𝑠≠𝐷𝑡or 𝑇𝑠≠𝑇𝑡or both. In this context, 𝐷𝑠and 𝐷𝑡are referred to as the source and the target
+domains, respectively. This definition of transfer learning consists of two important components: (i) the problem
+setting (similarity or differences in domains and tasks) and (ii) the interpretation of the term knowledge. This
+gives rise to the categorization of transfer learning into the problem and the solution perspectives.
+The problem perspective, as shown in Figure 3, classifies transfer learning based on whether the underlying
+domains or tasks across the source and target domains are the same. Specifically, transfer learning is classified into
+This manuscript is under review. Please write to sourish.dhekane@gatech.edu for up-to-date information
+
+--- PAGE 6 ---
+Table 1. The solution perspective of transfer learning. We divide the approaches into instance, feature, parameter, and
+knowledge-base transfer, based on what they transfer. This table represents the key themes explored in each category.
+Types
+Methods
+Instance Transfer
+Instance Weighing, Instance Mapping & Label Propagation, Soure Domain Selection, Synthetic Data Generation
+Feature Space Transfer
+Conventional, Neural Network Based: (a) Architectures, (b) Loss Functions, (c) Training Strategies
+Parameter Transfer
+Conventional, Neural Network Based: (a) Architectures, (b) Loss Functions, (c) Training Strategies
+Knowledge Base Transfer
+Domain-specific Metadata, Heuristics, Context Information
+Transductive and Inductive problems, if 𝑇𝑠= 𝑇𝑡and 𝑇𝑠≠𝑇𝑡, respectively. Since 𝑇𝑠= 𝑇𝑡for transductive transfer
+learning, 𝐷𝑠has to be different from 𝐷𝑡in order for the domains to differ. This case is referred to as Domain
+Adaptation. In the literature there also exist cases where both the domains and the tasks across settings are the
+same, yet there is presence of sample selection bias or covariate shift. Such cases are also assumed to be under
+the purview of transfer learning. Inductive transfer learning is further classified into Multi-task and Self-taught
+Learning on the basis of the availability of the source labels, i.e., {𝑌𝑠
+𝑖}𝑚
+𝑖=1. From this problem perspective, the
+domain of transfer learning mostly covers these four settings, i.e., domain adaptation, sample selection bias /
+covariate shift, multi-task learning, and self-taught learning, which are included in our survey’s scope (Figure 1).
+In the remaining cases where none of the source or target labels are available, the learning problem becomes
+unsupervised in nature, consisting of tasks like clustering, dimensionality reduction, and density estimation.
+The solution perspective of transfer learning, as shown in Figure 3, divides transfer learning approaches
+into instance, feature, parameter, and knowledge-base transfer. Referring to the definition of transfer learning,
+these types originate from whether data instances, feature spaces, model parameters, or domain knowledge are
+used to bolster the target domain performance. Table 1 summarizes the key themes explored under the transfer
+learning methods. A brief background on the themes explored under the solutions perspective is presented in
+Section 7 (Appendix). The solution perspective is further classified into supervised and unsupervised approaches,
+depending on whether the target domain labels are available.
+2.5
+Transfer Learning in Sensor-based HAR
+The literature on transfer learning is vast [136, 199, 222], where domains like computer vision and natural
+language have been known for their extensive explorations of different methodologies. However, performing
+transfer learning for sensor-based HAR comes with its unique challenges, which require careful adaptation of the
+existing transfer learning methods as well as the development of the new ones.
+2.5.1
+Lack of Labeled Data. The availability of large and diverse amounts of labeled data is crucial for achieving
+generalizability and transferability in machine learning. While large-scale data annotation projects have been
+undertaken in other domains [52], annotating sensor data is both time and resource-consuming because of
+less interpretability. Moreover, collecting even the unlabeled sensor data is difficult as it comes with logistical
+as well as ethical challenges including installation of sensors, recruitment of human subjects, and addressing
+their privacy concerns [54]. Even after addressing these concerns, several factors can induce a change in the
+underlying distribution of the sensor data like sensor setups, location/position, sensing frequencies, orientation,
+user idiosyncrasies, behavior, etc. To this date, there are no large-scale data collection efforts in either wearable
+or smart home settings, covering all these sources of variations described above. All these challenges result in
+sensor-based HAR datasets being smaller in size, imbalanced in nature, and non-conducive to performing transfer
+learning [109, 140].
+2.5.2
+Noise. Sensor data is inherently noisy. This noise originates from sources like the hardware components
+of sensors [126], environmental conditions (autocalibration and placement of the sensor), and the way subjects
+This manuscript is under review. Please write to sourish.dhekane@gatech.edu for up-to-date information
+
+--- PAGE 7 ---
+perform activities [139]. Additionally, the other type of noise originates from the correctly sensed data that does
+not correspond to the target activity [118]. Since a change in domain is likely to result in a change in the noise
+characteristics as well as sources, performing a transfer that addresses this noise variation is a demanding task.
+2.5.3
+Learning Generalizable Features. It has been observed that deep convolutional neural networks learn
+hierarchical features on visual datasets [146], where shallow layers learn more domain-invariant features and
+deeper layers learn task-specific features. Such is not the case when it comes to the sensor data because of the
+data characteristics [127]. Moreover, it has also been observed that the choice of the domain, in terms of the
+variability in the activities, plays a crucial role. Training performed on a more diverse activity set results in
+the low-level features being more generalizable [127]. An empirical study designed to test the role of features
+indicated that no set of features is optimal across different HAR problems [77]. This makes learning optimal
+features under transfer from the available domains a challenge unique to sensor-based HAR.
+2.5.4
+Sensor Heterogeneity. In a typical transfer learning problem in vision or natural language, despite the
+change in domains, the data modality remains constant. However, this assumption is not valid, especially in the
+case of HAR in smart homes, where the source and the target domains may contain different numbers and types
+of ambient sensors. Even in the case of wearables, sensor heterogeneity can be present in the form of differences
+in sensing devices, hardware, sensing frequency, area of coverage, and positions/locations [33]. Tackling this
+heterogeneity across domains is yet another unique challenge, where the goal is to find common representation
+spaces that are conducive to performing a transfer.
+Addressing these challenges requires the use of specialized transfer learning methods for sensor-based HAR.
+In this survey, we identify two main application domains in sensor-based HAR: (i) Smart Home HAR and (ii)
+Wearable HAR. The narrative of our survey focuses on highlighting the transfer learning approaches and their
+relevance in these two application domains, as shown in Figure 1.
+3
+TRANSFER LEARNING FOR HAR IN SMART HOME SCENARIOS
+The idea behind smart homes is to install intelligence into the living spaces for automating day-to-day functional-
+ities. In addition to automation, such intelligent spaces are beneficial for healthcare and monitoring purposes
+as well, especially for the elderly and at-risk population [11]. Accurate recognition of human activities plays a
+crucial role in these applications. To perform HAR in a non-obstrusive way, ambient sensors are embedded into
+the physical spaces, which collect data corresponding to state-changes and physical quantities like temperature,
+pressure, humidity, etc. Using this data, several works [21, 30] have targeted building HAR frameworks. Despite
+their promising performance, these HAR models trained on a specific smart home setting lack transferability [49].
+Learning setting-invariant HAR models is extremely relevant in case of smart homes as they typically have
+different layouts, sensor installations, sensor locations, and target activities. Collecting large amounts of data,
+each time, on such specific settings and training HAR models becomes infeasible in real-life scenarios [84, 85].
+Thus, transfer learning for HAR in smart homes is an active research direction. The standard version of this
+problem statement of performing transfer consists of a single source 𝐷𝑠and target 𝐷𝑡domain, where the feature
+spaces are different, i.e., 𝜒𝑠≠𝜒𝑡. This difference arises from the variations in smart home layouts in terms of
+sensors, their locations, modalities, coverage, etc. In a simpler case, the target activities across domains remain
+the same, i.e., 𝑌𝑠= 𝑌𝑡[47, 120, 214]. However, in a generic case, both the feature spaces as well as label sets vary
+across domains, i.e., 𝜒𝑠≠𝜒𝑡and 𝑌𝑠≠𝑌𝑡[20, 148, 154]. In addition to this, there are several practical challenges
+that are tackled in the literature including multi-source transfer, personalized transfer, optimal source selection,
+and more. In this section, we describe these challenges, their relevance, and provide details on the approaches
+used to address them.
+This manuscript is under review. Please write to sourish.dhekane@gatech.edu for up-to-date information
+
+--- PAGE 8 ---
+Table 2. Exploration of transfer learning challenges in smart home literature with corresponding source-target dataset
+pairs: In this table, we categorize the transfer learning works in terms of the challenges they address and the source-target
+dataset pairs on which their experiments are performed. Addressing heterogeneity and task differences across domains are
+the most tackled challenges in the literature, whereas, CASAS and Kasteren datasets are the popular choices to perform
+experiments. In this table, the "Others" dataset category denotes custom datasets collected specific to some works as well as
+the lesser-used publicly available datasets like CASAS Single Resident, PUCK-Parkinson’s, Intel, and TU Darmstadt dataset.
+Datasets
+Heterogeneous Transfer
+Difference in Tasks
+Multi-Source Transfer
+Personalized Transfer
+Optimal Source Selection
+CASAS
+Apartments
+[65, 152–154]
+[152–154]
+[65, 152–154]
+-
+-
+CASAS HH
+[125, 133, 134, 148, 180, 213,
+214]
+[148, 180]
+[133]
+-
+[134, 213]
+CASAS (others)
+[46, 50, 67, 75, 170, 171, 210,
+211]
+[148, 210]
+[210]
+[67, 150]
+-
+MIT MAS622J
+[20, 46, 47, 58, 211]
+[20]
+[20]
+-
+-
+MIT PLIA1
+[90]
+[90, 219]
+-
+-
+-
+Ordonez
+[141, 187, 196]
+[196]
+-
+-
+-
+Kasteren
+[20, 90, 171, 173, 186, 209–
+211]
+[20, 90, 91, 209, 210, 219]
+[20, 186, 209, 210]
+-
+-
+Others
+[66, 90]
+[10, 10, 90, 149]
+[66]
+[13, 14, 55, 121, 151]
+[155, 177]
+3.1
+Heterogeneous Transfer
+As mentioned, heterogeneous transfer learning refers to the case where the source and target feature spaces differ,
+i.e., 𝜒𝑠≠𝜒𝑡. There are two main interpretations of the term heterogeneous in this context, where the change in
+feature space is induced by: (i) a change in sensor modalities across the domains, or (ii) a change in other aspects
+(e.g., sensor layout, cardinality, location, and sampling frequency).
+There exist sensors that capture data in the discrete (e.g., ON/OFF and OPEN/CLOSE) as well as continuous
+(numeric) space (e.g., 21.5, 20, 19.5). Moreover, these sensors often belong to a functional group, where they are
+attached to specific objects (e.g., entrance doors) and capture information specific to them (opening and closing).
+This set of OPEN/CLOSE readings is different from another set of OPEN/CLOSE readings originating from a
+sensor attached to a fridge door. The change in smart home layouts results in an uneven cardinality of sensors
+embedded into each meaningful location like kitchen, bathroom, and living space. Therefore, the number of views
+available for sensing an activity occurring in (say) a kitchen is often different for different domains. All these
+factors complicate the transfer learning process and require special attention to avoid performance degradation.
+Specific source-target dataset pairs used in the literature to perform heterogeneous transfer are shown in Table 2.
+3.1.1
+Approaches. Since the source and the target feature spaces differ in heterogeneous transfer learning, a
+transfer of feature spaces is imperative to tackle this challenge. There are two themes of approaches observed
+in the relevant works. In the first, a mapping function between the source and the target domain features is
+learned [47, 65, 75, 209]. Based on this mapping function, the source model or instances can be used in the target
+domain training. In the second theme, a transformation is applied (learned) on both the source and the target
+feature spaces to arrive at a common space, where models can be shared across domains [67, 134, 173, 214]. In
+this approach, an explicit mapping between source and target feature sets does not take place.
+The mapping process can be divided into two parts. First, the goal is to generate common and relevant feature
+representations, which is followed by the actual mapping process between these representations. Sensor profiling
+is one of the easier ways in which representations for mapping can be constructed. In the profiling-based
+approaches, the domain-specific contextual information about the sensors is used. Thus, these approaches can
+also be categorized under knowledge base transfer. The profiling can be designed by constructing a sensor
+mapping/similarity matrix based on factors like the sensor type, location, attached object, trigger ratio per activity,
+and time information [75, 171]. Another way of representing a sensor profile is by using a binary vector, where
+This manuscript is under review. Please write to sourish.dhekane@gatech.edu for up-to-date information
+
+--- PAGE 9 ---
+each field denotes a property related to the object to which the sensor is attached, its location, modality, and
+its relation to target activities [46]. Assigning ID [134] or labels based on location [213], modality [213], and
+functional groups [187] to sensors and matching them to perform mapping is also explored in the literature.
+Using semantic [209] and meta-features [196] is another way in which mapping-specific representations
+can be constructed. Meta-features can be seen as features of features in the sense that they represent specific
+properties of the original data. For example, the average time difference between sensor activations from the
+kitchen is a meta-feature, which is independent of the underlying sensor modality (feature set). Meta-features
+can be constructed using informed (using annotations) and uninformed (without using annotations) strategies
+[66]. Informed meta-features usually depend on sensor-activity co-occurrence, whereas, the uninformed meta-
+features could be constructed using statistical measures of sensor activations like frequency and time difference.
+Meta-features can also be constructed based on clusters of instances, representing cluster-specific properties
+[210]. Semantic features make use of the sensor/feature/domain-specific semantic profiles to generate meaningful
+transferable entities. For instance, the number of sensors attached to kitchen doors could be a semantic feature,
+which is transferable as well as relevant. In addition to semantic features, domain semantics can also be captured
+by ontological approaches that use domain, sensor, and activity ontologies and semantic similarities between
+them [211]. Sometimes, meta-features are also constructed similarly to semantic features, using their functionality
+information [186].
+After generating representations using the discussed techniques, the mapping process can be performed using a
+number of techniques. The mapping problem can be visualized as a graph matching problem by using a similarity
+metric (as weights) and features/sensors (as nodes). Performing similarity calculations using Jensen–Shannon
+divergence (JSD) and graph matching using the Gale-Shapley algorithm is a popular choice in literature [40, 46,
+47, 58, 120]. In addition to graph matching, the expectation-maximization (EM) framework is also used to learn
+the optimal mapping [153, 154]. Feature mapping can also be solved by performing fuzzy clustering of sensor
+activations followed by temporal alignment using the obtained cluster [141]. Another way of reformulating the
+mapping problem is by learning a dictionary of over-complete basis vectors via sparse coding [58].
+Rather than mapping the entire feature sets, a subset of pivotal features can also be used as a bridge between
+the domains. This pivotal feature set can be identified using random forest models trained on source and target
+domain data [181]. For calculating the similarity between features from source and target domains, a symmetric
+version of Kullback–Leibler (KL) divergence is used [90]. Additionally, genetic algorithm and greedy (exhaustive)
+approaches for mapping are also explored in the literature [65].
+Following the second theme of approaches, where transformations are applied/learned to project the feature
+spaces or instances, Procrustes analysis is explored in the literature [67]. It finds a single orthogonal transformation
+that minimizes the sum-of-squares distances between all pairs of data instances across domains. A popular theme
+among such approaches is to project the feature spaces using neural networks. Word2Vec is a good example for
+such approaches, where word embeddings are used as the intermediate feature spaces [214]. Another way of
+using Word2Vec is to identify the common sensors across the domains and freeze their projections such that
+the remaining projections get aligned accordingly [133]. It is also observed that rather than using the sensor
+activations as inputs to the Word2Vec model, simply using the sensor ID can improve the quality of projected
+representations [134]. Neural word embeddings can also be used to perform the same functionality as Word2Vec
+[20], which is to convert the different feature spaces into a common subspace. After this conversion, different
+neural networks are used to further extract transferable features. Architectures including long short term memory
+(LSTM) [214], autoencoders (AE) [148], graph AEs [125] based on differential pooling, and bidirectional generative
+adversarial networks (Bi-GANs) [173] are used for this purpose.
+In the literature, the issue of sensor heterogeneity is also tackled under the fog computing paradigm, where
+the communication between individual fogs (smart homes in this case) is possible using the edge devices in the
+IoT system [170]. To address the sensor heterogeneity challenge, a metadata description is built for abstracting a
+This manuscript is under review. Please write to sourish.dhekane@gatech.edu for up-to-date information
+
+--- PAGE 10 ---
+smart home’s activities. This description is shared with other smart homes in the fog and the target house takes
+into consideration this shared metadata information to perform feature mapping using meta features.
+3.2
+Difference in Tasks
+Referring to the definition of a task from Section 2.4, a change in task represents either 𝑌𝑠≠𝑌𝑡or 𝑃(𝑌𝑠|𝑋𝑠) ≠
+𝑃(𝑌𝑡|𝑋𝑡). Although the label spaces could be different, there exists an implicit assumption that they are similar
+to each other semantically. For example, the activities sleep bed and sleep not bed are similar in terms of the
+underlying action performed by the user [154]. The similarity between activities can also be in terms of their
+usual location of occurrence. For instance, the activities preparing food and washing dishes both take place in the
+kitchen area, which links them semantically in the transfer process [46]. The ultimate goal here is to enable the
+HAR system to classify unseen activities with as little supervision as possible. Specific source-target dataset pairs
+used in the literature to address task difference are shown in Table 2.
+3.2.1
+Approaches. The problem of 𝑌𝑠≠𝑌𝑡can be solved using instance and parameter transfer methods. A
+straightforward application of instance transfer techniques is via label space transfer, where a mapping between
+𝑌𝑠and 𝑌𝑡is learned. One of the simpler ways in which label space transfer can be achieved is by using activity
+templates, where similar activities are grouped under one label [153, 154]. This approach requires domain
+heuristics, which is why it can also be classified under knowledge-based transfer. Another approach using domain
+heuristics is the representation of human activities using semantic attributes, where the similarity between the
+predefined and unseen activities is calculated by creating a hierarchical cluster of activity labels generated from
+the available datasets [10]. Creating class prototypes also uses domain heuristics, where a prototype is a binary
+vector denoting a set of transferable entities [196]. These prototypes can later be used in zero-shot classification
+settings. For calculating the similarity between activities, web-knowledge is also used in the literature [91, 219].
+Based on these similarity calculations, instance transfer and pseudo labeling can be performed. Another way to
+measure the distance between activities is to represent them using neural word embeddings and calculate the
+distances in the embedding space [20]. In label space mapping, the use of normalized Google distance (NGD) is
+commonplace [90, 180]. The intuition behind using it is to have representations of instances with the same/similar
+labels closer to each other in the transformed feature space.
+Under the paradigm of parameter sharing, the goal is to reuse the parameters of the classifier model learned on
+the source. One way of reusing the parameters is to share classifiers across domains [209]. This can be achieved
+by identifying non-confident predictions using least confidence, margin sampling, and entropy measures and
+performing feature space mapping to allow the other classifier(s) to perform inference on the non-confident
+samples. The final prediction can be obtained by selecting the most certain class label. There have also been works
+that attempt learning a generalizable transfer model, which performs ensemble learning and stacked inference to
+obtain a model suited for the universal set of activity labels [210]. Parameter sharing can also be performed by
+transferring the learned weights directly across domains. An approach following this trend has been performed in
+the literature [149], where deep belief networks are used to learn features without supervision using contrastive
+divergence. These features are subsequently transferred and finetuned using the available labeled data.
+3.3
+Multi-source Transfer Learning
+Multi-source transfer learning is an extension of the standard transfer learning approach with multiple source
+domains 𝐷𝑠1, 𝐷𝑠2, ..., 𝐷𝑠𝑘and a single target domain 𝐷𝑡. Despite having access to additional training data from
+multiple source domains, the problem is challenging w.r.t. redundancy handling, the possibility of negative
+transfer (the case when transfer learning results in a negative impact on the target domain performance), and
+weighting of domain knowledge based on their similarity with the target domain. In the case of smart homes,
+there are several datasets (e.g., CASAS [150], Kasteren [188, 189]) that are fully/partially annotated. However, they
+This manuscript is under review. Please write to sourish.dhekane@gatech.edu for up-to-date information
+
+--- PAGE 11 ---
+have different sensor installations, smart home layouts, and other setting-specific factors. Therefore, the challenge
+lies in learning setting-invariant knowledge from multiple domains and apply it to improve the performance
+over the target domain. Specific source-target datasets for performing multi-source transfer are shown in Table 2.
+3.3.1
+Approaches. Since multi-source transfer learning with 𝑘source domains has the problem of potentially
+having 𝑘different feature spaces, feature transfer methods that do not follow the one-on-one transfer approach
+can be applied here. For example, methods like meta-features [210], neural word embedding [20], and Word2Vec
+[133] can be used to construct a domain-invariant feature space for multiple source and target domains. Following
+this step, training on multiple source domains can be carried out using a classifier. LSTM networks are, for
+example, explored for this purpose [20, 133].
+Another prominent theme to tackle the challenge of multiple source domains is to use an ensemble [65, 153,
+154, 210]. The ensemble can be formed by considering individual classifiers for each domain [210] or sensor
+modality [65]. For combining the predictions of each individual classifier, a weighted majority voting scheme is
+explored in the literature [153, 154]. Stacking is another way in which the predictions can be combined [66, 210].
+It uses an additional classifier that takes inputs from the predictions of individual classifiers, and in turn, predicts
+the output label. Sharing of classifiers is also a solution to having multiple source datasets [209]. The uncertain
+predictions from each source domain can make use of the classifiers trained on the other source domains to
+potentially remove the uncertainty.
+3.4
+Personalized Transfer Learning
+Personalization is a special kind of transfer learning problem, where neither the feature space nor the label set
+changes, i.e., 𝑋𝑠= 𝑋𝑡and 𝑌𝑠= 𝑌𝑡. The shift in domain is induced by difference in the way human subjects
+perform activities, i.e., 𝑃(𝑋𝑠) ≠𝑃(𝑋𝑡) Different subjects have their own tendencies to perform activities. Such
+idiosyncrasies result in large variations in the data collected across multiple subjects for the same activity label.
+In practical scenarios, building personalized HAR systems in smart homes is always the ultimate goal. Specific
+source-target dataset pairs used in the literature for personalization are shown in Table 2.
+3.4.1
+Approaches. A straightforward way of achieving personalization is by incorporating user feedback into
+the recognition system. This can be done via performing user-assisted active learning [121], where data points
+corresponding to the most uncertain predictions are requested for annotation by the user. The uncertainty is
+measured using a classifier’s lack of confidence and the addition of new (unseen) feature sets. A more sophisticated
+user-oriented system has also been proposed [150], where the adaptation is based on using four mechanisms:
+direct manipulation (using a user interface), guidance, request, and smart detection.
+Although keeping the user in the loop is beneficial, overdoing so may result in an intrusive system, which
+is why many approaches try to implicitly achieve personalization. Towards this, generating synthetic data
+corresponding to the new user is a viable option. This can be achieved by conducting a user survey (one-time
+cost) and using simulators based on a rule-guided system to generate artificial target-subject specific data [13, 14].
+The same goal is also achieved by using GANs, which aim at transforming source instances into target instances
+by changing their subject-specific characteristics [176].
+Personalization can be seen as a multi-view problem, where a view corresponds to the data generated by a
+specific subject. Techniques like co-training and co-EM are used in this context [67]. Learning a user-specific HAR
+model in a dynamic environment has also been attempted where each iteration consists of a labeling stage by the
+current iteration’s model followed by user-assisted active learning [121]. A specialized approach for cross-subject
+transfer was proposed [55], where a hierarchical community-online multi-class Bayes point machine is applied
+on a single individual. The prior values of this model, originally over the community weights, are replaced by
+Gaussian and Gamma posteriors learned from individual-specific data.
+This manuscript is under review. Please write to sourish.dhekane@gatech.edu for up-to-date information
+
+--- PAGE 12 ---
+3.5
+Optimal Source Selection
+Selection of the optimal source domain for performing transfer learning can be viewed as an approach to the
+multi-source transfer learning problem. However, we separate it out from multi-source transfer as the goal here
+is not to incorporate multiple domains, rather choose the most compatible domain to the given target domain.
+This approach avoids the possibility of negative transfer, where the performance over the target domain degrades
+because of the inclusion of a non-compatible source domain. To perform optimal source selection, datasets shown
+in Table 2 are used in the literature.
+3.5.1
+Approaches. The problem of optimal source selection can be reduced to calculating the (dis)similarity
+between domains. This similarity can be measured in terms of an index, which depends on common sensor
+positions, types, and their cardinality [213]. A more comprehensive set of factors for calculating the similarity
+between domains can be found [177], where additional factors like physical location, sampling rates, number of
+residents, and their routines are included.
+For measuring domain dissimilarity, a distance measure called H distance is proposed [155], which uses
+classifier induced divergence as a proxy for distance between domains. Another way of calculating domain
+distances is by using Word2Vec [134]. It starts by selecting 𝑘common sensors among domains based on their
+location/object information. Then, Word2Vec is applied on their sensor IDs to obtain their representations. This
+projected space is reduced using principal component analysis (PCA) and distances are calculated between all
+possible combinations of the reduced projections of the common sensors to obtain a global distance vector for
+each house. The domain distance is then calculated using the cosine similarity between these distance vectors.
+4
+TRANSFER LEARNING FOR HAR USING WEARABLES
+The developments in wearable sensing devices like smartphones, smartwatches, and smart clothing have made
+it possible to recognize human activities. These devices are integrated with IMU sensors that can collect data
+corresponding to human motion in terms of tri-axial acceleration, angular velocity, and magnetic field. Using this
+data and the on-device computing power, machine learning models are deployed to perform activity inference. A
+significant amount of research in the wearable HAR field is focused on training these models and improving
+their performance under various settings [113, 139]. In real-world scenarios, these settings can vary in terms of
+factors like the sensor devices used, their on-body position, cardinality, the intended user(s) of the HAR system,
+target activities to recognize, compute platforms, etc.
+The need for transfer learning in these wearable HAR systems arises from such variability in settings. For
+example, a machine learning model trained on a sports activity dataset collected from a group of children using an
+ankle-worn IMU sensor cannot be directly reused to infer office activities performed by adults using a smartwatch.
+The fact that data collection and annotation for every such setting to train the activity recognition models from
+scratch is infeasible makes it even more compelling to explore transfer learning for achieving generalizability.
+The transfer learning literature in wearable HAR focuses on the challenges presented by one or more of these
+factors of variability.
+A change in the sensor device, number, position, sensing frequency, or modality introduces heterogeneity
+in the transfer learning problem. With the availability of multiple annotated source settings, the challenge of
+leveraging them without consequently degrading the HAR performance also becomes relevant. In some cases,
+the target setting may dynamically change, so that the underlying HAR framework needs to be continually
+updated to keep up with such changing environments. Moreover, instead of an on-device system, there may be a
+requirement for a distributed or federated setup. All these challenges are introduced by a change in the sensing
+platform. In terms of the activities to recognize, the source and target settings can vary in terms of their HAR
+task. Also, regarding the users of the HAR system, there may exist a requirement for the system to perform well
+for a specific set of users, which calls for personalized HAR systems. Finally, some works also focus on measuring
+This manuscript is under review. Please write to sourish.dhekane@gatech.edu for up-to-date information
+
+--- PAGE 13 ---
+the performance of the HAR systems under a transfer learning setup. In this section, we describe these challenges,
+their relevance, and provide details on the approaches used to address them.
+4.1
+Heterogeneous Transfer
+The interpretation of the term heterogeneous in the context of transfer learning is based on the feature spaces
+across the domains being different, i.e., 𝜒𝑠≠𝜒𝑡. In the case of wearable sensors, this difference arises from
+factors like sensor modality, cardinality, sensor position, device types, sensing frequency, etc. Based on these
+factors, we classify this heterogeneity into three types: (i) m-heterogeneity (due to a change in sensor modality),
+(ii) p-heterogeneity (due to a change in sensor position), and (iii) d-heterogeneity (due to a change in device
+aspects). The m-heterogeneity in wearable HAR typically occurs when other data modalities like RGB videos,
+motion capture, and web data (text) are used to bolster the IMU-based transfer. The intention behind this added
+heterogeneity is to capitalize on the large datasets or pre-trained models available in related domains to learn the
+motion or activity-specific information that is not specific to the IMU sensor modality. In contrast to this, the p
+and d-heterogeneities are inherent to the transfer learning problems, and hence, must be addressed. Out of these
+two, the p-heterogeneity has been observed to be more challenging as different kinds of movement patterns are
+recorded when the sensors are attached to different body parts. To address these heterogeneities, several works
+have used source-target pairs based on the datasets shown in Table 3. As many works target addressing more
+than one heterogeneities, we categorize the works based on their focus of evaluation. Also, all the works deal with
+the d-heterogeneity, hence, we catalog only those works under it that do not address the p or m-heterogeneities.
+4.1.1
+Approaches for addressing m-heterogeneity. The introduction of m-heterogeneity into the transfer learning
+is done by using datasets or pre-trained models from other modalities. The goal here is to reuse the modality-
+independent information from domains where either the datasets are massive or other crucial information is
+present. In the literature, other modalities like human pose [19, 135, 138], images [18], videos [22, 109, 135],
+contextual data (Wi-Fi, bluetooth, GPS) [92], text [114, 198] are leveraged along with the IMU-based recognition.
+Human pose information is used by placing virtual sensors on the skinned multi-person linear (SMPL) mesh
+surface and using forward kinematic and finite differences techniques to generate virtual IMU data [207]. This
+virtual data, along with the real IMU data, can be used for training the target HAR system. Videos are also a
+useful data modality considering the dataset sizes, availability of pre-trained models, and the ability to generate
+virtual IMU data from it. In terms of the pre-trained models specifically, they can be used to make predictions on
+video streams, thereby complementing the sensor-stream decision along with it [147]. Without using pre-trained
+models, video data can be used along with sensor data by learning a multi-input-multi-output mapping between
+data sources based on QR factorization [22]. However, when both video and IMU data streams are not available
+simultaneously, a more suitable approach is to generate virtual IMU data [109]. Some methods also use the human
+pose and video modalities together by converting the spatio-temporal data into discrete word representation
+followed by LSTM-based projection onto a common feature space [135].
+In addition to videos, the image modality has also been used, where pre-trained models on ImageNet are
+transferred for IMU-based recognition [18, 81]. This is done by finetuning them on IMU data using continuous
+wavelet transforms such as horizontal concatenation, acceleration magnitude, and pixel-wise axes-averaging [18].
+Another popular choice for modality is the text data, which is used as an additional data source as well as a mode
+to generate virtual IMU data. When used as a data source, it needs to be projected on the same feature space as
+that of the sensor data, which is achieved using matrix factorization with maximizing the empirical likelihood
+[198]. For virtual IMU data generation, recent works have used large language models to generate prompts that
+are fed to a CLIP based model to convert them to 3D human motion sequences [114]. These motion sequences can
+be converted to virtual IMU data using inverse kinematics. Along with these popular data modalities, where large
+datasets and pre-trained models are readily available, contextual data originating from WiFi, bluetooth, and GPS
+This manuscript is under review. Please write to sourish.dhekane@gatech.edu for up-to-date information
+
+--- PAGE 14 ---
+Table 3. Exploration of transfer learning challenges of sensor heterogeneity and personalization in wearable HAR literature
+with corresponding source-target dataset pairs: In this table, we categorize the transfer learning works in terms of the
+challenges they address and the source-target dataset pairs on which their experiments are performed. The challenges of
+p-heterogeneity and personalization are largely addressed in the literature, whereas, PAMAP2, OPPORTUNITY, and DSADS
+datasets are the popular choices to perform experiments. In this table, the "Others" dataset category denotes custom datasets
+collected specific to some works as well as the lesser-used publicly available datasets like Cooking, DAS, MHAD, UFO, DIP,
+SAD, MobiFall, RealDisp, Oulu, JSI-FOS, Sussex-Huawei, CogAge, Capture-24, Wetlab, Daphnet, HASC, CASAS MAR/YA,
+MEx, iPodTouch, ExtraSensory, SHL, uWave, DUMD, ANSAMO, TRA, UCI-HAPT, and MoST.
+Datasets
+m-Heterogeneity
+p-Heterogeneity
+d-Heterogeneity
+Personalization
+HHAR
+-
+[7, 36, 48, 63, 78, 79, 103, 106, 165, 184]
+[143, 166, 200]
+[48, 63, 64, 95, 117, 166, 200, 202]
+PAMAP2
+[15, 16, 18, 19, 109, 114, 206]
+[7, 15, 16, 23, 24, 34–36, 43, 57, 63, 78,
+79, 86, 99, 104, 107, 122, 123, 172, 184,
+190, 194, 195, 206, 208, 212, 215, 221]
+[71, 111, 143]
+[8, 24, 34, 35, 60, 63, 123, 145, 156, 175,
+178, 194, 212, 215]
+OPPORTUNITY
+[19, 86, 109, 115, 127, 206]
+[34–36, 43, 59, 63, 99, 105, 110, 127,
+160, 162, 163, 194, 195, 206, 212]
+[71, 111]
+[34, 35, 63, 93, 144, 163, 168, 175, 178,
+194, 212]
+Mobiact
+-
+[48, 78, 79, 165, 184]
+[143]
+[48, 142]
+RealWorld
+[109, 114, 206]
+[36, 48, 184, 206]
+[143]
+[48, 93]
+DSADS
+-
+[34, 35, 43, 57, 104, 122, 123, 172, 194,
+195, 212, 215, 221]
+-
+[34, 35, 60, 61, 123, 145, 169, 194, 212,
+215]
+Myogym
+-
+[78, 79, 184]
+-
+-
+MHEALTH
+-
+[43, 78, 79, 104, 184, 190, 208]
+-
+[178]
+WISDM
+-
+[104, 107, 108, 163, 165, 172]
+[97]
+[17, 117, 124, 163, 164]
+UCI
+[81]
+[41, 103, 104, 122, 123, 165]
+[95, 143, 200]
+[17, 53, 56, 80, 123, 144, 200, 202]
+SmartSock
+[15, 16]
+[15, 16]
+-
+[60]
+SDA
+-
+[105, 160, 162, 163]
+-
+[163, 164]
+MotionSense
+-
+[78, 79, 165, 184]
+[143]
+-
+SKODA
+[81, 86, 127]
+[59, 86, 127]
+[71]
+-
+USC-HAD
+[81, 114]
+[78, 104, 122, 123]
+-
+[56, 123, 145]
+AMASS
+[138, 206, 207]
+[206]
+-
+-
+UniMiB
+-
+[104, 165]
+-
+[17, 144]
+KU-HAR
+-
+[106–108]
+[137]
+-
+Others
+[15, 16, 22, 92, 94, 115, 135, 138, 198]
+[7, 9, 15, 16, 23, 24, 41, 78, 79, 94, 98, 99,
+103–105, 158–
+160, 162, 163, 197, 208, 221]
+[71, 95, 97, 111, 137, 166, 200, 216, 217]
+[8, 17, 24, 45, 64, 68, 72, 73, 76, 87, 95,
+112, 116, 117, 119, 163, 166, 174, 175,
+182, 200, 203, 204, 217]
+is also used in the literature. A self-supervised incremental learning approach is explored to use this data that uses
+adaptive resonance theory based feature learning [92]. Within the wearable modality itself, m-heterogeneity can
+arise when additional data sources like eye-movement and strength measurements are also tracked in addition to
+the IMU components. To address this, pre-training based on sensor modality classification is performed [115].
+4.1.2
+Approaches for addressing p-heterogeneity. To address the p-heterogeneity, several instance, feature, and
+parameter transfer methods have been proposed. Under the instance transfer methods, instance mapping, instance
+weighing, label propagation, data augmentation, and source domain selection are the commonly explored themes.
+Instance mapping refers to a method that learns a mapping function between source and target data instances
+or their substructures (clusters or subsequences). In the literature, mapping of clusters has been preferred, which
+is performed based on maximum mean discrepancy (MMD) [215], Wasserstein distance [106, 108], and optimal
+transport methods [122]. The general idea behind instance weighing is to assign importance to source data
+instances, in the form of weights, to denote their usefulness in the transfer process. One way in which the
+weighing process can be performed is based on the closeness of the data instances. Methods like kernel mean
+matching (KMM) [23, 24], nearest neighbor weighing [23, 24], and MMD-based weighing [194] follow this
+approach. Weighing can also be performed based on norms like 𝐿2,1 matrix norm [41] and loss functions like
+domain discrimination loss [212]. The 𝐿2,1 matrix norm is a sequential application of the 𝑙2 and 𝑙1 norms, which
+acts as a regularizer, whereas, the domain discrimination loss depends on the inference of a domain classifier in
+terms of its ability to distinguish between domains (where higher confusion represents more similar data points).
+This manuscript is under review. Please write to sourish.dhekane@gatech.edu for up-to-date information
+
+--- PAGE 15 ---
+In label propagation, the aim is to learn a mapping between source and target label sets using target and source
+data instances. A well-established way of mapping labels is to cluster the source and target instances and perform
+graph matching [159]. In addition to clusters, their properties like centroid distances for each data instance are
+also used in the literature, followed by affinity graph based propagation of labels [105]. Another similarity graph
+based label propagation technique constructs the graph by assuming data instances as nodes and the Gaussian
+kernel similarity between them as edge weights [160]. After constructing this graph, an iterative label refinement
+is performed, where in each iteration, the nodes take a fraction of label information from their neighborhood and
+maintain a distribution until it stabilizes.
+As seen earlier, instance weighting assigns importance scores (weights) to individual data instances. The source
+domain selection approach follows a similar suit, but for domains, in order to choose compatible domains for
+performing transfer in a multi-source setting. Several distance measures like stratified distance [43], global &
+subdomain distances [221] and A distance, semantic distance, & cosine similarity based kinetic distances [195]
+are proposed to measure the domain similarity. The goal of using data augmentations in instance transfer is to
+generate target-like data instances by applying transformations. In addition to the basic data transformations [36],
+the literature also consists of works that aim at attribute-specific and semantically aware augmentation techniques
+to follow domain constraints [123]. Class augmentations is another such method that applies transformations on
+the data instances using metadata to generate gender and sensor position specific target instances [104].
+Since p-heterogeneity causes the feature spaces to be different, feature transfer techniques are largely explored.
+The conventional feature transfer approaches for addressing p-heterogeneity include transfer component analysis
+(TCA) [23, 24], subspace alignment (SA) [23, 24], hierarchical clustering [110], and transferrable feature selection
+[98]. TCA uses the MMD measure to learn transfer components in a reproducing kernel Hilbert space. In SA,
+the subspaces formed by the top-𝑘eigenvectors of source and target domains are used in learning the mapping
+between them. Hierarchical clustering is a feature agglomeration technique that recursively merges similar
+features together in clusters, minimizing the variance within each cluster for common feature space learning. In
+the transferrable feature selection method [98], the mutual information between the features and class labels is
+calculated to rank the features followed by the removal of redundant features based on the Pearson correlation
+coefficient. On the remaining features, a greedy feature selection method is employed that incrementally adds
+the high-ranked features until validation performance starts degrading.
+In addition to these conventional approaches, neural networks are also used to project source and target
+data instances onto a common feature space. To guide the training of these neural networks, loss functions like
+adversarial domain discrimination/confusion loss [34, 36, 221], contrastive loss [172], MMD loss [41, 43, 57, 195,
+221], triplet loss [9, 212], 𝐿2,1 matrix norm loss [41], KL divergence loss [103], and large margin loss [123] are
+used in the literature. The domain discrimination/confusion loss is calculated by performing adversarial training,
+where the model tries to classify the domain of the input data representations. If the model fails to correctly
+classify the domain, it acts as in indicator that the resultant features are domain agnostic. Contrastive loss is
+calculated on a batch of inputs, where the projections of the positive pairs (augmentations of the same data
+instance) are brought closer and vice versa. In triplet loss, a triplet of an anchor, positive, and negative sample is
+considered. The projection of the positive from the anchor is then brought closer and the negative samples are
+projected farther. While the other loss functions rely on only the correct predictions, the large margin loss takes
+into account the confidence in the predictions as well, where less confident predictions are penalized.
+Under the parameter transfer methods, the commonly used approach is to perform pre-training on the source
+domain and then finetuning the learned model on the target domain. Several neural network architectures like
+convolutional neural networks (CNN) [9, 48, 99, 103, 163, 190], gated recurrent units (GRU) [107, 108], CNN-LSTM
+[195], CNN-GRU [106], variational autoencoders (VAE) [7], Bi-GAN [172], graph neural networks (GNN) [208],
+and attention units (transformers) [9, 63, 221] are used in the model architecture. Here, predefined layers of the
+This manuscript is under review. Please write to sourish.dhekane@gatech.edu for up-to-date information
+
+--- PAGE 16 ---
+neural network (typically the lower layers) are transferred over to the target domain. This transfer can take place
+in a cascaded manner, where trainable layers are added and transferred one by one [59].
+Ensemble learning in parameter transfer uses individual base models trained on source domain(s) towards
+target inference. There are several ways in which the decisions of individual models can be combined. Several
+methods like learning a gating function [158, 162], majority voting [43, 194], and discounting proportional
+conflict redistribution (PCR5) rule [57] are proposed in the literature to combine the individual decisions. Another
+parameter transfer approach is knowledge distillation, where a smaller student model learns to mimic a larger
+teacher model. This training process can be guided using loss functions like hard cross entropy and soft knowledge
+distillation loss, which is the difference between the logits of the source and the target models [105]. This teacher-
+student framework is also combined with a self-training paradigm [184]. The teacher model training on the
+source domain is performed in a supervised manner, which is used on the target domain to generate soft pseudo
+labels. The student model is then trained using the labeled source and pseudo-labeled target data, along with a
+self-supervised loss. Self-training is also performed using extreme learning machines (ELM) as the base classifier,
+where high-confidence pseudo labels are used in an iterative manner.
+Recently, self-supervised learning has proven to be an effective way of performing pre-training. It uses the
+unlabeled data itself to generate a supervisory signal on which the models are pre-trained. The pre-training
+takes place on the source domain, whereas, the finetuning takes place on the target domain. Pretext tasks like
+multitask learning, masked reconstruction, contrastive predictive coding (CPC), enhanced CPC, autoencoders
+(AE), SimCLR, SimSiam, and BYOL are explored in the literature in the transfer learning setup [78, 79, 165].
+4.1.3
+Approaches for addressing d-heterogeneity. Since d-heterogeneity does not assume different sensing modal-
+ities or positions across domains, the source and target feature spaces are more similar to each other than in
+the case of m or p-heterogeneity. Thus, instance and parameter transfer techniques are preferred over feature
+transfer to deal with d-heterogeneity. Only a handful of approaches like feature clustering [111] and MMD loss
+based intermediate feature space construction [95, 97] are used in the relevant literature
+Boosting is one of the common ways in which data instances can be weighted. Methods like AdaBoost
+[200] maintain a distribution of weights over the data instances, which gets updated based on the performance
+(misclassification) of the weak learner. Instance mapping in the format of mapping subsequences using brute
+force, clustering-based, and motif-based methods is also explored in the literature [168]. It uses normalized
+cross-correlation (NCC) as the underlying similarity measure.
+Among the parameter transfer methods, the approach of pretrain-then-finetune is greatly applicable in this
+scenario as the underlying feature spaces are not drastically different. On IMU datasets, pre-training using
+well-established architectures like Inception-ResNet, DeepConvLSTM, HART, and MobileHART architectures
+and finetuning in leave one dataset out manner has been performed [143]. In addition, other custom architectures
+like spectro-temporal ResNet [71], VGG [104], and customized CNNs [97, 137] are also used. A slight variation to
+this approach by replacing the finetuning step with a clustering-based inference has been tested in the literature.
+In particular, classifiers like ELMs [216] and decision trees [217] are trained on the source domain and used to
+perform initial inference on the target domain. The most confident predictions are then used as initial cluster
+centers for performing K-means clustering followed by label propagation until convergence. A typical parameter
+transfer framework assumes a direct sharing of learned weights across domains. However, soft parameter sharing
+assumes a non-linear relation between the transferred parameters, which is suitable for domain shifts [95].
+4.1.4
+Approaches for addressing p and m-heterogeneity. Out of the entire collection, only a handful of approaches
+target and perform evaluations for addressing both p and m-heterogeneities. ActiLabel is one such approach,
+where the transfer learning problem is formulated as a combinatorial optimization problem [15, 16] to tackle both
+heterogeneities. It aims at learning a mapping from the groups of similar target instances, called core clusters, to
+known activity classes from the source domain. Using it, a dependency graph is created on which a min-cost
+This manuscript is under review. Please write to sourish.dhekane@gatech.edu for up-to-date information
+
+--- PAGE 17 ---
+mapping is performed for source-to-target inference. In another approach, the challenge of p and m-heterogeneity
+is addressed using disentangled representation learning between different modalities and positions using mutual
+information based regularization [206]. Moreover, an additional data source of motion capture is also leveraged
+using an SMPL model to generate virtual IMU data. Instead of addressing both the p and m-heterogeneity at the
+same time, it can also be addressed one at a time using a multi-factor transfer learning approach [94]. In this
+approach, the multi-factor domain variance is decoupled in a transfer path based on the available domains, i.e.,
+rather than transferring from 𝑆→𝑇, a transfer path 𝑆→𝐷1 →𝐷2 →... →𝑇is constructed. This is achieved
+by selecting the modalities that are more robust for each intermediate transfer. To perform the intermediate
+transfer, a parameter transfer approach is explored, which uses a multi-task model with modality-specific input
+and output layers to perform inference on the intermediate domain data. The high-confidence predictions are
+then used for pseudo-labeling the intermediate domain, to eventually re-train the multi-task model.
+In addition to proposing such new frameworks, the literature also consists of works that perform an analysis of
+existing approaches for addressing the p and m-heterogeneity. Specifically, the analysis of transferring different
+layers of the CNN [127] and Deep ConvLSTM [86] networks in terms of their freezing, re-training, and re-
+initialization has been performed.
+4.2
+Personalized Transfer Learning
+One goal of performing transfer learning is to achieve generalization. It refers to the ability of a model to perform
+well in diverse settings. However, in real-world deployments, personalization is a key requirement. Personalization
+can be viewed as a challenge of building a HAR system targeted for a single user (e.g. users of a smartwatch or a
+smartphone) or a set of users with common properties (e.g. adults in a gym). Specifically, it targets the the scenario
+of 𝑃(𝑋𝑠) ≠𝑃(𝑋𝑡) while 𝜒𝑠may (not) be equal to 𝜒𝑡. This difference in the marginal probability distributions
+arises because of the variations in the activities performed by different users, owing to their idiosyncrasies. To
+address this issue, several works have used source-target pairs based on the datasets shown in Table 3.
+4.2.1
+Approaches. Before discussing the approaches, we note that many of the methods presented below address
+the issue of 𝑃(𝑋𝑠) ≠𝑃(𝑋𝑡) in addition to 𝜒𝑠≠𝜒𝑡. This is because the issues of personalization and heterogeneity
+are typically present simultaneously in real-world settings. Thus, many of the methods used for addressing
+feature space heterogeneity are also used for personalization purposes.
+Under instance transfer, such common approaches include: (i) instance mapping and label propagation of
+sensor subsequences [168] or clusters [215] using NCC and MMD based similarity measures, respectively, (ii)
+label propagation on clusters using graph matching algorithms [60], (iii) standard [64] and semantically-aware
+[123] data augmentations, (iv) synthetic data generation in adversarial setup [175], and (v) instance weighing
+based on KMM [24, 116], nearest neighbor weighing [24], and domain discrimination loss [93, 212]. In addition
+to these, different approaches following the same themes are present in the literature. For instance, instance
+mapping using cosine similarity [203] and label propagation on data clusters using radial basis function (RBF)
+kernel similarity [142] are explored. The application of an RBF kernel constraints the similarity measurements in
+the range between 0 and 1 by measuring distances in exponential terms. Instance weighting based on metrics
+like log-likelihood function [76] and meta classification loss [93] is also tested. The meta classification loss is
+calculated by applying the standard loss functions on the transformed feature space for only the high-confidence
+pseudo labels generated by the classifier.
+There have also been some instance transfer works that follow themes different than the ones mentioned. For
+example, the metadata corresponding to physical, lifestyle, and sensor aspects of the source/target settings is
+used to create a similarity network, which is used in the boosting process [112]. Optimal source selection, in
+terms of the most compatible user, is another such theme. Meta features like predictability of activities using
+This manuscript is under review. Please write to sourish.dhekane@gatech.edu for up-to-date information
+
+--- PAGE 18 ---
+nearest neighbor classifier, Shannon entropy based diversity, frequency of activities, and pairwise dissimilarity
+between distributions of individuals are used in this selection process [174].
+Similar to the case of instance transfer, several feature transfer approaches are used to address the challenges
+of personalization as well as feature heterogeneity. Such approaches include: (i) conventional methods like TCA
+and SA [24, 116] and (ii) neural network induced feature space projections, guided by loss functions like domain
+discrimination/classification loss [34, 35, 63, 145, 178, 204], MMD-based loss [57, 95, 145, 178, 194], triplet loss
+[212], contrastive loss [204], and large margin loss [123]. Apart from these loss functions, the Jensen–Shannon
+divergence (JSD) loss is also used in intermediate feature space construction [64] for personalization. It is a
+symmetric as well as bounded version of the KL divergence.
+Correlation alignment (CORAL) is a conventional feature transfer method used for personalization that
+minimizes the distance between the covariance matrices of the source and target feature vectors [116]. Unlike
+CORAL, which works on source and target feature spaces, locally linear embedding (LLE) considers only the
+𝑘-nearest neighbors around each data instance and tries to reconstruct each data point linearly using this
+neighborhood [169]. In particular, LLE learns a weight matrix denoting reconstruction weights corresponding to
+each data instance pair. The corresponding optimization problem is solved using singular value decomposition
+(SVD) and eigenvector-based techniques. Latent Dirichlet allocation (LDA) is a hierarchical model that is commonly
+used for topic modeling, where documents are modeled by assuming a multinomial distribution over latent topics,
+which are further modeled using a similar distribution over words. In the case of wearable sensor data, because
+of its multidimensional nature and continuous feature spaces, making the likelihood assumptions in LDA is not
+only infeasible but also prone to overfitting due to a large number of parameters. Thus, AdaBoost is used as
+proxy to calculate the predictive likelihood in LDA towards performing feature space transfer [200, 202].
+In addition to these well-established methods, feature space transfer for personalization has also been achieved
+using a few customized approaches. One such approach performs supervised locality preserving projection (SLPP)
+to map source and target data on a common subspace such that the same class instances are mapped closer [68].
+This is achieved by creating an adjacency graph and solving an eigenvalue problem that incorporates smoothness
+and class-compactness terms. Another approach applies a transformation on the source space that minimizes a
+scaled distance between projected source and target instances [80]. The scaling factor in this case is the confidence
+of the classifier in predicting the activity label. In addition to these transformation-based approaches, semantic
+feature space representation using activity attributes is also explored in the literature [45]. These attributes
+include key movement patterns like arm-up, squat-stand, etc.
+Under parameter transfer approaches, the pretrain-then-finetune theme has been largely employed using neural
+network architectures like multi-layer perceptions (MLP) [142], AE [178], CNN [17, 48, 142, 163, 164], CNN-LSTM
+[168], Bayesian CNN [8], and spatial transformers [63]. A variation to this theme by replacing the finetuning
+process with clustering-based label assignment is tested [217]. In the pretraining aspect, several training strategies
+like model agnostic meta-learning [72, 73], soft parameter sharing [39, 95], domain adaptive batch normalization
+[124], joint training [39], and disentangled feature learning [144] are explored in the literature.
+Model agnostic meta learning presents an avenue, where different HAR tasks are constructed by sampling
+data across activities and subjects from the available datasets [72, 73]. Then, the target task is matched with
+one (or few) of the existing tasks using similarity measures based on mean distance measurements. Domain
+adaptive batch normalization is based on the fact that the batch normalization layer encodes domain-specific
+information. The idea of batch normalization is to keep the input distribution to each layer constant by replacing
+the output activations of previous layers with their standardized values. Thus, to perform transfer, instead of
+using exponentially weighted average to compute statistics, the entire test domain data is used to impose the
+same distribution across source and target domains [124]. Thus, the network can then produce representations in
+a subspace where both source and target distributions are similar.
+This manuscript is under review. Please write to sourish.dhekane@gatech.edu for up-to-date information
+
+--- PAGE 19 ---
+Table 4. Exploration of transfer learning challenges of multi-source training, dynamic environments, task difference, dis-
+tributed/federated setups, and performance evaluations in wearable HAR literature with corresponding source-target dataset
+pairs: We categorize the transfer learning works in terms of the challenges they address and the source-target dataset pairs
+on which their experiments are performed. In this table, the "Others" dataset category denotes custom datasets collected
+specific to some works as well as the lesser-used publicly available datasets like MotionSense, HASC, MyoGym, USC-HAD,
+Wetlab, Skoda, UniMiB, uWave, COSAR, KU-HAR, SPAD, Bilkent, Daphnet, WHARF, RealDisp, and Capture 24.
+Datasets
+Multi-Source Transfer
+Dynamic Environments
+Difference in Tasks
+Performance Measurement
+HHAR
+[143, 205, 218]
+[157]
+[54, 78]
+[54, 78]
+PAMAP2
+[34, 35, 57, 107, 143, 179, 218]
+[89, 208]
+[54, 78]
+[54, 78, 82]
+OPPORTUNITY
+[34, 35, 179, 218]
+[3, 5, 201]
+[27, 59, 62, 101, 102]
+-
+DSADS
+[34, 35, 57]
+[89]
+[131]
+-
+Mobiact
+[143]
+-
+[78]
+[78]
+RealWorld
+[143]
+[89]
+[54]
+[54]
+UCI
+[143, 205]
+[53]
+[100]
+-
+MHealth
+[179]
+-
+[78, 132, 208]
+[78, 82]
+WISDM
+[107, 205, 218]
+[5]
+[101, 102, 108]
+-
+DAS
+-
+-
+[101, 102, 132]
+-
+Custom
+[107, 112, 143, 179, 205, 218]
+[3, 5, 157, 161]
+[27, 45, 59, 78, 108, 208]
+[78, 82]
+In the joint training framework, different tasks like HAR and subject recognition can simultaneously be
+optimized [39]. The subject recognition task enables the HAR model to extract subject-specific features that
+are essential for personalization. Disentanglement refers to learning features that correspond to underlying
+independent factors. One way of measuring disentanglement is via correlation, which is minimized [144]. However,
+naively applying disentanglement methods to sequential models may intensify the KL vanishing problem. Thus,
+an evidence lower bound decomposition strategy for disentanglement is proposed in the literature [117]. It follows
+a multi-level disentanglement approach, covering both individual latent factors and group semantic segments.
+In addition to these, many conventional approaches like self-training [119], co-training [119], active learning
+[8, 45, 119, 182], ensemble learning [57, 156, 205], and probabilistic Bayes-optimal classifiers [56] are also used
+for personalization. In the active learning frameworks, the selection of data instances for training is performed
+based on least confidence [45], margins in predictions [45], maximum entropy [45], and user feedback [182].
+Among the ensemble-based methods, techniques are explored that target training of the ensemble, as well as
+inference based on it. In addition to setting-specific training of the individual classifiers, their loss functions
+can also be complemented with KL divergence between the label distributions of source and target domains
+to perform domain adaptation [205]. Another strategy to perform additional training of the ensemble is to
+update only the weights assigned to each individual component based on unseen data [156]. For inference in
+ensembles, techniques like majority voting [156] and PCR5 [57] are commonplace. A novel inference technique,
+called calibration [87], is designed for learning a personal model, where the goal is to select the best-performing
+individual classifiers per activity or subject to match the target conditions. Under probabilistic Bayes-optimal
+classifiers, a hierarchical multi-class Bayes point machine is used for performing transfer from a community to an
+individual subject [56]. A Bayes point machine learns 𝑘linear discriminant functions for a 𝑘-class classification
+problem, where the goal is to minimize average error marginalized over the entire sampling of data instances.
+Under the transfer learning setup, the prior values of this model, originally over the community weights, are
+replaced by Gaussian and Gamma posteriors learned from individual-specific data.
+4.3
+Multi-Source Transfer Learning
+One of the biggest challenges in the domain of wearable HAR is the unavailability of large-scale datasets,
+where generalized models can be learned and deployed across diverse settings. One way to address this is to
+train the HAR models on a number of small-scale datasets. However, based on the previous discussions, the
+factor of heterogeneity induced by sensor modalities, sensing positions, device aspects, and human subjects
+This manuscript is under review. Please write to sourish.dhekane@gatech.edu for up-to-date information
+
+--- PAGE 20 ---
+makes it difficult to leverage these datasets in a straightforward manner. Thus, the research on using multiple
+source datasets involves scalable feature transfer techniques that can handle multiple (number and type of)
+heterogeneities at the same time, while avoiding negative transfer. To address this challenge, several works have
+used source-target pairs based on the datasets shown in Table 4.
+4.3.1
+Approaches. Since most of the conventional feature transfer techniques (e.g., TCA, SA, and CORAL) are
+designed for a single-source transfer learning setup, the use of neural network based training frameworks is
+preferred for multi-source feature transfer. This includes the exploration of various architectures (e.g., ResNet,
+DeepConvLSTM, HART, and MobileHART) [143], loss functions (e.g., domain discrimination loss [34, 35, 179, 205],
+MMD-based loss [57, 179], and self-distillation loss [179]), and training strategies [107, 143, 218]. While these
+frameworks aim to arrive at a common feature space, they achieve it by sharing parameters (i.e., having common
+feature extractors), which can also be seen as a parameter transfer method. The loss functions like MMD and
+domain discrimination loss are calculated between each pair of source and target domains and used to formulate
+a global loss function that is jointly optimized. The self-distillation loss is applied in a teacher-student framework.
+In that, a global model is pre-trained that acts as the teacher, and the KL divergence between the predictions of
+this teacher and individual student model is used as a loss function [179].
+A training strategy similar to cross-validation, called leave-one-dataset-out, is explored, where all the datasets
+except one are used for pre-training followed by finetuning on the remaining one [143]. For handling differences
+across domains in terms of their tasks (activity label sets), the pre-training can be performed by classifying the
+target activities into basic and complex types [218]. The data corresponding to the basic activities, which are
+common across domains, can then be used to perform pre-training. In standard pre-training setups, it is often
+assumed that all the layers of the neural network architecture are updated. However, in a multi-source setup,
+this policy can incur significant costs, which can be reduced by performing standard pre-training on one source
+dataset followed by updating only the classification layers for the remaining ones [107]. In neural network based
+multi-source frameworks, the features corresponding to individual source domains can be concatenated to deliver
+a single inference by the HAR model. However, it is also possible to build an ensemble framework by considering
+individual source classifiers as building blocks. In the literature, one such technique is explored, where a weighted
+combination of individual source classifiers based on the perplexity scores between features is used to perform
+inference [34].
+Apart from feature and parameter transfer techniques, an instance transfer technique based on similarity-
+sensitive boosting is also used in a multi-source setup [112]. The similarity between instances is calculated using
+similarity networks based on physical, lifestyle, and sensor-related metadata.
+4.4
+Difference in Tasks
+The challenge of task difference across domains refers to a change in the activity label set, i.e., 𝑌𝑠≠𝑌𝑡, or
+their conditional distribution, i.e., 𝑃(𝑌𝑠|𝑋𝑠) ≠𝑃(𝑌𝑡|𝑋𝑡). The origin of this problem lies in the data collection
+protocols, where the data instances are annotated with only a specific set of activities, for example, biking, sitting,
+stairs up, stairs down, standing, and walking. This process results in two main issues. First, the human subjects
+perform many additional movements, in addition to the activity with which the data instances are annotated.
+In some cases, this results in the data instances for the same activities being very different [139]. Second, some
+activities like walking and nordic walking, while being different, are very similar to each other. Thus, to perform
+a transfer where activity sets differ, it is important to learn data representations that are invariant to the activity
+labels. Similar to the case of task difference in smart home settings, there exists an implicit assumption that the
+activities across domains are similar in terms of semantics or the underlying motion patterns. To incorporate task
+differences across domains, several works have used source-target pairs based on the datasets shown in Table 4.
+This manuscript is under review. Please write to sourish.dhekane@gatech.edu for up-to-date information
+
+--- PAGE 21 ---
+4.4.1
+Approaches. The main requirement for performing a transfer across different tasks is to have learned
+more generalized activity-invariant data representations. One way of achieving this goal is to have a feature
+representation that is suitable for such transfer. Semantic feature representation is one such way in which
+data can be represented [44, 45]. Semantic attributes can be seen as activity descriptors, e.g., arm up, sitting on
+table, etc. Since the underlying assumption in this transfer ensures the activities across domains are similar,
+common semantic attributes are more likely to exist, which can enable the transfer learning process. While
+semantic space representation relies on the manual designing of relevant attributes, neural networks are capable
+of extracting transferable features without any hard coding. AE [101, 102], VAE [62], GNN [208], and models
+based on convolutional and recurrent layers like DeepTransHAR [108] and DeepConvLSTM [59] are used in the
+literature to extract such features.
+In addition to these broader approaches, specialized methods are also explored in the literature to tackle
+the problem of task difference. For instance, the multi-class task difference problem is simplified into multiple
+one-vs-all binary classification problems [131]. The inference is then performed by combining the predictions of
+individual classifiers based on the highest confidence measure. This approach helps in detecting unseen classes
+based on low confidence values among all binary classifiers while avoiding false positives. Unseen classes during
+transfer can also be recognized using anomaly detection followed by clustering [100]. Anomaly detection helps
+in identifying the negative instances that may represent unseen activities. Performing clustering using such
+negative instances followed by label propagation using a majority voting based approach results in an instance
+transfer approach designed to identify similar as well as unseen activities across domains.
+The idea of semantic space representation is extended in the literature [132], where classifiers are trained on
+the existing as well as the semantic feature space. In case the target data instance belongs to an unseen class, the
+attribute-based classifiers are used. A slight variation in semantic space representation is explored in the activity
+space via partonomy-based transfer [28], where activities are broken into components that can be combined
+to form unseen activities. To do so, the data instances are segmented at low-movement points followed by the
+extraction of statistical features and training of a conditional random field (CRF) model to detect composite
+activities. Another unsupervised representation learning approach useful in this scenario is sparse coding [27]
+that tries to learn an over-complete set of feature vectors. This is performed by formulating an optimization
+problem based on reducing the reconstruction error and increasing the sparsity in the learned vectors in the
+codebook learning phase. Later, a classifier is trained by identifying clusters within the learned codebook and
+selecting the most informative basis vectors from the cluster to learn the classifier. Self-supervised learning has
+also been explored to learn task-independent features [78]. In the pretraining step, it constructs a pretext task
+using the unlabeled data itself to learn features that are later reused in the finetuning step.
+The use of other data modalities for recognizing the unseen activities has been explored in the literature. In
+particular, the features extracted from IMU data can be used for generating synthetic 2D skeletal maps in an
+adversarial framework, where the inference can be performed on the skeletal data using pre-trained models [62].
+This approach leverages the availability of data and pre-trained models from another domain to complement
+sensor-based transfer learning for HAR.
+4.5
+Dynamic Environments
+The standard transfer learning setup assumes a change in the feature space or task across domains only once.
+Thus, most of the transfer learning frameworks are trained only once to address the feature space heterogeneity,
+user variation, or difference in tasks. However, in real-world scenarios, a target environment is likely to undergo
+a change in factors like sensor positions (smartphone from left to right pocket), target users, task differences,
+etc. To perform HAR in such dynamic environments, transfer learning needs to be performed iteratively using
+methods that are capable of quickly adapting to the new target setting. A typical framework for performing such
+This manuscript is under review. Please write to sourish.dhekane@gatech.edu for up-to-date information
+
+--- PAGE 22 ---
+a transfer involves training a base model and updating it periodically with encountering a change in domain. In
+the literature, several works have addressed this challenge using source-target pairs based on the datasets shown
+in Table 4. Below, we present a subset of approaches addressing this challenge. A more comprehensive survey of
+transfer learning methods for dynamic environments is presented by Abdallah et al. [4].
+4.5.1
+Approaches. Different kinds of heterogeneities are introduced in dynamic environments, which are usually
+unknown at the initial model-building stages. Thus, it is essential for the model to work in a representation
+space that can easily accommodate different sensor heterogeneities, distribution changes, and other variations.
+Semantic space [201] and clustering-based representation [3, 5, 161] are popular choices for constructing such
+domain-invariant representation space. Semantic space representation uses commonly present attributes related
+to sensor type, data type, sensor location, attached object, activity patterns, etc., as features of the data instances.
+Clustering, on the other hand, can be separately performed on different feature spaces. Then, the resultant clusters
+can directly be mapped with each other to bypass the construction of an intermediate feature space. Similar to
+clusters, subsequences among data instances can also be mapped based on similarity measures, provided they do
+not belong to very different feature spaces [167].
+After addressing the challenge of data representation, performing inference & updating the base model is
+the next step. In the frameworks where clustering-based data representation is present, the inference can be
+performed using active learning [3, 5], weighted graph matching [161], and cluster updation techniques [3].
+An inference technique invariant of the underlying data representation scheme is to update the classifier in a
+self-training framework, where a new training dataset is iteratively created based on the confident predictions
+of the base model on the unseen data [53, 157]. In addition to dynamically creating training datasets, another
+approach is to modify the classifier itself with a change observed in the observed setting. This can be performed
+by using feature incremental random forests [89], where a novel mutual information based diversity generation
+strategy is employed to select individual trees of the random forests that become ineffective with the emergence
+of new sensors. To incorporate new data, steps like the creation of new trees and the update of older trees by
+performing node splitting on leaves can be performed. The adaptation process can also be viewed as a learning-
+to-rank problem [201], where the goal is to rank activity classes for each data instance. This can be performed by
+computing a score against each activity class for each data instance using semantic attributes and maximizing
+the area under curve (AUC) using stochastic gradient descent.
+4.6
+Distributed & Federated Learning
+In wearable devices like smartwatches and smartphones, movement-based (IMU) and physiological (heart rate,
+blood sugar, etc.) sensors are deployed that are capable of constantly collecting user-specific data. Hypothetically,
+the collection of this data from multiple users can likely result in a large-scale dataset, on which, generalizable
+HAR models can be trained. However, these data modalities are often an indicator of the user’s health, and hence,
+sharing this data would violate privacy as well as security. Recently, there have been regulations put in place to
+protect data privacy and security [192]. Hence, the data is now available in the form of isolated islands [42], which
+makes it impossible to perform standard training of HAR models in a centralized manner. Along with the data
+availability, there are additional challenges of resource constraints and personalization. Since the model training
+has to be shifted onto small-scale devices, handling computational resources becomes imperative. Also, the HAR
+system on each small-scale device needs to be personalized to the end user. All these challenges combined give
+rise to the research area of federated/distributed transfer learning. To perform simulated experiments, datasets
+like HHAR, Mobiact, and UCI Smartphone are used in the literature.
+4.6.1
+Approaches. A typical federated/distributed learning setup consists of a server and a client side. The goal
+of the client side is to perform on-device setting-specific training, whereas, the server side is responsible for
+This manuscript is under review. Please write to sourish.dhekane@gatech.edu for up-to-date information
+
+--- PAGE 23 ---
+combining the client models to create a global model, which benefits the client models as they have less training
+data. On the server side, the availability of computational resources is greater than on the client side, however,
+the training data is not available as well. Thus, there has to be communication between both sides in terms of
+sharing the model weights, classification scores, or other training-specific characteristics that do not violate any
+privacy or security policies. Under these constraints, federated learning frameworks are set up.
+Since the server side can afford the training of neural networks, the pretrain-then-finetune theme is explored in
+the federated learning setup [42, 142]. On the server side, the first step is to pretrain the initial HAR model using
+publicly available datasets. These models are shared with the clients for them to bootstrap their personal HAR
+system. These models are then re-trained on the client side using small amounts of personal data. These updated
+models are shared back with the server, where they are aggregated to update the global model. The updated
+global model gets shared with the clients again and the entire process is repeated.
+In addition to sharing the model weights, the class-wise prediction scores can also be shared between the
+server and the clients [74]. The benefit of sharing class-wise probabilities is that it becomes straightforward to
+use a knowledge distillation scheme on the client side, where having small-size models is a requirement. Under a
+distributed learning setup, a workaround for sharing data has been explored [80], where a privacy-protecting
+dataset is created on the server side. Rather than directly sharing data instances, which would violate privacy, all
+clients agree to a specific matrix that gets applied to the user-selected data instances to generate an encoded data
+matrix, which is shared with the server.
+4.7
+Performance Measurement
+The standard evaluation setup in machine learning consists of 𝑘-fold cross-validation. The idea behind using it is
+to avoid overfitting and potential bias in the training data. Additionally, performance indices like weighted F1
+score or AUC are preferred over standard classification accuracy as they are more suitable under class imbalance
+settings [128]. However, all these remedies are ineffective at measuring the performance of a HAR framework
+when the train and test conditions differ drastically. In particular, measuring the overall performance of a HAR
+framework based only on its performance in the source setting does not provide a complete picture of the ability
+of the framework to generalize. Thus, performance measurement under transfer learning settings is crucial for
+assessment and comparison purposes. The source-target dataset pairs used in performance measurement works
+are shown in Table 4.
+4.7.1
+Approaches. The works targeting performance evaluation under transfer learning settings are very few. In a
+multi-domain setup, a leave-one-dataset-out based performance measure is used for analyzing the domain-agnostic
+performance of a classifier [82]. Similar to 𝑘-fold cross-validation, it performs 𝑘trials of pre-training, where
+𝑘−1 datasets are used as sources and inference if performed on the remaining dataset. A more comprehensive
+assessment targeted at characterizing model performance based on the robustness to differing source and target
+conditions, the influence of dataset characteristics, and the feature space characteristics is performed in the
+literature [78]. This large-scale assessment work focuses on seven self-supervised approaches, namely, multi-task
+self-supervision, masked reconstruction, AE, CPC, SimCLR, SimSiam, and BYOL, and analyzes them from the
+perspectives of the aforementioned factors on ten datasets. Another work focused on analyzing self-supervised
+frameworks from the perspective of the pre-training data efficiency has proposed an index called critical mass. It
+denotes the minimum amount of unlabeled data used for pre-training, which results in a recognition F1 score
+within 5% of using the entire dataset.
+This manuscript is under review. Please write to sourish.dhekane@gatech.edu for up-to-date information
+
+--- PAGE 24 ---
+Table 5. Review of the state-of-the-art works in the domain of transfer learning in smart home settings for HAR. We shortlist
+those works that claim their approach to be the best-performing one by comparing it against other relevant methods in
+the literature. We also filter out the then-SOTA methods, i.e., the ones that were the best-performing at the time they were
+proposed but are no longer SOTA.
+Reference
+Year
+Datasets
+Tasks
+Method
+Compared Against
+Performance
+Metric
+Performance
+(min - max)
+Sukhija &
+Krishnan [181]
+2019
+CASAS HH
+Different Tasks,
+Heterogeneity
+Random forests to identify pivotal features from
+both domains to learn a transformation matrix
+SHFR, HeMap, FA, HFA, SHFR-RF
+mean error,
+standard
+deviation
+26.49 ± 2.81 -
+18.17 ± 1.68
+Feuz & Cook [66]
+2015
+Custom
+Heterogeneity,
+Multi-Source
+Transfer
+Meta feature construction for heterogeneity and
+stacking in ensembles for multiple sources
+Ablations
+accuracy,
+recall
+accuracy
+∼0.5 −0.62,
+recall
+∼0.2 −0.3
+Sanabria et al.
+[173]
+2021
+University of
+Amsterdam
+Heterogeneity
+Shift-GAN, a Bi-GAN variant with covariate shift
+correction using KMM, for feature transfer
+GFK, TCA, FLDA, JDA, IW, CCA,
+ADDA, DAN, DANN, ADADM
+macro F1
+score
+0.68 - 0.76
+Ramamurthy et
+al. [149]
+2021
+Custom,
+OPPORTUNITY
+Different Tasks
+Pretrain-then-finetune: self-taught feature
+extraction using deep belief networks
+w/o self-taught learning in nearest
+neighbor, SVM, RF, MLP, CNN
+accuracy, F1
+score
+F1 score: OP-
+PORTUNITY:
+0.86
+5
+DISCUSSION
+5.1
+Review of the State-of-the-art
+In the last two sections, we surveyed 205 works that perform transfer learning the domains of smart homes
+and wearables for HAR. These works range in the span of the last 16 years, where enhancements, in both
+the approaches and the performance, can be witnessed periodically. With the advent of deep learning, the
+conventional transfer learning algorithms are somewhat replaced by neural network based solutions, where
+advancements are being made primarily in the neural network architectures, design of loss functions, and training
+frameworks. Thus, it is essential to keep track of the best-performing methods such that the community can
+benefit by learning the recent trends.
+For this purpose, we provide a review of the state-of-the-art (SOTA) transfer learning methods for HAR in
+smart home and wearable sensing scenarios in Table 5 and Table 6, respectively. In particular, we provide the
+following information about the SOTA approaches: (i) references, (ii) year, (iii) datasets used in the experiments,
+(iv) challenges tackled (from Section 3 and Section 4), (v) Method(s) used to address these challenges, (vi)
+methods with which the SOTA approaches are compared, (vii) performance metrics used in their results, and
+(viii) performance values. To shortlist the SOTA works, we first search for articles that claim to have the best-
+performing method(s) present. Then, we filter out the works that were proposed in the distant past (more than 3
+years in the case of wearables literature). We do not perform this filtering in the case of smart homes because of
+the lesser number of SOTA contributions. Finally, we remove the redundant entries in our collection, where clear
+extensions of these works have been proposed in the literature.
+Based on Table 5 and Table 6, we draw the following conclusions: (i) The domain of transfer learning for HAR
+in smart homes has significantly less number of works that compare their proposed method with other relevant
+SOTA methods, (ii) Around 73% (19 out of 26) of the SOTA methods rely on deep learning based frameworks, (iii)
+Commonly found themes in the SOTA deep learning based frameworks are pretrain-then-finetune, architectures
+based on AE, CNN, GRU/LSTSM, GAN, and attention modules, loss functions based on MMD and domain
+discrimination loss, training frameworks like self-supervised learning, disentangled learning, and adversarial
+learning, (iv) Commonly found themes in the SOTA conventional approaches are data representation using
+meta features, clustering approaches, and subsequences, label propagation using optimal transport and graph
+matching, (v) Unless explicitly performed, a direct comparison of these SOTA methods is not possible owing to a
+variation in the experimental settings in terms of the datasets, challenges addressed, and performance metrics.
+This manuscript is under review. Please write to sourish.dhekane@gatech.edu for up-to-date information
+
+--- PAGE 25 ---
+Table 6. Review of the state-of-the-art works in the domain of transfer learning in wearables for HAR. We observe a significant
+number of works claiming their approach to be the SOTA. Hence, we first select only those approaches that were proposed
+in the last three years, i.e., from 2021 to 2023. Similar to the case of smart homes, we filter out the then-SOTA methods.
+Reference
+Year
+Datasets
+Tasks
+Method
+Compared Against
+Performance
+Metric
+Notable
+Performance
+Gong et al. [72]
+2022
+Custom
+Personalization
+Model agnostic meta learning: different HAR
+tasks constructed by sampling data across
+activities and subjects
+Transfer with CNN, Prototype
+Networks, MAML
+average accuracy,
+AUC
+accuracy
+∼0.8 −0.91, AUC
+0.98
+Suh et al. [178]
+2022
+OPPORTUNITY,
+PAMAP2,
+MHEALTH,
+MoCapci
+Personalization
+Training of AE based on MMD and adversarial
+subject-classification loss
+Multi-channel CNN,
+DeepConvLSTM, Transformers,
+METIER
+accuracy,
+weighted &
+macro F1 score
+macro F1 score:
+MHEALTH
+96.47 ± 4.04,
+PAMAP2
+77.84 ± 11.69
+Presotto et al.
+[143]
+2023
+HHAR, MobiAct,
+PAMAP2,
+RealWorld,
+MotionSense, UCI
+d-Heterogeneity
+multi-dataset training in leave-one-dataset-out
+manner
+Inception-ResNet, DeepConvLSTM,
+HART, MobileHART architectures
+average F1 score
+Inception-ResNet:
+PAMAP2: 0.76,
+MotionSense: 0.97
+Sanabria et al.
+[172]
+2021
+PAMAP2, DSADS,
+WISDOM
+p-Heterogeneity,
+Personalization
+Bi-GAN for feature alignment and contrastive
+learning
+TCA, GFK, DAN, DANN, JAN,
+DeepCORAL, ADADM
+micro & macro F1
+score
+macro F1 score:
+PAMAP2: 0.76,
+DSADS: 0.84
+Lu et al. [122]
+2021
+DSADS, UCI-HAR,
+USC-HAD,
+PAMAP2
+p-Heterogeneity
+mapping between substructures of data using
+optimal transport method
+nearest neighbor, TCA, SA,
+CORAL, STL, OT
+accuracy
+PAMAP: 0.74,
+DSADS: 0.81
+Khan & Roy
+[102]
+2022
+OPPORTUNITY,
+WISDOM, DAS
+Different Tasks
+AE trained using cross-entropy and MMD loss
+UnTran, JDA, TCA
+accuracy
+WISDM: 0.89, DAS:
+0.89
+Zhu et al. [221]
+2023
+PAMAP2, DSADS,
+SHL
+p-Heterogeneity
+source domain selection: MMD-based distances,
+feature transfer: multi-head attention, local MMD
+loss, domain confusion & classification loss
+TCA, JAN, TNNAR, DANN,
+SymNet, UDA-FM
+accuracy,
+macro-F1 score
+macro-F1 score:
+PAMAP2: 0.42,
+DSADS: 0.73
+Alajaji et al. [9]
+2023
+Custom
+p-Heterogeneity
+CNN & soft attention module trained with
+domain alignment, triplet, and classification loss
+CORAL, DNN, HDCNN
+accuracy,
+micro-F1 score
+micro-F1 score:
+0.54
+Hussein & Hajj
+[95]
+2022
+PAR, HHAR
+d-Heterogeneity,
+Personalization
+soft parameter sharing & squared MMD loss
+Hard & soft parameter sharing,
+linear & non-linear relations, DC &
+MMD loss
+average F1 score
+HHAR: 0.84
+Soleimani et al.
+[175]
+2022
+PAMAP2,
+OPPORTUNITY,
+LISSI
+Personalization
+Synthetic data generation: CNN-based GAN with
+micro-mini batch training strategy
+STL, GFK, SA-GAN, DANN, VADA,
+IIMT
+weighted-F1
+score
+PAMAP2: 0.76,
+OPPORTUNITY:
+0.54
+Varshney et al.
+[190]
+2021
+mHealth, PAMAP2
+p-Heterogeneity
+pretrain-then-finetune: CNN backbone
+PerceptionNet, DeepConvLSTM,
+Stochastic Generative Network
+accuracy
+PAMAP2: 0.94,
+mHealth: 0.98
+Qian et al. [144]
+2021
+UCI-HAR, UniMiB,
+OPPORTUNITY
+Personalization
+disentangled feature learning using VAE with
+independent excitation mechanism
+DDNN, DeepConvLSTM, CoDATS,
+VAE, DIVA
+F1 score
+UniMiB: 0.88,
+OPPORTUNITY:
+0.81
+Zhao et al. [215]
+2021
+DSADS, PAMAP2
+p-Heterogeneity,
+Personalization
+cluster-to-cluster transfer using MMD between
+clusters
+Nearest Neighbor, SVM, RF, PCA,
+TCA, SA, STL
+accuracy, F1
+score
+PAMAP F1 score:
+p-Heterogeneity:
+0.72,
+Personalization:
+0.4
+Alinia et al. [15]
+2023
+PAMAP2, DAS,
+Smartsock
+p,m-
+Heterogeneity
+combinatorial optimization: dependency graph
+with min-cost mapping
+ConvLSTM, DirectMap
+F1 score, NMI,
+Purity
+PAMAP2 F1 score:
+m-heterogeneity:
+0.59,
+p-heterogeneity:
+0.7
+Fallahzadeh et al.
+[60]
+2023
+DSADS, PAMAP2,
+Smartsock
+Personalization
+Similarity network based clustering followed by
+bipartite mapping
+CvC, CvR, RF, Bagging, ActiLabel
+accuracy
+PAMAP2: ∼0.74,
+DSADS: ∼0.72
+Lu et al. [123]
+2022
+SHAR, DSADS,
+UCIHAR,
+PAMAP2,
+USCHAD
+p-Heterogeneity,
+Personalization
+Semantically aware augmentations and large
+margin loss for feature transfer
+DANN, CORAL, ANDMask,
+GroupDRO, RSC, GILE
+accuracy,
+standard error
+PAMAP2: 0.81,
+DSADS: 0.91
+Faridee et al. [63]
+2021
+PAMAP2,
+OPPORTUNITY,
+HHAR
+p-Heterogeneity,
+Personalization
+spatial transformer with domain discrimination
+loss
+STL, MADA, DGDA, SA-GAN
+average F1 score
+PAMAP2
+p-Heterogeneity:
+0.61,
+Personalization:
+0.7
+Hu et al. [93]
+2023
+SBHAR,
+OPPORTUNITY,
+RealWorld
+Personalization
+Instance weighting based on classification loss,
+domain discrimination loss, and
+meta-classification loss
+HDCNN, MMD, dan, AdvSKM,
+MCD, XHAR, DANN, DUA, ETN,
+TCL, UAN, SS-UniDA, PADA
+accuracy, macro
+F1 score
+macro F1 score:
+OPPORTUNITY:
+0.58, RealWorld:
+0.74
+Suh et al. [179]
+2022
+OPPORTUNITY,
+PAMAP2,
+MHealth, RealDisp
+Multi-Source
+pretrain-then-finetune: backbone with spatial
+attention block trained using MMD, domain
+discrimination, and self-knowledge distillation
+loss
+MC-CNN, DeepConvLSTM,
+Self-Attention, METIER,
+Adversarial CNN
+accuracy,
+weighted &
+macro F1 score
+macro F1 score:
+PAMAP2: 0.75,
+OPPORTUNITY:
+0.77
+Pavliuk et al.
+[137]
+2023
+KU-HAR,
+UCI-HAPT
+d-Heterogeneity
+pretrain-then-finetune: pre-trained CNN on
+scalogram generated using CWT
+handcrafted, FFT, CNN-GRU,
+Wavelet Packet Transform based
+features
+accuracy, F1
+score
+F1 score KU-HAR:
+0.97
+Haresamudram
+et al. [79]
+2023
+HHAR, Myogym,
+Mobiact,
+Motionsense,
+MHEALTH,
+PAMAP2
+p-Heterogeneity,
+Different Tasks
+Self-supervised learning: Enhanced CPC with
+modifications in encoder architecture,
+autoregressive network, and future prediction
+task
+CNN, GRU, DeepConvLSTM,
+Multi-task SSL, AE, SimCLR, CPC
+macro F1 score
+HHAR: 0.59,
+MotionSense: 0.89,
+MHEALTH: 0.53
+Leng et al. [114]
+2023
+PAMAP2,
+RealWorld,
+USC-HAD
+m-Heterogeneity
+Synthetic IMU data generation using LLMs and
+CLIP based pre-trained models
+Classification setup with real IMU
+data
+macro F1 score
+PAMAP2: 0.69,
+RealWorld: 0.77,
+USC-HAD: 0.48
+This manuscript is under review. Please write to sourish.dhekane@gatech.edu for up-to-date information
+
+
+[... truncated at page 25 of 40 ...]

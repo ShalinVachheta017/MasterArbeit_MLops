@@ -56,12 +56,15 @@ CLAIM_SCHEMA: dict[str, dict] = {
         "evidence_type": "PAPER",
         "required_experiment": None,
         "paper_search_terms": [
-            ("Deep CNN-LSTM With Self-Attention Model for Human Activity Recognition Using Wearable Sensor.txt",
-             ["accuracy of 99.93", "BiLSTM", "LSTM", "accuracy"]),
-            ("Evaluating BiLSTM and CNN+GRU Approaches for Human Activity Recognition Using WiFi CSI Data.txt",
-             ["BiLSTM", "CNN", "GRU", "accuracy"]),
-            ("Shalin Vachheta-1701359-M.Sc. Mechatronics.txt",
-             ["Bidirectional", "BiLSTM", "LSTM"]),
+            (
+                "Deep CNN-LSTM With Self-Attention Model for Human Activity Recognition Using Wearable Sensor.txt",
+                ["accuracy of 99.93", "BiLSTM", "LSTM", "accuracy"],
+            ),
+            (
+                "Evaluating BiLSTM and CNN+GRU Approaches for Human Activity Recognition Using WiFi CSI Data.txt",
+                ["BiLSTM", "CNN", "GRU", "accuracy"],
+            ),
+            ("Shalin Vachheta-1701359-M.Sc. Mechatronics.txt", ["Bidirectional", "BiLSTM", "LSTM"]),
         ],
     },
     "stage_5_evaluation_confidence": {
@@ -87,8 +90,10 @@ CLAIM_SCHEMA: dict[str, dict] = {
         "evidence_type": "EMPIRICAL_CALIBRATION",
         "required_experiment": "scripts/threshold_sweep.py -> reports/THRESHOLD_CALIBRATION_SUMMARY.md",
         "paper_search_terms": [
-            ("Deep learning for sensor-based activity recognition_ A survey.txt",
-             ["distribution", "shift", "covariate"]),
+            (
+                "Deep learning for sensor-based activity recognition_ A survey.txt",
+                ["distribution", "shift", "covariate"],
+            ),
         ],
     },
     "stage_7_trigger_policy": {
@@ -102,10 +107,14 @@ CLAIM_SCHEMA: dict[str, dict] = {
         "evidence_type": "PAPER",
         "required_experiment": None,
         "paper_search_terms": [
-            ("adabn_li2016_1603.04779.txt",
-             ["batch normalization", "domain adaptation", "statistics", "target"]),
-            ("Domain Adaptation for Inertial Measurement Unit-based Human.txt",
-             ["batch normalization", "covariate shift", "domain"]),
+            (
+                "adabn_li2016_1603.04779.txt",
+                ["batch normalization", "domain adaptation", "statistics", "target"],
+            ),
+            (
+                "Domain Adaptation for Inertial Measurement Unit-based Human.txt",
+                ["batch normalization", "covariate shift", "domain"],
+            ),
         ],
     },
     "stage_8_tent": {
@@ -113,10 +122,14 @@ CLAIM_SCHEMA: dict[str, dict] = {
         "evidence_type": "PAPER",
         "required_experiment": None,
         "paper_search_terms": [
-            ("tent_wang2021_openreview_uXl3bZLkr3c.txt",
-             ["entropy", "test-time", "batch normalization", "affine"]),
-            ("Transfer Learning in Human Activity Recognition  A Survey.txt",
-             ["entropy", "continual", "test-time"]),
+            (
+                "tent_wang2021_openreview_uXl3bZLkr3c.txt",
+                ["entropy", "test-time", "batch normalization", "affine"],
+            ),
+            (
+                "Transfer Learning in Human Activity Recognition  A Survey.txt",
+                ["entropy", "continual", "test-time"],
+            ),
         ],
     },
     "stage_8_adabn_tent_twostage": {
@@ -133,8 +146,10 @@ CLAIM_SCHEMA: dict[str, dict] = {
         "evidence_type": "PAPER",
         "required_experiment": None,
         "paper_search_terms": [
-            ("Transfer Learning in Human Activity Recognition  A Survey.txt",
-             ["pseudo label", "pseudo-label", "instance transfer"]),
+            (
+                "Transfer Learning in Human Activity Recognition  A Survey.txt",
+                ["pseudo label", "pseudo-label", "instance transfer"],
+            ),
         ],
     },
     "stage_9_registration_gate": {
@@ -154,10 +169,14 @@ CLAIM_SCHEMA: dict[str, dict] = {
         "evidence_type": "PAPER",
         "required_experiment": None,
         "paper_search_terms": [
-            ("calibration_guo2017_1706.04599.txt",
-             ["temperature scaling", "calibration", "ECE", "confidence"]),
-            ("When Does Optimizing a Proper Loss Yield Calibration.txt",
-             ["temperature scaling", "calibration", "Guo"]),
+            (
+                "calibration_guo2017_1706.04599.txt",
+                ["temperature scaling", "calibration", "ECE", "confidence"],
+            ),
+            (
+                "When Does Optimizing a Proper Loss Yield Calibration.txt",
+                ["temperature scaling", "calibration", "Guo"],
+            ),
         ],
     },
     "stage_11_mc_dropout": {
@@ -165,8 +184,10 @@ CLAIM_SCHEMA: dict[str, dict] = {
         "evidence_type": "PAPER",
         "required_experiment": None,
         "paper_search_terms": [
-            ("mc_dropout_gal2016_1506.02142.txt",
-             ["dropout", "Bayesian", "uncertainty", "Monte Carlo"]),
+            (
+                "mc_dropout_gal2016_1506.02142.txt",
+                ["dropout", "Bayesian", "uncertainty", "Monte Carlo"],
+            ),
         ],
     },
     "stage_12_wasserstein_drift": {
@@ -174,8 +195,10 @@ CLAIM_SCHEMA: dict[str, dict] = {
         "evidence_type": "EMPIRICAL_CALIBRATION",
         "required_experiment": "Stage 12 implementation; no external paper needed for choice of Wasserstein-1 vs KS test",
         "paper_search_terms": [
-            ("MACHINE LEARNING OPERATIONS A SURVEY ON MLOPS.txt",
-             ["drift", "distribution shift", "monitoring"]),
+            (
+                "MACHINE LEARNING OPERATIONS A SURVEY ON MLOPS.txt",
+                ["drift", "distribution shift", "monitoring"],
+            ),
         ],
     },
     "stage_13_curriculum_pseudo_labeling": {
@@ -183,10 +206,11 @@ CLAIM_SCHEMA: dict[str, dict] = {
         "evidence_type": "EMPIRICAL_CALIBRATION",
         "required_experiment": "scripts/threshold_sweep.py + scripts/windowing_ablation.py",
         "paper_search_terms": [
-            ("Transfer Learning in Human Activity Recognition  A Survey.txt",
-             ["curriculum", "self-training", "pseudo"]),
-            ("ewc_kirkpatrick2017_1612.00796.txt",
-             ["curriculum", "self-training", "confidence"]),
+            (
+                "Transfer Learning in Human Activity Recognition  A Survey.txt",
+                ["curriculum", "self-training", "pseudo"],
+            ),
+            ("ewc_kirkpatrick2017_1612.00796.txt", ["curriculum", "self-training", "confidence"]),
         ],
     },
     "stage_13_ewc": {
@@ -194,10 +218,14 @@ CLAIM_SCHEMA: dict[str, dict] = {
         "evidence_type": "PAPER",
         "required_experiment": None,
         "paper_search_terms": [
-            ("ewc_kirkpatrick2017_1612.00796.txt",
-             ["elastic weight consolidation", "catastrophic forgetting", "Fisher", "lambda"]),
-            ("Transfer Learning in Human Activity Recognition  A Survey.txt",
-             ["catastrophic", "forgetting", "continual"]),
+            (
+                "ewc_kirkpatrick2017_1612.00796.txt",
+                ["elastic weight consolidation", "catastrophic forgetting", "Fisher", "lambda"],
+            ),
+            (
+                "Transfer Learning in Human Activity Recognition  A Survey.txt",
+                ["catastrophic", "forgetting", "continual"],
+            ),
         ],
     },
     "stage_14_sensor_placement": {
@@ -205,8 +233,10 @@ CLAIM_SCHEMA: dict[str, dict] = {
         "evidence_type": "EMPIRICAL_CALIBRATION",
         "required_experiment": "Threshold 1.2 derived from baseline Ax/Ay/Az statistics in models/normalized_baseline.json",
         "paper_search_terms": [
-            ("Domain Adaptation for Inertial Measurement Unit-based Human.txt",
-             ["sensor placement", "orientation", "axis", "wrist"]),
+            (
+                "Domain Adaptation for Inertial Measurement Unit-based Human.txt",
+                ["sensor placement", "orientation", "axis", "wrist"],
+            ),
         ],
     },
     "observability_prometheus": {
@@ -220,8 +250,10 @@ CLAIM_SCHEMA: dict[str, dict] = {
         "evidence_type": "PAPER",
         "required_experiment": None,
         "paper_search_terms": [
-            ("MACHINE LEARNING OPERATIONS A SURVEY ON MLOPS.txt",
-             ["CI/CD", "pipeline", "deployment", "monitoring", "MLOps"]),
+            (
+                "MACHINE LEARNING OPERATIONS A SURVEY ON MLOPS.txt",
+                ["CI/CD", "pipeline", "deployment", "monitoring", "MLOps"],
+            ),
         ],
     },
 }
@@ -230,7 +262,10 @@ CLAIM_SCHEMA: dict[str, dict] = {
 # Search helpers
 # ---------------------------------------------------------------------------
 
-def find_quote(text: str, terms: list[str], context_before: int = 60, context_after: int = 200) -> Optional[str]:
+
+def find_quote(
+    text: str, terms: list[str], context_before: int = 60, context_after: int = 200
+) -> Optional[str]:
     text_lower = text.lower()
     for term in terms:
         idx = text_lower.find(term.lower())
@@ -254,6 +289,7 @@ def load_paper_texts() -> dict[str, str]:
 # ---------------------------------------------------------------------------
 # Build the map
 # ---------------------------------------------------------------------------
+
 
 def build_map(texts: dict[str, str]) -> dict:
     metadata = {
@@ -298,10 +334,16 @@ def build_map(texts: dict[str, str]) -> dict:
                 continue
             quote = find_quote(texts[paper_file], terms)
             if quote:
-                entry["supported_by"].append({
-                    "paper_file": f"Thesis_report/refs/{paper_file.replace('.txt', '.pdf')}" if not paper_file.startswith("Shalin") else f"Thesis_report/sample reports/{paper_file.replace('.txt', '.pdf')}",
-                    "evidence_quote": quote,
-                })
+                entry["supported_by"].append(
+                    {
+                        "paper_file": (
+                            f"Thesis_report/refs/{paper_file.replace('.txt', '.pdf')}"
+                            if not paper_file.startswith("Shalin")
+                            else f"Thesis_report/sample reports/{paper_file.replace('.txt', '.pdf')}"
+                        ),
+                        "evidence_quote": quote,
+                    }
+                )
 
         # Tag
         if entry["evidence_type"] in ("EMPIRICAL_CALIBRATION", "SENSOR_SPEC", "PROJECT_DECISION"):
@@ -319,6 +361,7 @@ def build_map(texts: dict[str, str]) -> dict:
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
 
 def main() -> int:
     parser = argparse.ArgumentParser()

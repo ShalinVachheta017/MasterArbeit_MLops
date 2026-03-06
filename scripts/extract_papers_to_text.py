@@ -124,9 +124,7 @@ def main():
 
         if out_path.exists() and not args.force:
             print(f"  SKIP (exists): {pdf.name} -> {out_path.name}")
-            manifest.append(
-                {"pdf": str(pdf), "txt": str(out_path), "status": "skipped"}
-            )
+            manifest.append({"pdf": str(pdf), "txt": str(out_path), "status": "skipped"})
             continue
 
         print(f"  Extracting: {pdf.name} ...", end=" ", flush=True)
@@ -165,4 +163,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

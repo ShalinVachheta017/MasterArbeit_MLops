@@ -1,0 +1,205 @@
+% ============================================================================
+% thesis_main.tex
+% Master Thesis – Main Document Driver
+% ----------------------------------------------------------------------------
+% Author : Shalin Vachheta
+% Degree : Master of Science (Informatik / Computer Science)
+% Date   : May 2026
+% Compile: pdflatex → bibtex → pdflatex → pdflatex
+%          (or: latexmk -pdf thesis_main.tex)
+% ============================================================================
+
+% ----------------------------------------------------------------------------
+% DOCUMENT CLASS
+% Using KOMA-Script scrreprt — standard in German universities.
+% Options:  12pt       body font size
+%           a4paper    European paper
+%           twoside    left/right margins alternate (print-ready)
+%           openright  every chapter starts on a right-hand page
+%           chapterprefix  "Chapter X" heading prefix
+% ----------------------------------------------------------------------------
+\documentclass[
+  12pt,
+  a4paper,
+  twoside,
+  openright,
+  headsepline,        % line below running header
+  bibliography=totoc  % bibliography appears in TOC
+]{scrreprt}
+
+% ============================================================================
+% PACKAGES
+% ============================================================================
+
+% --- Encoding & language ---
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+
+% --- Typography ---
+\usepackage{lmodern}          % scalable font (replaces bitmap CM)
+\usepackage{microtype}        % better kerning and hyphenation
+\usepackage{setspace}
+\onehalfspacing               % 1.5 line spacing (most universities require this)
+
+% --- Page geometry ---
+\usepackage[
+  top=2.5cm,
+  bottom=2.5cm,
+  left=3.5cm,           % wider left margin for binding
+  right=2.5cm
+]{geometry}
+
+% --- Headers and footers ---
+\usepackage{scrlayer-scrpage}
+\pagestyle{scrheadings}
+\clearpairofpagestyles
+\ihead{\leftmark}             % inner header: chapter name
+\ohead{\thepage}              % outer header: page number
+\cfoot{}
+
+% --- Mathematics ---
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathtools}
+
+% --- Figures and tables ---
+\usepackage{graphicx}
+\graphicspath{{figures/}}     % all figures live in Thesis_report/figures/
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{booktabs}         % professional table rules (\toprule, \midrule, …)
+\usepackage{multirow}
+\usepackage{longtable}        % tables that span multiple pages
+\usepackage{tabularx}         % tables with auto-width columns
+\usepackage{array}
+
+% --- Code listings ---
+\usepackage{listings}
+\usepackage{xcolor}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.97,0.97,0.97}
+\lstdefinestyle{pythonstyle}{
+  backgroundcolor=\color{backcolour},
+  commentstyle=\color{codegreen}\itshape,
+  keywordstyle=\color{blue}\bfseries,
+  numberstyle=\tiny\color{codegray},
+  stringstyle=\color{codepurple},
+  basicstyle=\ttfamily\small,
+  breakatwhitespace=false,
+  breaklines=true,
+  captionpos=b,
+  keepspaces=true,
+  numbers=left,
+  numbersep=5pt,
+  showspaces=false,
+  showstringspaces=false,
+  showtabs=false,
+  tabsize=2,
+  language=Python
+}
+\lstset{style=pythonstyle}
+
+% --- TikZ / diagrams ---
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, fit, backgrounds}
+
+% --- Hyperlinks (load LAST among most packages) ---
+\usepackage[
+  colorlinks=true,
+  linkcolor=black,
+  citecolor=teal,
+  urlcolor=teal,
+  pdftitle={An MLOps Pipeline for Continuous Human Activity Recognition Using Wearable Sensors},
+  pdfauthor={Shalin Vachheta},
+  pdfsubject={Master Thesis},
+  pdfkeywords={HAR, MLOps, Domain Adaptation, Wearable Sensors, Pseudo-Labelling}
+]{hyperref}
+\usepackage{cleveref}         % smart cross-references (\cref{fig:x})
+
+% --- Bibliography (natbib + bibtex) ---
+\usepackage[
+  round,        % parenthetical citations
+  authoryear,   % author-year style
+  sort&compress % sort and compress: [1,2,3] → [1-3]
+]{natbib}
+\bibliographystyle{abbrvnat}  % abbreviated author names
+
+% --- Miscellaneous ---
+\usepackage{acronym}          % list of abbreviations
+\usepackage{csquotes}         % language-aware quotation marks
+\usepackage{enumitem}         % customise lists
+\usepackage{pdfpages}         % include external PDFs (e.g. declaration form)
+\usepackage{emptypage}        % suppress headers on blank pages between chapters
+\usepackage[toc,page]{appendix}  % appendix formatting
+
+% ============================================================================
+% CUSTOM COMMANDS
+% ============================================================================
+\newcommand{\todo}[1]{\textcolor{red}{\textbf{[TODO: #1]}}}
+\newcommand{\citeneeded}{\textcolor{orange}{\textsuperscript{[citation needed]}}}
+\newcommand{\pipeline}{\textit{HAR-MLOps Pipeline}}
+\newcommand{\cnnbilstm}{1D-CNN-BiLSTM}
+\newcommand{\nclasses}{11}
+
+% Stage references
+\newcommand{\stageref}[1]{Stage~#1}
+
+% ============================================================================
+% DOCUMENT START
+% ============================================================================
+\begin{document}
+
+% --------------------------------------------------------------------------
+% FRONT MATTER
+% --------------------------------------------------------------------------
+\frontmatter  % roman page numbering
+
+\include{frontmatter/titlepage}
+\include{frontmatter/declaration}
+\include{frontmatter/abstract}
+\include{frontmatter/acknowledgements}
+
+\cleardoublepage
+\tableofcontents
+
+\cleardoublepage
+\listoffigures
+
+\cleardoublepage
+\listoftables
+
+\cleardoublepage
+\include{frontmatter/abbreviations}
+
+% --------------------------------------------------------------------------
+% MAIN MATTER
+% --------------------------------------------------------------------------
+\mainmatter   % arabic page numbering restarts from 1
+
+\include{chapters/ch1_introduction}
+\include{chapters/ch2_background}
+\include{chapters/ch3_methodology}
+\include{chapters/ch4_implementation}
+\include{chapters/ch5_evaluation}
+\include{chapters/ch6_discussion}
+
+% --------------------------------------------------------------------------
+% BIBLIOGRAPHY
+% --------------------------------------------------------------------------
+\cleardoublepage
+\bibliography{refs/thesis}    % refs/thesis.bib
+
+% --------------------------------------------------------------------------
+% APPENDICES
+% --------------------------------------------------------------------------
+\begin{appendices}
+  \include{appendices/app_a_pipeline_stages}
+  \include{appendices/app_b_engineering_log}
+  \include{appendices/app_c_hyperparameters}
+\end{appendices}
+
+\end{document}

@@ -75,6 +75,7 @@ _model_info = None
 # Pydantic Models
 # ============================================================================
 
+
 class SensorReading(BaseModel):
     Ax: float = Field(..., description="Accelerometer X (m/s²)")
     Ay: float = Field(..., description="Accelerometer Y (m/s²)")
@@ -145,15 +146,18 @@ class ModelInfoResponse(BaseModel):
     activity_classes: Dict[int, str]
     loaded_at: str
 
+
 # ============================================================================
 # Model Loading
 # ============================================================================
+
 
 def load_model():
     global _model, _model_info
 
     try:
         import tensorflow as tf
+
         tf.get_logger().setLevel("ERROR")
 
         model_path = Path(MODEL_PATH)
@@ -168,7 +172,7 @@ def load_model():
             "model_name": "1D-CNN-BiLSTM HAR",
             "model_version": "1.0.0",
             "input_shape": list(_model.input_shape[1:]),  # (200, 6)
-            "output_classes": _model.output_shape[-1],    # 11
+            "output_classes": _model.output_shape[-1],  # 11
             "loaded_at": datetime.now().isoformat(),
         }
 
@@ -179,11 +183,13 @@ def load_model():
         logger.error(f"Failed to load model: {e}")
         return False
 
+
 # ============================================================================
 # Startup/Shutdown
 # ============================================================================
 
 _start_time = datetime.now()
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -191,6 +197,7 @@ async def lifespan(app: FastAPI):
     load_model()
     yield
     logger.info("👋 Shutting down HAR Inference API...")
+
 
 # ============================================================================
 # App
@@ -215,6 +222,7 @@ app.add_middleware(
 # Endpoints
 # ============================================================================
 
+
 @app.get("/", tags=["Root"])
 async def root():
     return {
@@ -225,6 +233,7 @@ async def root():
         "health_alias": "/api/health",  # ADDED (clarity)
     }
 
+
 @app.get("/health", response_model=HealthResponse, tags=["Health"])
 async def health_check():
     return HealthResponse(
@@ -234,10 +243,12 @@ async def health_check():
         uptime_seconds=(datetime.now() - _start_time).total_seconds(),
     )
 
+
 # ADDED: alias endpoint so CD/others can also call /api/health safely
 @app.get("/api/health", response_model=HealthResponse, tags=["Health"])
 async def health_check_alias():
     return await health_check()
+
 
 @app.get("/model/info", response_model=ModelInfoResponse, tags=["Model"])
 async def model_info():
@@ -252,6 +263,7 @@ async def model_info():
         activity_classes=ACTIVITY_CLASSES,
         loaded_at=_model_info["loaded_at"],
     )
+
 
 @app.post("/predict", response_model=PredictionResponse, tags=["Prediction"])
 async def predict(request: PredictionRequest):
@@ -275,8 +287,7 @@ async def predict(request: PredictionRequest):
 
         if request.return_probabilities:
             response.probabilities = {
-                ACTIVITY_CLASSES[i]: float(p)
-                for i, p in enumerate(probabilities)
+                ACTIVITY_CLASSES[i]: float(p) for i, p in enumerate(probabilities)
             }
 
         return response
@@ -285,6 +296,7 @@ async def predict(request: PredictionRequest):
         logger.error(f"Prediction error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.post("/predict/batch", response_model=BatchPredictionResponse, tags=["Prediction"])
 async def predict_batch(request: BatchPredictionRequest):
     if _model is None:
@@ -292,6 +304,7 @@ async def predict_batch(request: BatchPredictionRequest):
 
     try:
         import time
+
         start_time = time.time()
 
         windows = np.array(request.windows)
@@ -315,10 +328,7 @@ async def predict_batch(request: BatchPredictionRequest):
             )
 
             if request.return_probabilities:
-                pred.probabilities = {
-                    ACTIVITY_CLASSES[j]: float(p)
-                    for j, p in enumerate(probs)
-                }
+                pred.probabilities = {ACTIVITY_CLASSES[j]: float(p) for j, p in enumerate(probs)}
 
             predictions.append(pred)
 
@@ -334,6 +344,8 @@ async def predict_batch(request: BatchPredictionRequest):
         logger.error(f"Batch prediction error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)

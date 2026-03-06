@@ -1,0 +1,188 @@
+% ============================================================================
+% appendices/app_c_hyperparameters.tex
+% ============================================================================
+\chapter{Hyperparameter Reference with Citations}
+\label{app:hyperparameters}
+
+All hyperparameters in the pipeline are declared as fields in the entity
+configuration dataclasses (\texttt{src/entity/config\_entity.py}).
+The table below lists each parameter, its default value, the literature source
+justifying the choice, and the stage in which it is consumed.
+
+\begin{longtable}{p{0.26\textwidth}p{0.10\textwidth}p{0.33\textwidth}p{0.20\textwidth}}
+  \caption{Hyperparameter defaults, literature sources, and pipeline stage.}
+  \label{tab:hyperparameters} \\
+  \toprule
+  \textbf{Parameter} & \textbf{Default} & \textbf{Citation / Justification}
+    & \textbf{Stage} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{Parameter} & \textbf{Default} & \textbf{Citation / Justification}
+    & \textbf{Stage} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+
+  \texttt{window\_size}
+    & 200
+    & 4\,s at 50\,Hz; widely adopted in HAR DL literature
+      \citep{bao2004activity,chen2021deep}
+    & Transformation \\[4pt]
+
+  \texttt{stride}
+    & 100
+    & 50\,\% overlap; standard practice \citep{mannini2010machine}
+    & Transformation \\[4pt]
+
+  \texttt{n\_classes}
+    & 11
+    & Number of activity classes in the Oleh anxiety dataset
+    & Training \\[4pt]
+
+  \texttt{learning\_rate}
+    & $10^{-3}$
+    & Adam default \citep{kingma2015adam}
+    & Training \\[4pt]
+
+  \texttt{adam\_beta\_1}
+    & 0.9
+    & Adam default \citep{kingma2015adam}
+    & Training \\[4pt]
+
+  \texttt{adam\_beta\_2}
+    & 0.999
+    & Adam default \citep{kingma2015adam}
+    & Training \\[4pt]
+
+  \texttt{batch\_size}
+    & 32
+    & Standard for time-series CNN; empirically validated
+    & Training \\[4pt]
+
+  \texttt{cv\_folds}
+    & 5
+    & 5-fold cross-validation \citep{kohavi1995study}
+    & Training \\[4pt]
+
+  \texttt{dropout\_rate}
+    & 0.3
+    & Balances regularisation with model capacity;
+      common in HAR literature
+    & Architecture \\[4pt]
+
+  \texttt{mc\_samples}
+    & 30
+    & Diminishing variance returns after 30 passes
+      \citep{gal2016dropout}
+    & Calibration \\[4pt]
+
+  \texttt{temperature\_init}
+    & 1.5
+    & Post-training models tend to be overconfident;
+      $T > 1$ appropriate initial guess
+      \citep{guo2017calibration}
+    & Calibration \\[4pt]
+
+  \texttt{ece\_n\_bins}
+    & 15
+    & Standard binning for ECE \citep{naeini2015obtaining}
+    & Calibration \\[4pt]
+
+  \texttt{ece\_warn\_threshold}
+    & 0.10
+    & Calibration quality below this indicates well-calibrated model
+      \citep{guo2017calibration}
+    & Calibration \\[4pt]
+
+  \texttt{psi\_warn}
+    & 0.75
+    & Empirically calibrated for 24-channel aggregate PSI
+      (see \Cref{sec:psi_calibration})
+    & Monitoring \\[4pt]
+
+  \texttt{psi\_critical}
+    & 1.50
+    & Empirically calibrated; see above
+    & Monitoring \\[4pt]
+
+  \texttt{confidence\_warn}
+    & 0.60
+    & Windows below 60\,\% max-softmax are uncertain
+    & Monitoring \\[4pt]
+
+  \texttt{confidence\_critical}
+    & 0.40
+    & Windows below 40\,\% max-softmax are very uncertain
+    & Monitoring \\[4pt]
+
+  \texttt{uncertain\_fraction\_warn}
+    & 0.30
+    & $>$30\,\% uncertain windows triggers Layer-1 warning
+    & Monitoring \\[4pt]
+
+  \texttt{transition\_rate\_warn}
+    & 0.50
+    & $>$50\,\% transitions triggers Layer-2 warning
+    & Monitoring \\[4pt]
+
+  \texttt{adabn\_batches}
+    & 10
+    & Number of forward passes for BN statistics update
+      \citep{li2018adabn}
+    & Adaptation \\[4pt]
+
+  \texttt{tent\_steps}
+    & 10
+    & Gradient steps for entropy minimisation
+      \citep{wang2021tent}
+    & Adaptation \\[4pt]
+
+  \texttt{tent\_lr}
+    & $10^{-4}$
+    & 10$\times$ lower than training LR; conservative update
+    & Adaptation \\[4pt]
+
+  \texttt{ood\_entropy\_threshold}
+    & 0.95
+    & Skip TENT if mean normalised entropy exceeds this
+    & Adaptation \\[4pt]
+
+  \texttt{ewc\_lambda}
+    & 1000
+    & Prevents catastrophic forgetting \citep{kirkpatrick2017overcoming};
+      higher than $\lambda=400$ in original paper to match
+      small dataset setting
+    & Pseudo-label \\[4pt]
+
+  \texttt{pl\_initial\_threshold}
+    & 0.95
+    & Start curriculum with only very confident pseudo-labels
+      \citep{lee2013pseudo}
+    & Pseudo-label \\[4pt]
+
+  \texttt{pl\_threshold\_decay}
+    & 0.05
+    & Lower threshold by 5\,\% per curriculum stage
+    & Pseudo-label \\[4pt]
+
+  \texttt{mean\_teacher\_alpha}
+    & 0.999
+    & EMA decay for mean teacher model
+      \citep{tarvainen2017mean}
+    & Pseudo-label \\[4pt]
+
+  \texttt{cusum\_threshold}
+    & 3.0
+    & CUSUM drift detection sensitivity
+      \citep{page1954continuous}
+    & Monitoring \\[4pt]
+
+  \texttt{wald\_sprt\_ratio}
+    & 10
+    & Likelihood ratio for SPRT sequential test
+      \citep{wald1947sequential}
+    & Monitoring \\[4pt]
+
+\end{longtable}

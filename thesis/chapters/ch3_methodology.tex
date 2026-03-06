@@ -1,0 +1,319 @@
+% ============================================================================
+% chapters/ch3_methodology.tex
+% ============================================================================
+\chapter{Methodology}
+\label{ch:methodology}
+
+% ============================================================================
+\section{System Overview}
+\label{sec:system_overview}
+% ============================================================================
+
+The proposed system is a stage-based production pipeline that transforms raw
+wearable sensor recordings into activity predictions and continuously monitors,
+evaluates, and adapts the underlying model.
+The pipeline comprises 14 stages, logically partitioned into three groups that
+can be executed independently or in combination.
+
+\begin{table}[ht]
+  \centering
+  \caption{Pipeline stage groups and their purposes.}
+  \label{tab:stage_groups}
+  \begin{tabularx}{\linewidth}{llX}
+    \toprule
+    \textbf{Group} & \textbf{Stages} & \textbf{Purpose} \\
+    \midrule
+    Inference Cycle     & 1--7   & Ingest data, predict activities, monitor quality \\
+    Retraining Cycle    & 8--10  & Retrain, register, and update baselines \\
+    Advanced Analytics  & 11--14 & Calibrate, detect drift, pseudo-label, adapt \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+This decomposition follows the \textit{composable pipeline} design principle:
+each stage is an independently executable unit with a typed configuration input
+and a typed artefact output.
+The orchestrator composes stages at runtime according to command-line arguments.
+Default execution runs stages 1--7 only; retraining and advanced analytics are
+enabled via explicit flags, ensuring expensive computations occur only when needed.
+
+\subsection{Complete Stage Enumeration}
+
+\begin{table}[ht]
+  \centering
+  \caption{All 14 pipeline stages with inputs and outputs.}
+  \label{tab:all_stages}
+  \begin{tabularx}{\linewidth}{clXX}
+    \toprule
+    \textbf{\#} & \textbf{Stage Name} & \textbf{Input} & \textbf{Output} \\
+    \midrule
+    1  & Data Ingestion          & Raw Excel / CSV files          & Fused resampled CSV (50 Hz) \\
+    2  & Data Validation         & Fused CSV                      & Validation report (pass/fail) \\
+    3  & Data Transformation     & Validated CSV                  & Windowed NumPy arrays (.npy) \\
+    4  & Model Inference         & .npy arrays + Keras model      & Prediction CSV + probabilities \\
+    5  & Model Evaluation        & Predictions + probabilities    & Confidence distribution, ECE \\
+    6  & Post-Inference Monitor  & Predictions (unlabelled)       & Three-layer monitoring report \\
+    7  & Trigger Evaluation      & Monitoring report              & Retrain decision + reason \\
+    8  & Model Retraining        & Training data + current model  & Retrained model checkpoint \\
+    9  & Model Registration      & Retrained model + metrics      & Versioned model in registry \\
+    10 & Baseline Update         & New model + reference data     & Updated drift baselines \\
+    11 & Calibration \& UQ       & Validation logits              & Temperature $T$, ECE, uncertainty \\
+    12 & Wasserstein Drift       & Production features + baseline & Per-channel drift scores \\
+    13 & Curriculum Pseudo-Label & Model + unlabelled data        & Fine-tuned model \\
+    14 & Sensor Placement        & 6-axis features                & Hand-side label, mirrored features \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+% ============================================================================
+\section{Dataset and Preprocessing}
+\label{sec:dataset}
+% ============================================================================
+
+\subsection{Data Collection}
+
+The dataset comprises 26 wrist sensor recording sessions collected from
+Garmin smartwatches in Decoded CSV export format.
+Each session produces three CSV files: an accelerometer file
+(\texttt{\{ts\}\_accelerometer.csv}), a gyroscope file
+(\texttt{\{ts\}\_gyroscope.csv}), and a metadata file
+(\texttt{\{ts\}\_record.csv}).
+Sessions were originally recorded at approximately 50 Hz with a target
+resampling rate of exactly 50 Hz enforced during ingestion.
+
+\subsection{Sensor Fusion and Resampling}
+
+The ingestion stage merges the accelerometer and gyroscope streams on their
+nearest timestamps (nearest-neighbour temporal alignment), producing a unified
+6-channel array with columns
+$[\,\text{acc}_x,\,\text{acc}_y,\,\text{acc}_z,\,
+   \text{gyro}_x,\,\text{gyro}_y,\,\text{gyro}_z\,]$.
+Re-sampling to exactly 50 Hz is performed using linear interpolation.
+
+\paragraph{Unit normalisation.}
+A critical preprocessing step, motivated by a discovered production incident
+(see \Cref{sec:unit_mismatch}), is automatic unit detection.
+The pipeline computes the median magnitude
+$\|\mathbf{a}\| = \sqrt{a_x^2 + a_y^2 + a_z^2}$ over the first 100 windows.
+If the median exceeds 100\,m/s\textsuperscript{2}, the data are assumed to be
+in milli-g (1\,g~$\approx$~9807\,milli-g) and are converted:
+\begin{equation}
+  \mathbf{a}^{(\text{SI})} = \mathbf{a}^{(\text{mg})} \times
+    \frac{9.80665}{1000}
+\end{equation}
+This guard ensures forward compatibility with future Garmin firmware versions
+that may change the export unit.
+
+\subsection{Windowing}
+
+Following \citet{bao2004activity} and \citet{chen2021deep}, raw time-series
+data are segmented into fixed-length windows of $W = 200$ samples (4 seconds at
+50 Hz) with 50\,\% overlap, yielding a stride of 100 samples per window.
+Each window is normalised per channel using a StandardScaler fitted on the
+training set.
+The resulting tensors have shape
+$(\text{windows},\,W,\,6) = (\text{windows},\,200,\,6)$.
+
+% ============================================================================
+\section{Model Architecture}
+\label{sec:model_architecture}
+% ============================================================================
+
+The classification model is a \cnnbilstm{} with the following topology:
+
+\begin{table}[ht]
+  \centering
+  \caption{\cnnbilstm{} architecture. Total parameters: 499,131.}
+  \label{tab:model_architecture}
+  \begin{tabular}{clcc}
+    \toprule
+    \textbf{Layer} & \textbf{Type} & \textbf{Units/Filters} & \textbf{Output shape} \\
+    \midrule
+    1  & Input            & ---       & (200, 6) \\
+    2  & Conv1D + BN      & 64        & (200, 64) \\
+    3  & Conv1D + BN      & 64        & (200, 64) \\
+    4  & MaxPool + Drop (0.1)  & ---  & (100, 64) \\
+    5  & Conv1D + BN      & 128       & (100, 128) \\
+    6  & Conv1D + BN      & 128       & (100, 128) \\
+    7  & MaxPool + Drop (0.2)  & ---  & (50, 128) \\
+    8  & BiLSTM           & 128       & (50, 256) \\
+    9  & BiLSTM           & 64        & (128) \\
+    10 & Dense + BN       & 256       & (256) \\
+    11 & Dropout (0.3)    & ---       & (256) \\
+    12 & Dense (softmax)  & 11        & (11) \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The model was pre-trained with the Adam optimiser \citep{kingma2015adam}
+($\text{lr} = 10^{-3}$, $\beta_1 = 0.9$, $\beta_2 = 0.999$),
+batch size 32, and 5-fold cross-validation \citep{kohavi1995study}.
+The best fold achieved validation accuracy of 89.9\,\%.
+
+% ============================================================================
+\section{Three-Layer Monitoring Framework}
+\label{sec:monitoring}
+% ============================================================================
+
+Post-inference monitoring operates entirely on unlabelled production
+predictions.
+Three complementary layers are computed after each inference batch.
+
+\subsection{Layer 1: Confidence Monitoring}
+
+Layer 1 computes three statistics from the per-window softmax probability vector:
+\begin{itemize}
+  \item \textbf{Mean confidence} $\bar{c}$: average maximum softmax probability
+        across all windows in the batch.
+  \item \textbf{Uncertain window fraction} $u$: fraction of windows with
+        $\max_k p_k < \theta_{\text{warn}} = 0.60$.
+  \item \textbf{Very uncertain fraction}: fraction with
+        $\max_k p_k < \theta_{\text{critical}} = 0.40$.
+\end{itemize}
+A warning is raised when $u > 30\,\%$; a critical alert is raised when
+$u > 50\,\%$.
+
+\subsection{Layer 2: Temporal Consistency}
+
+Layer 2 measures the coherence of the predicted activity sequence over time:
+\begin{itemize}
+  \item \textbf{Transition rate} $r_t$: fraction of consecutive window pairs
+        where the predicted class changes.
+        Alert when $r_t > 50\,\%$ (erratic predictions, likely misaligned sensor).
+  \item \textbf{Mean dwell time} $\bar{d}$: average number of consecutive
+        windows sharing the same predicted class.
+        Alert when $\bar{d} < 3$ windows (< 0.6 s at 50\,\% overlap).
+\end{itemize}
+
+\subsection{Layer 3: Distribution Drift}
+
+Layer 3 computes per-channel feature \textit{z}-scores relative to the
+reference baseline stored in \texttt{models/normalized\_baseline.json}:
+\begin{equation}
+  z_c = \frac{\mu_c^{\text{prod}} - \mu_c^{\text{ref}}}
+             {\sigma_c^{\text{ref}}}
+\end{equation}
+where $c$ indexes the six sensor channels.
+A \textit{drift warning} is issued when $|z_c| > 2.0$ for any channel.
+The Population Stability Index (from \Cref{eq:psi}) is computed over the full
+24-bin histogram; the multi-channel aggregated PSI uses warn/critical thresholds
+of 0.75 / 1.50 (empirically calibrated in \Cref{sec:psi_calibration}).
+
+% ============================================================================
+\section{Trigger Policy Engine}
+\label{sec:trigger}
+% ============================================================================
+
+The trigger engine translates monitoring signals into a binary retraining
+decision.
+It implements a \textit{two-of-three voting rule}: a retraining trigger is
+issued only when at least two of the three monitoring layers report a warning
+or critical state.
+This prevents a single noisy signal from causing spurious retraining.
+
+The trigger logic also enforces:
+\begin{itemize}
+  \item \textbf{Cooldown period}: after a trigger fires, no further trigger
+        can be issued for 24 hours, preventing oscillatory retraining.
+  \item \textbf{Tiered severity}: the trigger decision distinguishes
+        \textsc{info}, \textsc{warning}, and \textsc{critical} levels.
+        Only \textsc{warning} and \textsc{critical} initiate retraining.
+  \item \textbf{Forced retrain flag}: the \texttt{forced\_retrain} parameter
+        bypasses the voting rule for scheduled maintenance windows.
+\end{itemize}
+
+% ============================================================================
+\section{Adaptation Strategies}
+\label{sec:adaptation}
+% ============================================================================
+
+\subsection{AdaBN + TENT}
+\label{sec:tent_adabn}
+
+The first adaptation strategy chains AdaBN \citep{li2018adabn} and TENT
+\citep{wang2021tent}:
+
+\begin{enumerate}
+  \item \textbf{AdaBN phase.} Run $n_{\text{batches}} = 10$ forward passes over
+        the target domain data in training mode.
+        After each pass, the Batch Normalisation running statistics are updated
+        to reflect the target domain.
+  \item \textbf{Snapshot.} Before the TENT gradient loop begins, record a
+        snapshot of all BN layers' \texttt{running\_mean} and
+        \texttt{running\_var} tensors.
+  \item \textbf{TENT phase.} For each of $n_{\text{steps}} = 10$ gradient steps
+        at $\text{lr} = 10^{-4}$, minimise the entropy of the output softmax
+        distribution via gradient descent on $\gamma$ and $\beta$ only.
+        After \textit{each} gradient step, restore the BN running statistics
+        from the snapshot.
+        This prevents TENT's training-mode forward passes from corrupting the
+        statistics set by AdaBN.
+  \item \textbf{Safety gates.}
+        (a)~\textit{OOD gate}: if the initial mean normalised entropy of the
+        target batch exceeds $\theta_{\text{ood}} = 0.85$, skip TENT and return
+        the AdaBN-adapted model unchanged.
+        (b)~\textit{Confidence rollback}: if mean confidence drops by more than
+        1 percentage point after TENT relative to the AdaBN checkpoint,
+        restore all $\gamma, \beta$ to their pre-TENT values.
+\end{enumerate}
+
+\subsection{Curriculum Pseudo-Labelling}
+\label{sec:pseudo_labelling}
+
+The second adaptation strategy fine-tunes the model on target-domain data
+using pseudo-labels generated by the model itself:
+
+\begin{enumerate}
+  \item \textbf{Confidence threshold initialisation.} Set initial threshold
+        $\tau_0 = 0.95$.
+  \item For each curriculum iteration $i$:
+    \begin{enumerate}[label=\alph*.]
+      \item Generate predictions on the unlabelled target set.
+      \item Retain windows with $\max_k p_k > \tau_i$ as pseudo-labelled data.
+      \item Apply \textit{self-consistency filter}: run a second forward pass;
+            retain only windows where the top-1 prediction is identical in both
+            passes.
+      \item Fine-tune the model on the retained pseudo-labelled windows with EWC:
+            \[
+              \mathcal{L} = \mathcal{L}_{\text{CE}} +
+                \frac{\lambda}{2} \sum_j F_j (\theta_j - \theta_j^*)^2
+            \]
+            where $F_j$ is the Fisher information for parameter $j$,
+            $\theta_j^*$ is the pre-training value, and $\lambda = 1000$
+            \citep{kirkpatrick2017overcoming}.
+      \item Lower the threshold: $\tau_{i+1} = \tau_i - 0.05$.
+    \end{enumerate}
+  \item \textbf{Rollback guard.} Evaluate on a held-out source-domain
+        validation set before and after each iteration.
+        If validation accuracy drops by more than 10 percentage points,
+        roll back to the previous checkpoint.
+\end{enumerate}
+
+The source-domain data used for rollback evaluation is pre-processed with
+the production StandardScaler before being mixed with pseudo-labelled data.
+This alignment step was introduced after a problem in which source data was
+passed at raw scale, inflating in-loop validation accuracy while degrading
+production performance (see \Cref{sec:engineering_challenges}).
+
+% ============================================================================
+\section{Calibration and Uncertainty Quantification}
+\label{sec:calibration}
+% ============================================================================
+
+\subsection{Temperature Scaling}
+
+Temperature scaling optimises a scalar temperature $T$ by minimising ECE on
+a held-out validation set.
+The initial value is $T_0 = 1.5$ \citep{guo2017calibration}.
+The temperature is optimised over 50 Adam steps with learning rate $10^{-2}$.
+A warning is issued when post-calibration ECE exceeds 0.10
+\citep{naeini2015obtaining}.
+
+\subsection{Monte Carlo Dropout}
+
+At inference time, $T = 30$ stochastic forward passes are run with dropout
+active \citep{gal2016dropout}.
+The mean prediction is used as the point estimate; the variance across passes
+is the epistemic uncertainty estimate.
+Windows with mean epistemic uncertainty above the 90th percentile of the
+training distribution are flagged as candidates for active learning export.

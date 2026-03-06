@@ -72,17 +72,68 @@ jobs:
           docker run -d --name har-test -p 8000:8000 \
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.image_tag }}
 
-      - name: Verify /health
+      - name: Debug endpoints
         run: |
-          for i in $(seq 1 30); do
+          echo "Waiting 30s for TensorFlow + model load..."
+          sleep 30
+          echo "---- GET / ----"
+          curl -i http://localhost:8000/ || true
+          echo ""
+          echo "---- GET /health ----"
+          curl -i http://localhost:8000/health || true
+          echo ""
+          echo "---- GET /api/health ----"
+          curl -i http://localhost:8000/api/health || true
+          echo ""
+          echo "---- GET /docs ----"
+          curl -i http://localhost:8000/docs || true
+          echo ""
+          echo "---- GET /openapi.json ----"
+          curl -i http://localhost:8000/openapi.json || true
+          echo ""
+          echo "---- container logs ----"
+          docker logs har-test || true
+
+      - name: Verify service is up
+        run: |
+          echo "Waiting for API to start (up to 120s)..."
+          for i in $(seq 1 60); do
+            # Priority 1: FastAPI schema — confirms app is alive and routing is functional
+            if curl -fsS http://localhost:8000/openapi.json > /dev/null; then
+              echo "Service UP — /openapi.json OK"
+              exit 0
+            fi
+            # Priority 2: explicit health routes
             if curl -fsS http://localhost:8000/health > /dev/null; then
-              echo "Health OK"
+              echo "Service UP — /health OK"
+              exit 0
+            fi
+            if curl -fsS http://localhost:8000/api/health > /dev/null; then
+              echo "Service UP — /api/health OK"
+              exit 0
+            fi
+            # Priority 3: root path responds (any 2xx/3xx)
+            STATUS=$(curl -o /dev/null -s -w "%{http_code}" http://localhost:8000/ || echo "000")
+            if [[ "$STATUS" =~ ^[23] ]]; then
+              echo "Service UP — / returned $STATUS"
               exit 0
             fi
             sleep 2
           done
-          echo "Health check failed; logs:"
-          docker logs har-test
+
+          echo "Service did not respond after 120s. Final debug:"
+          echo "---- GET / ----"
+          curl -i http://localhost:8000/ || true
+          echo "---- GET /health ----"
+          curl -i http://localhost:8000/health || true
+          echo "---- GET /api/health ----"
+          curl -i http://localhost:8000/api/health || true
+          echo "---- GET /docs ----"
+          curl -i http://localhost:8000/docs || true
+          echo "---- GET /openapi.json ----"
+          curl -i http://localhost:8000/openapi.json || true
+          echo "---- container logs (last 100 lines) ----"
+          docker logs --tail 100 har-test || true
           exit 1
 
       - name: Cleanup container

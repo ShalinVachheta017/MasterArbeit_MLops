@@ -8,6 +8,7 @@ Implements three tests from reports/PIPELINE_CTO_REVIEW.md:
   2. load_yaml_overrides() with a missing file → returns empty dict (no crash).
   3. apply_overrides() silently ignores unknown keys (no exception, no side-effect).
 """
+
 from __future__ import annotations
 
 import textwrap
@@ -26,13 +27,15 @@ class TestLoadYamlOverrides:
         """Override values in the YAML are returned correctly."""
         yaml_file = tmp_path / "overrides.yaml"
         yaml_file.write_text(
-            textwrap.dedent("""\
+            textwrap.dedent(
+                """\
                 monitoring:
                   confidence_warn_threshold: 0.55
                   drift_zscore_threshold: 2.5
                 trigger:
                   cooldown_hours: 12
-            """),
+            """
+            ),
             encoding="utf-8",
         )
 

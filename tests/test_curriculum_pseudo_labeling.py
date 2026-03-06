@@ -28,7 +28,7 @@ def high_confidence_probs():
         probs[i, cls] = 0.90 + rng.random() * 0.09  # 0.90-0.99
         remaining = 1.0 - probs[i, cls]
         probs[i, :cls] = remaining / 10
-        probs[i, cls+1:] = remaining / 10
+        probs[i, cls + 1 :] = remaining / 10
     return probs
 
 
@@ -43,11 +43,12 @@ def mixed_confidence_probs():
         probs[i, cls] = 0.95
         remaining = 0.05
         probs[i, :cls] = remaining / 10
-        probs[i, cls+1:] = remaining / 10
+        probs[i, cls + 1 :] = remaining / 10
     return probs
 
 
 # ── Threshold Scheduling ─────────────────────────────────────────────
+
 
 class TestThresholdScheduling:
     def test_linear_decay(self):
@@ -81,6 +82,7 @@ class TestThresholdScheduling:
 
 
 # ── Pseudo-Label Selection ───────────────────────────────────────────
+
 
 class TestPseudoLabelSelector:
     def test_select_at_high_threshold(self, high_confidence_probs):
@@ -134,6 +136,7 @@ class TestPseudoLabelSelector:
 
 
 # ── Config ───────────────────────────────────────────────────────────
+
 
 class TestCurriculumConfig:
     def test_defaults(self):

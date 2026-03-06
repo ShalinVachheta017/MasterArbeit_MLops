@@ -5,9 +5,10 @@ Tests for AdaBN (Adaptive Batch Normalization) domain adaptation.
 import pytest
 import numpy as np
 
-pytestmark = pytest.mark.slow   # requires TensorFlow
+pytestmark = pytest.mark.slow  # requires TensorFlow
 
 # ── Fixtures ──────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def dummy_model():
@@ -35,15 +36,18 @@ def target_data():
 
 # ── Tests ─────────────────────────────────────────────────────────────
 
+
 class TestFindBNLayers:
     def test_finds_bn_layers(self, dummy_model):
         from src.domain_adaptation.adabn import _find_bn_layers
+
         layers = _find_bn_layers(dummy_model)
         assert len(layers) >= 1
         assert "batch_normalization" in layers[0].name.lower() or "bn" in layers[0].name.lower()
 
     def test_returns_empty_for_none(self):
         from src.domain_adaptation.adabn import _find_bn_layers
+
         assert _find_bn_layers(None) == []
 
 
@@ -51,6 +55,7 @@ class TestAdaptBNStatistics:
     def test_model_unchanged_weights(self, dummy_model, target_data):
         """AdaBN should NOT change convolutional / dense weights."""
         from src.domain_adaptation.adabn import adapt_bn_statistics
+
         tf = pytest.importorskip("tensorflow")
 
         # Capture kernel weights before
@@ -69,7 +74,9 @@ class TestAdaptBNStatistics:
         before_var = bn_layers[0].get_weights()[3].copy()  # running_variance starts at 1.0
 
         # Use reset_stats=True so we go from ones→something_else, and many batches
-        adapt_bn_statistics(dummy_model, target_data, n_batches=20, batch_size=32, reset_stats=False)
+        adapt_bn_statistics(
+            dummy_model, target_data, n_batches=20, batch_size=32, reset_stats=False
+        )
 
         after_var = bn_layers[0].get_weights()[3]
         # Running variance should have shifted away from the initial value
@@ -77,6 +84,7 @@ class TestAdaptBNStatistics:
 
     def test_returns_model(self, dummy_model, target_data):
         from src.domain_adaptation.adabn import adapt_bn_statistics
+
         result = adapt_bn_statistics(dummy_model, target_data, n_batches=2)
         assert result is dummy_model
 
@@ -84,6 +92,7 @@ class TestAdaptBNStatistics:
 class TestAdaBNScoreConfidence:
     def test_returns_dict(self, dummy_model, target_data):
         from src.domain_adaptation.adabn import adabn_score_confidence
+
         result = adabn_score_confidence(dummy_model, target_data)
         assert isinstance(result, dict)
         assert "mean_confidence" in result
@@ -92,6 +101,7 @@ class TestAdaBNScoreConfidence:
 
     def test_confidence_range(self, dummy_model, target_data):
         from src.domain_adaptation.adabn import adabn_score_confidence
+
         result = adabn_score_confidence(dummy_model, target_data)
         assert 0.0 <= result["mean_confidence"] <= 1.0
         assert 0.0 <= result["low_confidence_ratio"] <= 1.0

@@ -1,0 +1,171 @@
+% ============================================================================
+% chapters/ch6_discussion.tex
+% ============================================================================
+\chapter{Discussion and Conclusion}
+\label{ch:discussion}
+
+% ============================================================================
+\section{Answering the Research Questions}
+\label{sec:rq_answers}
+% ============================================================================
+
+\paragraph{RQ1: Detecting degradation without labels.}
+The three-layer monitoring framework detects a range of degradation scenarios
+without any labelled data.
+Confidence monitoring (Layer~1) detects a broad drop in prediction quality
+including overconfident wrong predictions resulting from a unit mismatch.
+Temporal consistency (Layer~2) detects erratic prediction sequences that arise
+when sensor data is noisy or misaligned.
+Distributional drift (Layer~3) detects shift in the input feature distribution
+through PSI and z-score analysis.
+
+The most sensitive proxy metric for actual accuracy was the per-channel
+z-score (Layer~3): the accelerometer $a_z$ channel z-score of 312 during the
+unit mismatch experiment provided unambiguous evidence of domain shift before
+any accuracy measurement was possible.
+
+\paragraph{RQ2: Proxy metrics and trigger thresholds.}
+Multi-metric voting with two-of-three confirmation suppresses false positives
+from transient noise while remaining sensitive to genuine drift.
+The calibrated PSI thresholds (0.75 / 1.50) for multi-channel aggregated PSI
+are a key empirical contribution: standard textbook thresholds (0.10 / 0.25)
+were incorrectly sensitive, firing on stable data.
+
+\paragraph{RQ3: AdaBN+TENT vs pseudo-labelling.}
+Both strategies produced non-trivial adaptations.
+AdaBN+TENT is faster (parameter-free AdaBN + 10 TENT gradient steps, no
+labelled data from the source domain required) but resulted in a confidence
+drop of 7.6 percentage points in the 2026-02-23 production run, failing the
+canary gate.
+Pseudo-labelling (A5) achieved 96.9\,\% in-loop validation accuracy but
+requires a source-domain holdout for rollback evaluation, and is sensitive to
+the self-consistency filter rate (only 14.5\,\% of source windows were
+retained after filtering).
+
+\paragraph{RQ4: Engineering safeguards.}
+The experiments demonstrated that safeguards are essential.
+Without the BN snapshot mechanism, TENT silently invalidated AdaBN's output.
+Without the canary gate, the degraded AdaBN+TENT model (A4, 82.3\,\% mean
+confidence) would have replaced the production model.
+Without the governance flag \texttt{promote\_to\_shared=False}, a test run
+would have overwritten the production baseline.
+
+% ============================================================================
+\section{Contributions in Context}
+\label{sec:contributions_context}
+% ============================================================================
+
+The 14-stage composable pipeline architecture addresses the ``monolithic script''
+problem identified by \citet{sculley2015hidden}, providing a modular system
+where each stage is independently testable and composable.
+
+The three-layer monitoring framework extends the single-metric monitoring
+common in production ML literature to a composite health signal, reducing
+false alarm rates through multi-metric voting.
+
+The BN snapshot mechanism for the AdaBN+TENT chain is, to the author's
+knowledge, not described in other implementations.
+It resolves a fundamental interaction between two widely-used test-time
+adaptation methods that would otherwise produce worse results than either
+method alone.
+
+% ============================================================================
+\section{Limitations}
+\label{sec:limitations}
+% ============================================================================
+
+\begin{enumerate}
+  \item \textbf{Single-user evaluation.} The pipeline is validated on data
+    from a small number of users.
+    Generalisation to larger, more diverse populations is an open question.
+
+  \item \textbf{No online ground truth.} The evaluation of monitoring quality
+    relies on replaying known-bad scenarios (unit mismatch).
+    In practice, the relationship between proxy metrics and true accuracy
+    may vary across users and scenarios.
+
+  \item \textbf{Pseudo-label quality ceiling.} When the model is already
+    confused (low confidence, high entropy), pseudo-labels are unreliable.
+    The curriculum strategy mitigates but does not eliminate this risk.
+
+  \item \textbf{Label set fixed.} The pipeline handles only the 11
+    pre-defined activity classes.
+    Open-set recognition (detecting activities outside the training taxonomy)
+    is not addressed.
+
+  \item \textbf{Infrastructure dependencies.} The canary evaluation and
+    rollback mechanisms require the MLflow tracking server to be running.
+    If the server is unavailable, the pipeline falls back to a local
+    registry file, losing audit trail completeness.
+\end{enumerate}
+
+% ============================================================================
+\section{Future Work}
+\label{sec:future_work}
+% ============================================================================
+
+\begin{description}[style=nextline]
+
+  \item[Federated adaptation.]
+    Extend the pseudo-labelling and AdaBN+TENT strategies to a federated
+    setting where each user's device performs local adaptation and only
+    updated model parameters are aggregated, preserving user data privacy.
+
+  \item[Online learning.]
+    Replace the batch-triggered retraining cycle with an incremental learning
+    loop that updates the model continuously as new windows arrive, using
+    reservoir sampling to maintain a representative memory buffer.
+
+  \item[Automated PSI threshold calibration.]
+    Implement a self-calibrating threshold mechanism that computes the
+    99th-percentile PSI over a known-stable reference period and sets the
+    warn threshold automatically, removing the need for manual calibration.
+
+  \item[Open-set recognition.]
+    Integrate an energy-based or prototype-based out-of-distribution detector
+    that identifies activity sequences not belonging to any of the
+    \nclasses{} training classes, enabling detection of new behaviours.
+
+  \item[Prometheus / Grafana integration.]
+    The Prometheus metrics exporter (\texttt{src/prometheus\_metrics.py})
+    is implemented but not connected to a running Grafana instance in the
+    current deployment.
+    Completing this integration would enable real-time dashboard monitoring.
+
+\end{description}
+
+% ============================================================================
+\section{Conclusion}
+\label{sec:conclusion}
+% ============================================================================
+
+This thesis presented an end-to-end MLOps pipeline for continuous Human Activity
+Recognition using wrist-worn inertial sensor data in an anxiety monitoring
+context.
+The pipeline addresses the central practical challenge of maintaining model
+reliability in a setting where production data are unlabelled and sensor
+characteristics may shift over time.
+
+The core contributions --- a three-layer monitoring framework, a voting-based
+trigger policy, the AdaBN+TENT BN snapshot mechanism, curriculum pseudo-labelling
+with EWC regularisation, and a canary deployment gate --- together form a
+coherent, safety-conscious system that can detect, diagnose, and recover from
+domain shift without manual intervention.
+
+The accelerometer unit mismatch case study demonstrates in concrete terms what
+undetected domain shift looks like: 14.5\,\% cross-user accuracy with
+paradoxically high confidence, fully reversible once the unit conversion
+pipeline was introduced.
+This case illustrates both the risk of unmonitored ML deployments and the
+diagnostic value of the framework.
+
+The pipeline is fully containerised, CI/CD-enabled, and reproducible.
+The combination of Git, DVC, MLflow, Docker, and GitHub Actions provides the
+provenance infrastructure needed to ensure that every model decision can be
+traced to its data, code, and configuration state.
+
+The highest-priority area for future improvement is the transition from
+batch-triggered retraining to online continuous adaptation, which would reduce
+response latency to domain shift from hours to seconds.
+The composable stage architecture of the pipeline is designed to support this
+transition incrementally.
