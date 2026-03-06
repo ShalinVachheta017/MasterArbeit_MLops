@@ -42,6 +42,7 @@ def drifted_data():
 
 # ── Wasserstein Distance ─────────────────────────────────────────────
 
+
 class TestWassersteinDistance:
     def test_same_distribution_small_distance(self, baseline_data, no_drift_data):
         detector = WassersteinDriftDetector()
@@ -60,6 +61,7 @@ class TestWassersteinDistance:
 
 
 # ── Drift Detection ─────────────────────────────────────────────────
+
 
 class TestWassersteinDriftDetector:
     def test_no_drift_detected(self, baseline_data, no_drift_data):
@@ -101,6 +103,7 @@ class TestWassersteinDriftDetector:
 
 # ── Change-Point Detection ───────────────────────────────────────────
 
+
 class TestWassersteinChangePointDetector:
     def test_stable_series_no_change_points(self):
         """Constant Wasserstein distance → no change points."""
@@ -111,10 +114,12 @@ class TestWassersteinChangePointDetector:
 
     def test_step_change_detected(self):
         """Sudden jump in Wasserstein distance → change point."""
-        series = np.concatenate([
-            np.ones(60) * 0.1,
-            np.ones(40) * 2.0,  # Sudden drift
-        ])
+        series = np.concatenate(
+            [
+                np.ones(60) * 0.1,
+                np.ones(40) * 2.0,  # Sudden drift
+            ]
+        )
         series += np.random.RandomState(42).randn(100) * 0.05
         cpd = WassersteinChangePointDetector()
         result = cpd.detect_change_points(series)

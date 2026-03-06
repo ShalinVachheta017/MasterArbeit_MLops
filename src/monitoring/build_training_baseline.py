@@ -45,20 +45,22 @@ _PROJECT_ROOT = _SRC_DIR.parent
 
 try:
     from src.config import SENSOR_COLUMNS, WINDOW_SIZE, NUM_SENSORS, ACTIVITY_LABELS
+
     _OVERLAP = 0.5
     _STEP = int(WINDOW_SIZE * (1 - _OVERLAP))
 except ImportError:
     # Fallback constants if src.config is not importable
     SENSOR_COLUMNS = ["Ax_w", "Ay_w", "Az_w", "Gx_w", "Gy_w", "Gz_w"]
-    WINDOW_SIZE    = 200
-    NUM_SENSORS    = 6
+    WINDOW_SIZE = 200
+    NUM_SENSORS = 6
     ACTIVITY_LABELS = []
-    _STEP          = 100
+    _STEP = 100
 
 _CHANNEL_NAMES = ["Ax", "Ay", "Az", "Gx", "Gy", "Gz"]
 
 
 # ── Core statistics builder ───────────────────────────────────────────────────
+
 
 def _compute_stats(X: np.ndarray, channel_names: list) -> dict:
     """
@@ -68,30 +70,36 @@ def _compute_stats(X: np.ndarray, channel_names: list) -> dict:
     n_windows, _, n_channels = X.shape
     flat = X.reshape(-1, n_channels)
 
-    mean    = flat.mean(axis=0).tolist()
-    std     = flat.std(axis=0).tolist()
+    mean = flat.mean(axis=0).tolist()
+    std = flat.std(axis=0).tolist()
     min_val = flat.min(axis=0).tolist()
     max_val = flat.max(axis=0).tolist()
-    p5      = np.percentile(flat,  5, axis=0).tolist()
-    p25     = np.percentile(flat, 25, axis=0).tolist()
-    p50     = np.percentile(flat, 50, axis=0).tolist()
-    p75     = np.percentile(flat, 75, axis=0).tolist()
-    p95     = np.percentile(flat, 95, axis=0).tolist()
+    p5 = np.percentile(flat, 5, axis=0).tolist()
+    p25 = np.percentile(flat, 25, axis=0).tolist()
+    p50 = np.percentile(flat, 50, axis=0).tolist()
+    p75 = np.percentile(flat, 75, axis=0).tolist()
+    p95 = np.percentile(flat, 95, axis=0).tolist()
 
     per_channel = {}
     for i, ch in enumerate(channel_names[:n_channels]):
         per_channel[ch] = {
-            "mean": mean[i], "std": std[i],
-            "min": min_val[i], "max": max_val[i],
-            "p5": p5[i], "p25": p25[i], "p50": p50[i], "p75": p75[i], "p95": p95[i],
+            "mean": mean[i],
+            "std": std[i],
+            "min": min_val[i],
+            "max": max_val[i],
+            "p5": p5[i],
+            "p25": p25[i],
+            "p50": p50[i],
+            "p75": p75[i],
+            "p95": p95[i],
         }
 
     return {
         # Flat arrays used by PostInferenceMonitor._analyze_drift()
         "mean": mean,
-        "std":  std,
-        "min":  min_val,
-        "max":  max_val,
+        "std": std,
+        "min": min_val,
+        "max": max_val,
         "percentiles": {"p5": p5, "p25": p25, "p50": p50, "p75": p75, "p95": p95},
         "per_channel": per_channel,
         "channel_names": channel_names[:n_channels],
@@ -99,6 +107,7 @@ def _compute_stats(X: np.ndarray, channel_names: list) -> dict:
 
 
 # ── BaselineBuilder ───────────────────────────────────────────────────────────
+
 
 class BaselineBuilder:
     """
@@ -118,10 +127,10 @@ class BaselineBuilder:
         window_size: int = WINDOW_SIZE,
         step_size: Optional[int] = None,
     ):
-        self.sensor_columns  = sensor_columns or SENSOR_COLUMNS
-        self.window_size     = window_size
-        self.step_size       = step_size or _STEP
-        self._baseline: Optional[dict] = None   # populated by build_from_csv()
+        self.sensor_columns = sensor_columns or SENSOR_COLUMNS
+        self.window_size = window_size
+        self.step_size = step_size or _STEP
+        self._baseline: Optional[dict] = None  # populated by build_from_csv()
 
     # ------------------------------------------------------------------
     def build_from_csv(self, data_path) -> dict:
@@ -171,11 +180,11 @@ class BaselineBuilder:
                 f"No windows created — data length {len(X_raw)} < window size {self.window_size}"
             )
 
-        X = np.array(windows)           # (N, T, C)
+        X = np.array(windows)  # (N, T, C)
         logger.info("  Windows: %d  shape: %s", len(X), X.shape)
 
         ch_names = _CHANNEL_NAMES[: X.shape[2]]
-        stats    = _compute_stats(X, ch_names)
+        stats = _compute_stats(X, ch_names)
 
         # ── Per-class statistics ──────────────────────────────────────────
         per_class = {}
@@ -187,23 +196,23 @@ class BaselineBuilder:
                 cls_stats = _compute_stats(X[mask], ch_names)
                 per_class[str(lbl)] = {
                     "n_windows": int(mask.sum()),
-                    "mean":      cls_stats["mean"],
-                    "std":       cls_stats["std"],
+                    "mean": cls_stats["mean"],
+                    "std": cls_stats["std"],
                 }
 
         self._baseline = {
             "schema_version": 1,
             **stats,
             "n_channels": int(X.shape[2]),
-            "n_samples":  int(X.shape[0]),
-            "per_class":  per_class,
+            "n_samples": int(X.shape[0]),
+            "per_class": per_class,
             "metadata": {
-                "n_windows":    int(X.shape[0]),
-                "window_size":  self.window_size,
-                "step_size":    self.step_size,
-                "n_channels":   int(X.shape[2]),
-                "source_csv":   str(data_path),
-                "created_at":   datetime.now().isoformat(),
+                "n_windows": int(X.shape[0]),
+                "window_size": self.window_size,
+                "step_size": self.step_size,
+                "n_channels": int(X.shape[2]),
+                "source_csv": str(data_path),
+                "created_at": datetime.now().isoformat(),
                 "sensor_columns": self.sensor_columns,
             },
         }
@@ -239,6 +248,7 @@ class BaselineBuilder:
 
 # ── CLI ───────────────────────────────────────────────────────────────────────
 
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Build training baseline for drift detection (Stage 10)"
@@ -263,7 +273,7 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    builder  = BaselineBuilder()
+    builder = BaselineBuilder()
     baseline = builder.build_from_csv(args.data)
     builder.save(args.output)
     builder.save_normalized(args.output_normalized)

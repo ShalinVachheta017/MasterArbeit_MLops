@@ -50,6 +50,7 @@ sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 # Import centralized logger
 from src.logger import logging, CURRENT_LOG_FILE
+
 logger = logging.getLogger(__name__)
 
 from src.pipeline.production_pipeline import ProductionPipeline
@@ -118,11 +119,20 @@ Examples:
         "--stages",
         nargs="+",
         choices=[
-            "ingestion", "validation", "transformation",
-            "inference", "evaluation", "monitoring", "trigger",
-            "retraining", "registration", "baseline_update",
-            "calibration", "wasserstein_drift",
-            "curriculum_pseudo_labeling", "sensor_placement",
+            "ingestion",
+            "validation",
+            "transformation",
+            "inference",
+            "evaluation",
+            "monitoring",
+            "trigger",
+            "retraining",
+            "registration",
+            "baseline_update",
+            "calibration",
+            "wasserstein_drift",
+            "curriculum_pseudo_labeling",
+            "sensor_placement",
         ],
         default=None,
         help="Run only these stages (default: 1-7; use --retrain for 8-10, --advanced for 11-14)",
@@ -255,7 +265,7 @@ Examples:
         "--advanced",
         action="store_true",
         help="Include stages 11-14 (calibration, Wasserstein drift, "
-             "curriculum pseudo-labeling, sensor placement)",
+        "curriculum pseudo-labeling, sensor placement)",
     )
     parser.add_argument(
         "--curriculum-iterations",
@@ -283,6 +293,7 @@ def _detect_gpu() -> str:
     """Detect GPU availability, enable memory growth, and return 'gpu' or 'cpu'."""
     try:
         import tensorflow as tf
+
         gpus = tf.config.list_physical_devices("GPU")
         if gpus:
             for gpu in gpus:
@@ -316,13 +327,14 @@ def _detect_gpu() -> str:
 def load_preprocessing_config(config_path: str) -> dict:
     """Load preprocessing toggles from YAML config file."""
     import yaml
+
     path = Path(config_path)
     if not path.exists():
         print(f"Config file not found: {path}, using defaults")
         return {}
-    with open(path, 'r', encoding='utf-8') as f:
+    with open(path, "r", encoding="utf-8") as f:
         cfg = yaml.safe_load(f) or {}
-    return cfg.get('preprocessing', {})
+    return cfg.get("preprocessing", {})
 
 
 def main():
@@ -335,18 +347,18 @@ def main():
     print("=" * 80)
     print()
     logger.info("Pipeline starting... (device=%s)", device)
-    
+
     args = parse_args()
 
     # ── Load config from YAML ─────────────────────────────────────────
     yaml_preproc = load_preprocessing_config(args.config)
 
     # Resolve preprocessing toggles: CLI flags override YAML config
-    enable_unit_conversion   = yaml_preproc.get('enable_unit_conversion', True)
-    enable_gravity_removal   = yaml_preproc.get('enable_gravity_removal', False)
-    enable_calibration       = yaml_preproc.get('enable_calibration', False)
-    enable_normalization     = yaml_preproc.get('enable_normalization', True)
-    normalization_variant    = yaml_preproc.get('normalization_variant', 'zscore')
+    enable_unit_conversion = yaml_preproc.get("enable_unit_conversion", True)
+    enable_gravity_removal = yaml_preproc.get("enable_gravity_removal", False)
+    enable_calibration = yaml_preproc.get("enable_calibration", False)
+    enable_normalization = yaml_preproc.get("enable_normalization", True)
+    normalization_variant = yaml_preproc.get("normalization_variant", "zscore")
 
     # CLI overrides
     if args.no_unit_conversion:
@@ -362,11 +374,16 @@ def main():
 
     # Show what's active using logger
     logger.info("Preprocessing configuration (from %s):", args.config)
-    logger.info("  Unit Conversion (milliG\u2192m/s\u00b2): %s", 'ON' if enable_unit_conversion else 'OFF')
-    logger.info("  Gravity Removal:               %s", 'ON' if enable_gravity_removal else 'OFF')
-    logger.info("  Domain Calibration:            %s", 'ON' if enable_calibration else 'OFF')
-    logger.info("  Normalization:                 %s  (variant=%s)",
-                'ON' if enable_normalization else 'OFF', normalization_variant)
+    logger.info(
+        "  Unit Conversion (milliG\u2192m/s\u00b2): %s", "ON" if enable_unit_conversion else "OFF"
+    )
+    logger.info("  Gravity Removal:               %s", "ON" if enable_gravity_removal else "OFF")
+    logger.info("  Domain Calibration:            %s", "ON" if enable_calibration else "OFF")
+    logger.info(
+        "  Normalization:                 %s  (variant=%s)",
+        "ON" if enable_normalization else "OFF",
+        normalization_variant,
+    )
 
     # ── Build configs ─────────────────────────────────────────────────
     pipeline_cfg = PipelineConfig()
@@ -401,6 +418,7 @@ def main():
     )
 
     from src.entity.config_entity import ModelRegistrationConfig
+
     registration_cfg = ModelRegistrationConfig(
         auto_deploy=args.auto_deploy,
     )
@@ -412,6 +430,7 @@ def main():
         CurriculumPseudoLabelingConfig,
         SensorPlacementConfig,
     )
+
     calibration_cfg = CalibrationUncertaintyConfig(
         mc_forward_passes=args.mc_dropout_passes,
     )
@@ -470,23 +489,30 @@ def main():
 def _safe_print(text: str):
     """Print text, replacing characters that can't be encoded on Windows cp1252."""
     import sys as _sys
+
     try:
         print(text)
     except UnicodeEncodeError:
-        print(text.encode(_sys.stdout.encoding or "utf-8", errors="replace").decode(
-            _sys.stdout.encoding or "utf-8", errors="replace"
-        ))
+        print(
+            text.encode(_sys.stdout.encoding or "utf-8", errors="replace").decode(
+                _sys.stdout.encoding or "utf-8", errors="replace"
+            )
+        )
 
 
 def _print_pipeline_summary(result):
     """Print a clean summary of key pipeline metrics."""
-    P = _safe_print   # shorthand
-    P("\n" + "="*70)
+    P = _safe_print  # shorthand
+    P("\n" + "=" * 70)
     P("  PIPELINE SUMMARY")
-    P("="*70)
+    P("=" * 70)
 
     # Overall status
-    status_icon = "[OK]" if result.overall_status == "SUCCESS" else "[!!]" if result.overall_status == "PARTIAL" else "[FAIL]"
+    status_icon = (
+        "[OK]"
+        if result.overall_status == "SUCCESS"
+        else "[!!]" if result.overall_status == "PARTIAL" else "[FAIL]"
+    )
     P(f"\n{status_icon} Overall Status: {result.overall_status}")
     P(f"   Completed: {len(result.stages_completed)} stages")
     P(f"   Failed: {len(result.stages_failed)} stages")
@@ -503,7 +529,9 @@ def _print_pipeline_summary(result):
         if result.inference.confidence_stats:
             conf = result.inference.confidence_stats
             P(f"    - Mean Confidence: {conf.get('mean', 0)*100:.1f}%")
-            P(f"    - Uncertain: {conf.get('n_uncertain', 0)} ({conf.get('n_uncertain', 0)/max(result.inference.n_predictions, 1)*100:.1f}%)")
+            P(
+                f"    - Uncertain: {conf.get('n_uncertain', 0)} ({conf.get('n_uncertain', 0)/max(result.inference.n_predictions, 1)*100:.1f}%)"
+            )
 
     # Monitoring metrics
     if result.monitoring:
@@ -512,7 +540,7 @@ def _print_pipeline_summary(result):
 
         if result.monitoring.layer3_drift:
             drift = result.monitoring.layer3_drift
-            drift_score = drift.get('max_drift', 0)
+            drift_score = drift.get("max_drift", 0)
             P(f"    - Drift Score: {drift_score:.4f}")
 
             if drift_score > 1.50:
@@ -548,18 +576,16 @@ def _print_pipeline_summary(result):
     if result.inference and result.inference.activity_distribution:
         P(f"\n  Top 3 Activities Detected:")
         sorted_activities = sorted(
-            result.inference.activity_distribution.items(),
-            key=lambda x: x[1],
-            reverse=True
+            result.inference.activity_distribution.items(), key=lambda x: x[1], reverse=True
         )[:3]
         for activity, count in sorted_activities:
             pct = count / max(result.inference.n_predictions, 1) * 100
             P(f"    - {activity}: {count} ({pct:.1f}%)")
 
-    P("\n" + "="*70)
+    P("\n" + "=" * 70)
     P(f"  Artifacts saved to: artifacts/{result.run_id}")
     P(f"  Log file: {CURRENT_LOG_FILE}")
-    P("="*70 + "\n")
+    P("=" * 70 + "\n")
 
 
 if __name__ == "__main__":

@@ -52,6 +52,7 @@ N_SENSOR_CHANNELS = 6
 # Synthetic data generators
 # --------------------------------------------------------------------------- #
 
+
 def _load_baseline(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
@@ -90,7 +91,9 @@ def _apply_temperature_scaling(probabilities: np.ndarray, temperature: float) ->
     return exp_scaled / np.sum(exp_scaled, axis=1, keepdims=True)
 
 
-def make_clean_windows(baseline: dict, n: int, window_size: int, rng: np.random.Generator) -> np.ndarray:
+def make_clean_windows(
+    baseline: dict, n: int, window_size: int, rng: np.random.Generator
+) -> np.ndarray:
     """Draw windows from baseline Gaussian (no perturbation)."""
     means = np.array(baseline["mean"])
     stds = np.array(baseline["std"])
@@ -128,7 +131,10 @@ def make_perturbed_windows(
 # Session helpers
 # --------------------------------------------------------------------------- #
 
-def _build_session_index(n_sessions: int, windows_per_session: int) -> tuple[np.ndarray, np.ndarray]:
+
+def _build_session_index(
+    n_sessions: int, windows_per_session: int
+) -> tuple[np.ndarray, np.ndarray]:
     session_ids = np.repeat(np.arange(n_sessions), windows_per_session)
     timestamps = np.tile(np.arange(windows_per_session), n_sessions)
     return session_ids.astype(int), timestamps.astype(float)
@@ -152,7 +158,9 @@ def _session_reduce(values: np.ndarray, session_ids: np.ndarray, reducer) -> np.
     return np.array(reduced, dtype=float)
 
 
-def compute_session_drift_zscore(windows: np.ndarray, baseline: dict, session_ids: np.ndarray) -> np.ndarray:
+def compute_session_drift_zscore(
+    windows: np.ndarray, baseline: dict, session_ids: np.ndarray
+) -> np.ndarray:
     means = np.array(baseline["mean"])
     stds = np.array(baseline["std"])
 
@@ -165,7 +173,9 @@ def compute_session_drift_zscore(windows: np.ndarray, baseline: dict, session_id
     return np.array(out)
 
 
-def compute_session_mean_confidence(probabilities: np.ndarray, session_ids: np.ndarray) -> np.ndarray:
+def compute_session_mean_confidence(
+    probabilities: np.ndarray, session_ids: np.ndarray
+) -> np.ndarray:
     max_probs = probabilities.max(axis=1)
     return _session_reduce(max_probs, session_ids, np.mean)
 
@@ -194,6 +204,7 @@ def compute_session_flip_rates(
 # --------------------------------------------------------------------------- #
 # Sweep helpers
 # --------------------------------------------------------------------------- #
+
 
 def sweep_far_tpr(
     metric_clean: np.ndarray,
@@ -293,6 +304,7 @@ def find_sweetspot(
 # Output helpers
 # --------------------------------------------------------------------------- #
 
+
 def _plot_metric(ax, df_metric: pd.DataFrame, title: str) -> None:
     clean_label = df_metric["clean_rate_label"].iloc[0]
     pert_label = df_metric["perturbed_rate_label"].iloc[0]
@@ -389,9 +401,13 @@ def write_summary(
     ]
 
     if requires_labels:
-        lines.append("- Pseudo-label FAR/error-rate **requires labels**; no labeled subset was provided in this sweep.")
+        lines.append(
+            "- Pseudo-label FAR/error-rate **requires labels**; no labeled subset was provided in this sweep."
+        )
     else:
-        lines.append("- Pseudo-label error_rate was computed because a labeled subset was provided.")
+        lines.append(
+            "- Pseudo-label error_rate was computed because a labeled subset was provided."
+        )
 
     lines.extend(
         [
@@ -409,14 +425,19 @@ def write_summary(
 # Main
 # --------------------------------------------------------------------------- #
 
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Threshold calibration sweep")
     parser.add_argument("--baseline-json", type=Path, default=BASELINE_JSON)
     parser.add_argument("--model-path", type=Path, default=MODEL_PATH)
     parser.add_argument("--temperature-json", type=Path, default=TEMPERATURE_JSON)
     parser.add_argument("--disable-temperature-scaling", action="store_true")
-    parser.add_argument("--labels-subset", type=Path, default=None,
-                        help="Optional .npy labels aligned to clean windows for pseudo-label error-rate")
+    parser.add_argument(
+        "--labels-subset",
+        type=Path,
+        default=None,
+        help="Optional .npy labels aligned to clean windows for pseudo-label error-rate",
+    )
     parser.add_argument("--n-sessions", type=int, default=20)
     parser.add_argument("--windows-per-session", type=int, default=100)
     parser.add_argument("--window-size", type=int, default=200)
@@ -438,9 +459,7 @@ def main() -> int:
         f"({n_total} total) per condition ..."
     )
 
-    clean = make_clean_windows(
-        baseline, n_total, args.window_size, rng=np.random.default_rng(0)
-    )
+    clean = make_clean_windows(baseline, n_total, args.window_size, rng=np.random.default_rng(0))
     perturbed_noise = make_perturbed_windows(
         baseline, n_total, args.window_size, perturbation="noise", rng=np.random.default_rng(42)
     )
@@ -492,8 +511,12 @@ def main() -> int:
     sweetspot_conf = find_sweetspot(df_conf)
 
     # ---- Uncertain percentage threshold ----
-    pct_clean = compute_session_uncertain_pct(probs_clean, session_ids, uncertain_window_threshold=0.50)
-    pct_pert = compute_session_uncertain_pct(probs_noise, session_ids, uncertain_window_threshold=0.50)
+    pct_clean = compute_session_uncertain_pct(
+        probs_clean, session_ids, uncertain_window_threshold=0.50
+    )
+    pct_pert = compute_session_uncertain_pct(
+        probs_noise, session_ids, uncertain_window_threshold=0.50
+    )
     pct_thresholds = np.arange(5, 55, 5)
     df_pct = sweep_far_tpr(
         pct_clean,

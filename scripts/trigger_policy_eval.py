@@ -35,6 +35,7 @@ REPORTS_DIR = ROOT / "reports"
 # Simulate monitoring sessions
 # --------------------------------------------------------------------------- #
 
+
 def simulate_sessions(n_sessions: int, seed: int = 0) -> pd.DataFrame:
     """Generate synthetic sessions with drift episodes."""
     rng = np.random.default_rng(seed)
@@ -97,6 +98,7 @@ def simulate_sessions(n_sessions: int, seed: int = 0) -> pd.DataFrame:
 # Trigger policies
 # --------------------------------------------------------------------------- #
 
+
 def policy_single_signal(df: pd.DataFrame) -> pd.Series:
     return df["confidence_warn"] | df["drift_warn"] | df["temporal_warn"]
 
@@ -126,6 +128,7 @@ def policy_two_of_three_cooldown(df: pd.DataFrame, cooldown_hours: int) -> pd.Se
 # --------------------------------------------------------------------------- #
 # Metrics
 # --------------------------------------------------------------------------- #
+
 
 def evaluate_policy(triggered: pd.Series, genuine: pd.Series, df: pd.DataFrame) -> dict:
     tp = int((triggered & genuine).sum())
@@ -174,6 +177,7 @@ def choose_best_cooldown(result_df: pd.DataFrame) -> pd.Series:
 # --------------------------------------------------------------------------- #
 # Main
 # --------------------------------------------------------------------------- #
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Trigger policy evaluation")
@@ -232,7 +236,13 @@ def main() -> int:
     print(f"\nCSV saved: {csv_path}")
 
     try:
-        _plot(result_df, policies, df, best_cooldown["policy"], REPORTS_DIR / "TRIGGER_POLICY_EVAL.png")
+        _plot(
+            result_df,
+            policies,
+            df,
+            best_cooldown["policy"],
+            REPORTS_DIR / "TRIGGER_POLICY_EVAL.png",
+        )
     except Exception as e:
         print(f"WARNING: plot failed ({e})")
 
@@ -246,8 +256,13 @@ def main() -> int:
     return 0
 
 
-def _plot(result_df: pd.DataFrame, policies: dict, sessions_df: pd.DataFrame,
-          chosen_policy: str, out_path: Path) -> None:
+def _plot(
+    result_df: pd.DataFrame,
+    policies: dict,
+    sessions_df: pd.DataFrame,
+    chosen_policy: str,
+    out_path: Path,
+) -> None:
     import matplotlib
 
     matplotlib.use("Agg")
@@ -261,8 +276,12 @@ def _plot(result_df: pd.DataFrame, policies: dict, sessions_df: pd.DataFrame,
     ax1.bar(x, result_df["episode_recall"], w, label="Episode Recall", color="seagreen")
     ax1.bar(x + w, result_df["false_alarm_rate"], w, label="False Alarm Rate", color="tomato")
     ax1.set_xticks(x)
-    ax1.set_xticklabels([p.replace("two_of_three_", "2of3_") for p in result_df["policy"]],
-                        rotation=30, ha="right", fontsize=8)
+    ax1.set_xticklabels(
+        [p.replace("two_of_three_", "2of3_") for p in result_df["policy"]],
+        rotation=30,
+        ha="right",
+        fontsize=8,
+    )
     ax1.set_ylabel("Rate")
     ax1.set_title("Policy Comparison")
     ax1.legend()
@@ -276,11 +295,24 @@ def _plot(result_df: pd.DataFrame, policies: dict, sessions_df: pd.DataFrame,
     for yi, name in enumerate(subset_names):
         triggered = policies[name]
         trig_idx = sessions_df[triggered].index
-        ax2.scatter(trig_idx, [yi] * len(trig_idx), marker="|", s=90,
-                    color=colors[yi], label=name, alpha=0.75)
+        ax2.scatter(
+            trig_idx,
+            [yi] * len(trig_idx),
+            marker="|",
+            s=90,
+            color=colors[yi],
+            label=name,
+            alpha=0.75,
+        )
 
-    ax2.scatter(genuine_idx, [-0.5] * len(genuine_idx), marker="^",
-                color="black", s=35, label="genuine drift")
+    ax2.scatter(
+        genuine_idx,
+        [-0.5] * len(genuine_idx),
+        marker="^",
+        color="black",
+        s=35,
+        label="genuine drift",
+    )
     ax2.set_yticks([-0.5, 0, 1, 2])
     ax2.set_yticklabels(["genuine", subset_names[0], subset_names[1], subset_names[2]], fontsize=8)
     ax2.set_xlabel("Session #")
@@ -302,8 +334,9 @@ def _df_to_md(df: pd.DataFrame) -> str:
     return "\n".join([header, sep] + rows)
 
 
-def _summarize(result_df: pd.DataFrame, n_sessions: int, best_cooldown: pd.Series,
-               out_path: Path) -> None:
+def _summarize(
+    result_df: pd.DataFrame, n_sessions: int, best_cooldown: pd.Series, out_path: Path
+) -> None:
     chosen_policy = str(best_cooldown["policy"])
     chosen_cooldown = chosen_policy.replace("two_of_three_cooldown", "").replace("h", "")
 

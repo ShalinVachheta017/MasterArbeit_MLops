@@ -29,7 +29,7 @@ class TestProductionPipelineInit:
         # curriculum_pseudo_labeling, sensor_placement)
         assert len(ALL_STAGES) == 14
         assert ALL_STAGES[0] == "ingestion"
-        assert ALL_STAGES[9] == "baseline_update"   # still at index 9
+        assert ALL_STAGES[9] == "baseline_update"  # still at index 9
         assert ALL_STAGES[-1] == "sensor_placement"  # final advanced stage
 
 
@@ -39,7 +39,9 @@ class TestPipelineStageSelection:
         pipeline = ProductionPipeline(cfg)
 
         # Patch all component imports to avoid actual execution
-        with patch("src.pipeline.production_pipeline.ProductionPipeline._init_mlflow", return_value=None):
+        with patch(
+            "src.pipeline.production_pipeline.ProductionPipeline._init_mlflow", return_value=None
+        ):
             with patch("src.components.data_ingestion.DataIngestion") as mock_ing:
                 mock_ing.return_value.initiate_data_ingestion.side_effect = Exception("test stop")
                 result = pipeline.run(continue_on_failure=False)
@@ -51,7 +53,9 @@ class TestPipelineStageSelection:
         cfg = PipelineConfig()
         pipeline = ProductionPipeline(cfg)
         # Just verify the logic — we'll intercept at ingestion
-        with patch("src.pipeline.production_pipeline.ProductionPipeline._init_mlflow", return_value=None):
+        with patch(
+            "src.pipeline.production_pipeline.ProductionPipeline._init_mlflow", return_value=None
+        ):
             with patch("src.components.data_ingestion.DataIngestion") as mock_ing:
                 mock_ing.return_value.initiate_data_ingestion.side_effect = Exception("stop")
                 result = pipeline.run(enable_retrain=True, continue_on_failure=False)
@@ -61,7 +65,9 @@ class TestPipelineStageSelection:
     def test_specific_stages(self):
         cfg = PipelineConfig()
         pipeline = ProductionPipeline(cfg)
-        with patch("src.pipeline.production_pipeline.ProductionPipeline._init_mlflow", return_value=None):
+        with patch(
+            "src.pipeline.production_pipeline.ProductionPipeline._init_mlflow", return_value=None
+        ):
             # Running only "inference" should fail with missing transformation artifact
             result = pipeline.run(stages=["inference"], continue_on_failure=False)
         # Should fail because transformation_artifact is None → fallback used → inference attempted
@@ -80,6 +86,7 @@ class TestPipelineResult:
     def test_result_serialization(self, tmp_path):
         """PipelineResult should be serialisable."""
         import dataclasses
+
         result = PipelineResult(
             run_id="test123",
             start_time="2026-01-01T00:00:00",
@@ -96,7 +103,9 @@ class TestSkipAndContinue:
     def test_skip_ingestion(self):
         cfg = PipelineConfig()
         pipeline = ProductionPipeline(cfg)
-        with patch("src.pipeline.production_pipeline.ProductionPipeline._init_mlflow", return_value=None):
+        with patch(
+            "src.pipeline.production_pipeline.ProductionPipeline._init_mlflow", return_value=None
+        ):
             with patch("src.components.data_validation.DataValidation") as mock_val:
                 mock_val.return_value.initiate_data_validation.side_effect = Exception("stop")
                 result = pipeline.run(skip_ingestion=True, continue_on_failure=False)
@@ -105,7 +114,9 @@ class TestSkipAndContinue:
     def test_continue_on_failure(self):
         cfg = PipelineConfig()
         pipeline = ProductionPipeline(cfg)
-        with patch("src.pipeline.production_pipeline.ProductionPipeline._init_mlflow", return_value=None):
+        with patch(
+            "src.pipeline.production_pipeline.ProductionPipeline._init_mlflow", return_value=None
+        ):
             with patch("src.components.data_ingestion.DataIngestion") as mock_ing:
                 mock_ing.return_value.initiate_data_ingestion.side_effect = Exception("boom")
                 result = pipeline.run(continue_on_failure=True)

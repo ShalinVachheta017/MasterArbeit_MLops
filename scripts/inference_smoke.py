@@ -31,6 +31,7 @@ import urllib.request
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _get(url: str, timeout: int = 10) -> dict:
     """HTTP GET → parsed JSON."""
     req = urllib.request.Request(url)
@@ -38,7 +39,9 @@ def _get(url: str, timeout: int = 10) -> dict:
         return json.loads(resp.read().decode())
 
 
-def _post_csv(url: str, csv_bytes: bytes, filename: str = "smoke_test.csv", timeout: int = 30) -> dict:
+def _post_csv(
+    url: str, csv_bytes: bytes, filename: str = "smoke_test.csv", timeout: int = 30
+) -> dict:
     """HTTP POST multipart/form-data with a CSV file → parsed JSON."""
     boundary = "----SmokeBoundary" + str(random.randint(100000, 999999))
     header_boundary = f"--{boundary}"
@@ -79,12 +82,12 @@ def _generate_test_csv(n_rows: int = 250) -> bytes:
     for i in range(n_rows):
         t = i / 25.0  # 25 Hz
         # Simulate walking: ~2 Hz dominant frequency
-        acc_x = round(0.3 * math.sin(2 * math.pi * 2. * t) + 0.05 * random.gauss(0, 1), 5)
-        acc_y = round(0.2 * math.cos(2 * math.pi * 2. * t) + 0.05 * random.gauss(0, 1), 5)
-        acc_z = round(1.0 + 0.1 * math.sin(2 * math.pi * 4. * t) + 0.02 * random.gauss(0, 1), 5)
-        gyro_x = round(10.0 * math.sin(2 * math.pi * 2. * t) + 0.5 * random.gauss(0, 1), 5)
-        gyro_y = round(5.0 * math.cos(2 * math.pi * 2. * t) + 0.5 * random.gauss(0, 1), 5)
-        gyro_z = round(3.0 * math.sin(2 * math.pi * 1. * t) + 0.5 * random.gauss(0, 1), 5)
+        acc_x = round(0.3 * math.sin(2 * math.pi * 2.0 * t) + 0.05 * random.gauss(0, 1), 5)
+        acc_y = round(0.2 * math.cos(2 * math.pi * 2.0 * t) + 0.05 * random.gauss(0, 1), 5)
+        acc_z = round(1.0 + 0.1 * math.sin(2 * math.pi * 4.0 * t) + 0.02 * random.gauss(0, 1), 5)
+        gyro_x = round(10.0 * math.sin(2 * math.pi * 2.0 * t) + 0.5 * random.gauss(0, 1), 5)
+        gyro_y = round(5.0 * math.cos(2 * math.pi * 2.0 * t) + 0.5 * random.gauss(0, 1), 5)
+        gyro_z = round(3.0 * math.sin(2 * math.pi * 1.0 * t) + 0.5 * random.gauss(0, 1), 5)
         writer.writerow([acc_x, acc_y, acc_z, gyro_x, gyro_y, gyro_z])
 
     return buf.getvalue().encode("utf-8")
@@ -93,6 +96,7 @@ def _generate_test_csv(n_rows: int = 250) -> bytes:
 # ---------------------------------------------------------------------------
 # Checks
 # ---------------------------------------------------------------------------
+
 
 def check_health(base_url: str, require_model: bool = False) -> bool:
     """
@@ -147,7 +151,9 @@ def check_upload(base_url: str) -> bool:
         if exc.code == 503:
             # Model not loaded — endpoint exists, just no model file mounted.
             # This is expected in CI where the model is not included in the image.
-            print(f"[SMOKE]   PASS (no model) — HTTP 503: route exists, model not loaded in this environment")
+            print(
+                f"[SMOKE]   PASS (no model) — HTTP 503: route exists, model not loaded in this environment"
+            )
             return True
         if exc.code == 404:
             print(f"[SMOKE]   FAIL — HTTP 404: route /api/upload is missing from the API")
@@ -178,6 +184,7 @@ def check_upload(base_url: str) -> bool:
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="HAR API smoke test")

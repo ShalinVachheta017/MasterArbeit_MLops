@@ -12,6 +12,7 @@ From PIPELINE_CTO_REVIEW.md P0-3 tests:
   - file exists  → age in fractional days >= 0 (and close to 0 for a fresh file)
   - file missing → age == -1
 """
+
 from __future__ import annotations
 
 import os
@@ -25,6 +26,7 @@ import pytest
 # ---------------------------------------------------------------------------
 # Age-calculation logic (mirrors app.py::_run_monitoring)
 # ---------------------------------------------------------------------------
+
 
 def _compute_baseline_age(baseline_path: Path) -> float:
     """Mirror of the gauge logic in src/api/app.py _run_monitoring().
@@ -109,6 +111,7 @@ class TestBaselineAgeGaugeIntegration:
         recorded = []
         with patch.object(_app._prom_baseline_age_days, "set", side_effect=recorded.append):
             import numpy as np
+
             # Minimal valid inputs for _run_monitoring
             n = 10
             n_classes = 6
@@ -117,6 +120,6 @@ class TestBaselineAgeGaugeIntegration:
             windows = np.random.rand(n, 128, 9)
             _app._run_monitoring(predictions, probs, windows)
 
-        assert -1 in recorded, (
-            "When baseline is missing, _prom_baseline_age_days.set(-1) must be called"
-        )
+        assert (
+            -1 in recorded
+        ), "When baseline is missing, _prom_baseline_age_days.set(-1) must be called"

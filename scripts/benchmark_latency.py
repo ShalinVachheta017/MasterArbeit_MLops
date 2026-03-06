@@ -37,6 +37,7 @@ REPORTS_DIR = PROJECT_ROOT / "reports" / "benchmark"
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _generate_csv_bytes(n_rows: int = 600) -> bytes:
     """Synthetic 6-channel IMU CSV payload (n_rows > WINDOW_SIZE=200)."""
     rng = np.random.default_rng(42)
@@ -68,6 +69,7 @@ def _stats(latencies: list) -> dict:
 # HTTP benchmark
 # ---------------------------------------------------------------------------
 
+
 def run_http_benchmark(endpoint: str, n_requests: int, warmup: int = 5) -> dict:
     """Send n_requests to /api/upload and measure round-trip latency."""
     import requests  # noqa: PLC0415
@@ -88,8 +90,9 @@ def run_http_benchmark(endpoint: str, n_requests: int, warmup: int = 5) -> dict:
     latencies = []
     for i in range(n_requests):
         t0 = time.perf_counter()
-        r = requests.post(f"{base}/api/upload",
-                          files={"file": ("b.csv", payload, "text/csv")}, timeout=30)
+        r = requests.post(
+            f"{base}/api/upload", files={"file": ("b.csv", payload, "text/csv")}, timeout=30
+        )
         elapsed_ms = (time.perf_counter() - t0) * 1000
         if r.status_code == 200:
             latencies.append(elapsed_ms)
@@ -108,6 +111,7 @@ def run_http_benchmark(endpoint: str, n_requests: int, warmup: int = 5) -> dict:
 # Local model benchmark
 # ---------------------------------------------------------------------------
 
+
 def run_local_benchmark(n_requests: int, n_windows: int = 15, warmup: int = 3) -> dict:
     """Run inference locally — measures pure model predict() latency."""
     try:
@@ -116,9 +120,7 @@ def run_local_benchmark(n_requests: int, n_windows: int = 15, warmup: int = 3) -
         sys.exit("TensorFlow is required for --local mode. pip install tensorflow")
     tf.get_logger().setLevel("ERROR")
 
-    model_path = (
-        PROJECT_ROOT / "models" / "pretrained" / "fine_tuned_model_1dcnnbilstm.keras"
-    )
+    model_path = PROJECT_ROOT / "models" / "pretrained" / "fine_tuned_model_1dcnnbilstm.keras"
     if not model_path.exists():
         sys.exit(f"Model not found: {model_path}\nRun: dvc pull models/pretrained.dvc")
 
@@ -149,14 +151,17 @@ def run_local_benchmark(n_requests: int, n_windows: int = 15, warmup: int = 3) -
 # Main
 # ---------------------------------------------------------------------------
 
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="HAR API Latency Benchmark")
     ap.add_argument("--endpoint", default="http://localhost:8000", help="API base URL")
     ap.add_argument("--requests", type=int, default=100, help="Number of timed requests")
-    ap.add_argument("--windows", type=int, default=15,
-                    help="Windows per local-mode batch (--local only)")
-    ap.add_argument("--local", action="store_true",
-                    help="Benchmark model directly, no HTTP overhead")
+    ap.add_argument(
+        "--windows", type=int, default=15, help="Windows per local-mode batch (--local only)"
+    )
+    ap.add_argument(
+        "--local", action="store_true", help="Benchmark model directly, no HTTP overhead"
+    )
     args = ap.parse_args()
 
     print("=" * 56)

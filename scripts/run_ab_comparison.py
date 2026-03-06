@@ -67,7 +67,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 # Configure logging before any src imports (they set up loggers at import time)
 # ---------------------------------------------------------------------------
 logging.basicConfig(
-    level=logging.WARNING,   # suppress verbose train.py output during comparison
+    level=logging.WARNING,  # suppress verbose train.py output during comparison
     format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
@@ -75,9 +75,11 @@ logging.basicConfig(
 _log = logging.getLogger("ab_comparison")
 _log.setLevel(logging.INFO)
 _handler = logging.StreamHandler(sys.stdout)
-_handler.setFormatter(logging.Formatter("%(asctime)s | %(levelname)-8s | %(message)s",
-                                        datefmt="%H:%M:%S"))
+_handler.setFormatter(
+    logging.Formatter("%(asctime)s | %(levelname)-8s | %(message)s", datefmt="%H:%M:%S")
+)
 _log.addHandler(_handler)
+
 
 # ---------------------------------------------------------------------------
 # Deferred heavy imports (tensorflow/keras slow to import)
@@ -94,8 +96,9 @@ def _lazy_imports():
 
     # Suppress TF logs unless user sets TF_CPP_MIN_LOG_LEVEL
     import os
+
     os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "3")
-    import tensorflow.keras as keras   # noqa: F401  (alias for type hints)
+    import tensorflow.keras as keras  # noqa: F401  (alias for type hints)
 
     from train import TrainingConfig, DataLoader, HARModelBuilder, _make_scaler  # noqa: E402
 
@@ -103,6 +106,7 @@ def _lazy_imports():
 # ============================================================================
 # Expected Calibration Error (ECE)
 # ============================================================================
+
 
 def compute_ece(y_true: np.ndarray, probs: np.ndarray, n_bins: int = 10) -> float:
     """
@@ -118,7 +122,7 @@ def compute_ece(y_true: np.ndarray, probs: np.ndarray, n_bins: int = 10) -> floa
     Returns:
         ECE as a float in [0, 1]
     """
-    confidences = probs.max(axis=1)          # predicted probability of top class
+    confidences = probs.max(axis=1)  # predicted probability of top class
     predictions = probs.argmax(axis=1)
     correctness = (predictions == y_true).astype(float)
 
@@ -130,7 +134,7 @@ def compute_ece(y_true: np.ndarray, probs: np.ndarray, n_bins: int = 10) -> floa
         in_bin = (confidences > bin_edges[i]) & (confidences <= bin_edges[i + 1])
         if in_bin.sum() == 0:
             continue
-        acc_bin  = correctness[in_bin].mean()
+        acc_bin = correctness[in_bin].mean()
         conf_bin = confidences[in_bin].mean()
         ece += (in_bin.sum() / n) * abs(acc_bin - conf_bin)
 
@@ -143,17 +147,17 @@ def compute_reliability_data(
     """Return (bin_centres, mean_accuracy, mean_confidence) for reliability diagram."""
     confidences = probs.max(axis=1)
     predictions = probs.argmax(axis=1)
-    correctness  = (predictions == y_true).astype(float)
+    correctness = (predictions == y_true).astype(float)
 
-    bin_edges    = np.linspace(0.0, 1.0, n_bins + 1)
-    bin_centres  = 0.5 * (bin_edges[:-1] + bin_edges[1:])
-    bin_acc      = np.zeros(n_bins)
-    bin_conf     = np.zeros(n_bins)
+    bin_edges = np.linspace(0.0, 1.0, n_bins + 1)
+    bin_centres = 0.5 * (bin_edges[:-1] + bin_edges[1:])
+    bin_acc = np.zeros(n_bins)
+    bin_conf = np.zeros(n_bins)
 
     for i in range(n_bins):
         in_bin = (confidences > bin_edges[i]) & (confidences <= bin_edges[i + 1])
         if in_bin.sum() > 0:
-            bin_acc[i]  = correctness[in_bin].mean()
+            bin_acc[i] = correctness[in_bin].mean()
             bin_conf[i] = confidences[in_bin].mean()
 
     return bin_centres, bin_acc, bin_conf
@@ -162,6 +166,7 @@ def compute_reliability_data(
 # ============================================================================
 # Single variant cross-validation loop
 # ============================================================================
+
 
 def run_cv_for_variant(
     variant: str,
@@ -191,7 +196,7 @@ def run_cv_for_variant(
     skf = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=cv_random_seed)
     fold_results: List[Dict[str, Any]] = []
     all_y_true: List[np.ndarray] = []
-    all_probs:  List[np.ndarray] = []
+    all_probs: List[np.ndarray] = []
 
     # Build a minimal TrainingConfig for the model builder
     cfg = TrainingConfig(
@@ -219,18 +224,18 @@ def run_cv_for_variant(
         scaler = _make_scaler(variant)
         if scaler is not None:
             X_train_flat = X_train.reshape(-1, n_sensors)
-            X_val_flat   = X_val.reshape(-1, n_sensors)
+            X_val_flat = X_val.reshape(-1, n_sensors)
             scaler.fit(X_train_flat)
             X_train_norm = scaler.transform(X_train_flat).reshape(X_train.shape)
-            X_val_norm   = scaler.transform(X_val_flat).reshape(X_val.shape)
+            X_val_norm = scaler.transform(X_val_flat).reshape(X_val.shape)
         else:
             # Variant B: no amplitude normalization
             X_train_norm = X_train.copy()
-            X_val_norm   = X_val.copy()
+            X_val_norm = X_val.copy()
 
         # ----- Build model -----------------------------------------------
         model_builder = HARModelBuilder(cfg)
-        model         = model_builder.create_1dcnn_bilstm()
+        model = model_builder.create_1dcnn_bilstm()
 
         # Callbacks (early stopping + LR reduction; NO checkpoint for speed)
         callbacks = [
@@ -251,7 +256,8 @@ def run_cv_for_variant(
 
         # ----- Train -------------------------------------------------------
         history = model.fit(
-            X_train_norm, y_train,
+            X_train_norm,
+            y_train,
             validation_data=(X_val_norm, y_val),
             epochs=epochs,
             batch_size=batch_size,
@@ -261,13 +267,13 @@ def run_cv_for_variant(
 
         # ----- Evaluate ----------------------------------------------------
         val_loss, val_acc = model.evaluate(X_val_norm, y_val, verbose=0)
-        probs        = model.predict(X_val_norm, verbose=0)   # (n_val, n_classes)
+        probs = model.predict(X_val_norm, verbose=0)  # (n_val, n_classes)
         pred_classes = probs.argmax(axis=1)
 
         f1_mac = f1_score(y_val, pred_classes, average="macro")
-        f1_wt  = f1_score(y_val, pred_classes, average="weighted")
-        kappa  = cohen_kappa_score(y_val, pred_classes)
-        ece    = compute_ece(y_val, probs)
+        f1_wt = f1_score(y_val, pred_classes, average="weighted")
+        kappa = cohen_kappa_score(y_val, pred_classes)
+        ece = compute_ece(y_val, probs)
 
         elapsed = time.time() - fold_start
         _log.info(
@@ -275,16 +281,18 @@ def run_cv_for_variant(
             f"acc={val_acc:.4f}  F1-mac={f1_mac:.4f}  ECE={ece:.4f}"
         )
 
-        fold_results.append({
-            "fold":        fold,
-            "accuracy":    float(val_acc),
-            "f1_macro":    float(f1_mac),
-            "f1_weighted": float(f1_wt),
-            "kappa":       float(kappa),
-            "ece":         float(ece),
-            "val_loss":    float(val_loss),
-            "best_epoch":  int(len(history.history.get("accuracy", [0]))),
-        })
+        fold_results.append(
+            {
+                "fold": fold,
+                "accuracy": float(val_acc),
+                "f1_macro": float(f1_mac),
+                "f1_weighted": float(f1_wt),
+                "kappa": float(kappa),
+                "ece": float(ece),
+                "val_loss": float(val_loss),
+                "best_epoch": int(len(history.history.get("accuracy", [0]))),
+            }
+        )
 
         all_y_true.append(y_val)
         all_probs.append(probs)
@@ -304,6 +312,7 @@ def run_cv_for_variant(
 # Aggregation + reporting helpers
 # ============================================================================
 
+
 def aggregate_folds(fold_results: List[Dict]) -> Dict[str, Dict[str, float]]:
     """Return mean ± std for each numeric metric across folds."""
     metrics = [k for k in fold_results[0] if k != "fold"]
@@ -316,18 +325,19 @@ def aggregate_folds(fold_results: List[Dict]) -> Dict[str, Dict[str, float]]:
 
 VARIANT_LABELS = {
     "zscore": "A  z-score  (StandardScaler, training stats)",
-    "none":   "B  none     (no amplitude normalization)",
+    "none": "B  none     (no amplitude normalization)",
     "robust": "C  robust   (RobustScaler, training stats)",
 }
 
 PRINT_METRICS = ["accuracy", "f1_macro", "f1_weighted", "kappa", "ece"]
+
 
 def print_comparison_table(results: Dict[str, Dict]) -> None:
     """Print a formatted comparison table to stdout."""
     col_w = 20
     header_metrics = ["accuracy", "f1_macro", "f1_weighted", "kappa", "ece"]
     header = f"{'Variant':<42}" + "".join(f"{m.upper():>{col_w}}" for m in header_metrics)
-    sep    = "─" * len(header)
+    sep = "─" * len(header)
 
     print()
     print("=" * len(header))
@@ -337,11 +347,11 @@ def print_comparison_table(results: Dict[str, Dict]) -> None:
     print(sep)
 
     for variant, data in results.items():
-        agg   = data["aggregate"]
+        agg = data["aggregate"]
         label = VARIANT_LABELS.get(variant, variant)
-        row   = f"{label:<42}"
+        row = f"{label:<42}"
         for m in header_metrics:
-            mu  = agg[m]["mean"]
+            mu = agg[m]["mean"]
             std = agg[m]["std"]
             row += f"{mu:.4f}±{std:.4f}".rjust(col_w)
         print(row)
@@ -354,10 +364,12 @@ def print_comparison_table(results: Dict[str, Dict]) -> None:
 # Reliability diagram (optional)
 # ============================================================================
 
+
 def save_reliability_diagram(results: Dict[str, Dict], output_path: Path) -> None:
     """Plot reliability diagrams for all variants side-by-side."""
     try:
         import matplotlib
+
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
     except ImportError:
@@ -371,15 +383,24 @@ def save_reliability_diagram(results: Dict[str, Dict], output_path: Path) -> Non
 
     for ax, variant in zip(axes, variants):
         y_true = results[variant]["all_y_true"]
-        probs  = results[variant]["all_probs"]
+        probs = results[variant]["all_probs"]
         centres, bin_acc, bin_conf = compute_reliability_data(y_true, probs)
         ece_val = results[variant]["aggregate"]["ece"]["mean"]
 
-        ax.bar(centres, bin_acc, width=0.09, alpha=0.7,
-               label="Accuracy", color="steelblue", edgecolor="black")
+        ax.bar(
+            centres,
+            bin_acc,
+            width=0.09,
+            alpha=0.7,
+            label="Accuracy",
+            color="steelblue",
+            edgecolor="black",
+        )
         ax.plot([0, 1], [0, 1], "k--", linewidth=1, label="Perfect calibration")
-        ax.set_xlim(0, 1);  ax.set_ylim(0, 1)
-        ax.set_xlabel("Confidence"); ax.set_ylabel("Accuracy")
+        ax.set_xlim(0, 1)
+        ax.set_ylim(0, 1)
+        ax.set_xlabel("Confidence")
+        ax.set_ylabel("Accuracy")
         ax.set_title(f"Variant {variant.upper()}\nECE={ece_val:.4f}")
         ax.legend(fontsize=8)
 
@@ -394,54 +415,71 @@ def save_reliability_diagram(results: Dict[str, Dict], output_path: Path) -> Non
 # Main
 # ============================================================================
 
+
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(
         description="Run normalization A/B/C comparison for HAR MLOps thesis.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     p.add_argument(
-        "--variants", nargs="+",
+        "--variants",
+        nargs="+",
         choices=["A", "B", "C", "zscore", "none", "robust"],
         default=["A", "B", "C"],
         help="Variants to evaluate (default: A B C). A=zscore, B=none, C=robust.",
     )
     p.add_argument(
-        "--data-path", type=Path,
+        "--data-path",
+        type=Path,
         default=None,
         help="Path to all_users_data_labeled.csv. Defaults to data/raw/all_users_data_labeled.csv.",
     )
     p.add_argument(
-        "--n-folds", type=int, default=5,
+        "--n-folds",
+        type=int,
+        default=5,
         help="Number of CV folds (default: 5). Use 3 for a quick smoke test.",
     )
     p.add_argument(
-        "--epochs", type=int, default=100,
+        "--epochs",
+        type=int,
+        default=100,
         help="Max training epochs per fold (default: 100; early-stopping applies).",
     )
     p.add_argument(
-        "--batch-size", type=int, default=64,
+        "--batch-size",
+        type=int,
+        default=64,
         help="Batch size (default: 64).",
     )
     p.add_argument(
-        "--early-stopping-patience", type=int, default=15,
+        "--early-stopping-patience",
+        type=int,
+        default=15,
         help="Early-stopping patience (default: 15).",
     )
     p.add_argument(
-        "--output-dir", type=Path,
+        "--output-dir",
+        type=Path,
         default=PROJECT_ROOT / "reports" / "ab_comparison",
         help="Directory to save results (JSON, CSV, PNG).",
     )
     p.add_argument(
-        "--sensor-columns", nargs="+",
+        "--sensor-columns",
+        nargs="+",
         default=["Ax_w", "Ay_w", "Az_w", "Gx_w", "Gy_w", "Gz_w"],
         help="Sensor column names in the labeled CSV.",
     )
     p.add_argument(
-        "--window-size", type=int, default=200,
+        "--window-size",
+        type=int,
+        default=200,
         help="Sliding window size in samples (default: 200 @ 50 Hz = 4 s).",
     )
     p.add_argument(
-        "--step-size", type=int, default=100,
+        "--step-size",
+        type=int,
+        default=100,
         help="Step between windows (default: 100 → 50%% overlap).",
     )
     return p.parse_args()
@@ -491,13 +529,17 @@ def main() -> None:
     # -----------------------------------------------------------------------
     _log.info("Loading training data …")
     df = pd.read_csv(data_path)
-    _log.info(f"  {len(df):,} samples  |  users: {df['User'].nunique()}  |  "
-              f"activities: {df['activity'].nunique()}")
+    _log.info(
+        f"  {len(df):,} samples  |  users: {df['User'].nunique()}  |  "
+        f"activities: {df['activity'].nunique()}"
+    )
 
     sensor_cols = [c for c in args.sensor_columns if c in df.columns]
     if not sensor_cols:
-        _log.error(f"None of {args.sensor_columns} found in CSV. "
-                   f"Available: {df.columns.tolist()}. Use --sensor-columns.")
+        _log.error(
+            f"None of {args.sensor_columns} found in CSV. "
+            f"Available: {df.columns.tolist()}. Use --sensor-columns."
+        )
         sys.exit(1)
 
     # Encode labels
@@ -522,8 +564,9 @@ def main() -> None:
     X = np.array(windows_X, dtype=np.float32)  # (N, window_size, n_sensors)
     y = np.array(windows_y, dtype=np.int32)
 
-    _log.info(f"  Windows: {X.shape}  |  class distribution: "
-              f"{dict(zip(le.classes_, np.bincount(y)))}")
+    _log.info(
+        f"  Windows: {X.shape}  |  class distribution: " f"{dict(zip(le.classes_, np.bincount(y)))}"
+    )
 
     # -----------------------------------------------------------------------
     # Run each variant
@@ -540,7 +583,8 @@ def main() -> None:
 
         fold_results, all_y_true, all_probs = run_cv_for_variant(
             variant=variant,
-            X=X, y=y,
+            X=X,
+            y=y,
             n_folds=args.n_folds,
             n_sensors=n_sensors,
             n_classes=n_classes,
@@ -553,7 +597,7 @@ def main() -> None:
         # Global ECE over all folds concatenated (more stable estimate)
         global_ece = compute_ece(all_y_true, all_probs)
         agg = aggregate_folds(fold_results)
-        agg["ece"]["mean"] = global_ece   # override per-fold average with global estimate
+        agg["ece"]["mean"] = global_ece  # override per-fold average with global estimate
 
         _log.info(
             f"  Variant {variant.upper()} summary — "
@@ -564,11 +608,11 @@ def main() -> None:
         )
 
         experiment_results[variant] = {
-            "label":      label,
+            "label": label,
             "fold_results": fold_results,
-            "aggregate":  agg,
-            "all_y_true": all_y_true,   # numpy – kept in memory for reliability diagram
-            "all_probs":  all_probs,
+            "aggregate": agg,
+            "all_y_true": all_y_true,  # numpy – kept in memory for reliability diagram
+            "all_probs": all_probs,
         }
 
     total_elapsed = time.time() - run_start
@@ -589,22 +633,22 @@ def main() -> None:
     json_results: Dict[str, Any] = {}
     for v, data in experiment_results.items():
         json_results[v] = {
-            "label":       data["label"],
+            "label": data["label"],
             "fold_results": data["fold_results"],
-            "aggregate":   data["aggregate"],
-            "global_ece":  float(compute_ece(data["all_y_true"], data["all_probs"])),
+            "aggregate": data["aggregate"],
+            "global_ece": float(compute_ece(data["all_y_true"], data["all_probs"])),
         }
     json_results["meta"] = {
-        "timestamp":     ts,
-        "n_folds":       args.n_folds,
-        "epochs":        args.epochs,
-        "window_size":   args.window_size,
-        "step_size":     args.step_size,
+        "timestamp": ts,
+        "n_folds": args.n_folds,
+        "epochs": args.epochs,
+        "window_size": args.window_size,
+        "step_size": args.step_size,
         "sensor_columns": sensor_cols,
-        "n_classes":     int(n_classes),
-        "class_names":   le.classes_.tolist(),
-        "n_windows":     int(len(X)),
-        "runtime_secs":  float(total_elapsed),
+        "n_classes": int(n_classes),
+        "class_names": le.classes_.tolist(),
+        "n_windows": int(len(X)),
+        "runtime_secs": float(total_elapsed),
     }
     with open(json_path, "w") as f:
         json.dump(json_results, f, indent=2)
@@ -614,12 +658,14 @@ def main() -> None:
     rows = []
     for v, data in experiment_results.items():
         agg = data["aggregate"]
-        rows.append({
-            "variant":        v,
-            "label":          data["label"],
-            **{f"{m}_mean": agg[m]["mean"] for m in PRINT_METRICS},
-            **{f"{m}_std":  agg[m]["std"]  for m in PRINT_METRICS},
-        })
+        rows.append(
+            {
+                "variant": v,
+                "label": data["label"],
+                **{f"{m}_mean": agg[m]["mean"] for m in PRINT_METRICS},
+                **{f"{m}_std": agg[m]["std"] for m in PRINT_METRICS},
+            }
+        )
     csv_path = output_dir / f"ab_comparison_{ts}.csv"
     pd.DataFrame(rows).to_csv(csv_path, index=False, float_format="%.6f")
     _log.info(f"Results CSV:  {csv_path}")
@@ -637,7 +683,8 @@ def main() -> None:
     print("=" * 72)
     print("  NEXT STEP — applying the winning variant to the production pipeline")
     print("=" * 72)
-    print("""
+    print(
+        """
 After selecting the best variant, update data/prepared/config.json:
 
   \"normalization_variant\": \"<zscore|none|robust>\",
@@ -648,7 +695,8 @@ After selecting the best variant, update data/prepared/config.json:
 
 The production pipeline (preprocess_data.py) reads this field automatically.
 Training-inference parity is enforced by reading the variant from this file.
-""")
+"""
+    )
     print("=" * 72)
     print()
 

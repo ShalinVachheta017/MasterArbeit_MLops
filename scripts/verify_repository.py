@@ -45,53 +45,43 @@ REQUIRED_FILES = [
     "pyproject.toml",
     "setup.py",
     "run_pipeline.py",
-
     # COMMIT 2 — entity
     "src/__init__.py",
     "src/entity/__init__.py",
     "src/entity/config_entity.py",
     "src/entity/artifact_entity.py",
-
     # COMMIT 3 — domain adaptation
     "src/domain_adaptation/__init__.py",
     "src/domain_adaptation/adabn.py",
-
     # COMMIT 4 — data components
     "src/components/__init__.py",
     "src/components/data_ingestion.py",
     "src/components/data_validation.py",
     "src/components/data_transformation.py",
-
     # COMMIT 5 — inference components
     "src/components/model_inference.py",
     "src/components/model_evaluation.py",
     "src/components/post_inference_monitoring.py",
     "src/components/trigger_evaluation.py",
-
     # COMMIT 6 — retraining components
     "src/components/model_retraining.py",
     "src/components/model_registration.py",
     "src/components/baseline_update.py",
-
     # COMMIT 7 — pipeline
     "src/pipeline/__init__.py",
     "src/pipeline/production_pipeline.py",
-
     # COMMIT 8 — utils & CLI
     "src/utils/__init__.py",
     "src/utils/common.py",
     "src/utils/main_utils.py",
-
     # Core (cross-cutting)
     "src/core/__init__.py",
     "src/core/exception.py",
     "src/core/logger.py",
     "src/config.py",
-
     # COMMIT 9 — tests
     "tests/__init__.py",
     "tests/conftest.py",
-
     # COMMIT 10 — config, docker, scripts, docs
     "config/pipeline_config.yaml",
     "config/mlflow_config.yaml",
@@ -153,6 +143,7 @@ COMPONENT_CLASSES = [
 # ============================================================================
 # CHECKER
 # ============================================================================
+
 
 class RepositoryVerifier:
     """Verify that the new repository has all required files and imports."""
@@ -290,7 +281,9 @@ class RepositoryVerifier:
             size_mb = model.stat().st_size / (1024 * 1024)
             self._ok(f"Pretrained model found ({size_mb:.1f} MB)")
         else:
-            self._warn("Pretrained model not found: models/pretrained/fine_tuned_model_1dcnnbilstm.keras")
+            self._warn(
+                "Pretrained model not found: models/pretrained/fine_tuned_model_1dcnnbilstm.keras"
+            )
             logger.info("       Copy your model before running inference")
 
     def check_pyproject(self):
@@ -322,8 +315,13 @@ class RepositoryVerifier:
         # ── Summary ──────────────────────────────────────────────────
         total = self.passed + self.failed
         logger.info("\n" + "=" * 60)
-        logger.info("RESULTS:  %d / %d passed   |   %d failed   |   %d warnings",
-                     self.passed, total, self.failed, self.warnings)
+        logger.info(
+            "RESULTS:  %d / %d passed   |   %d failed   |   %d warnings",
+            self.passed,
+            total,
+            self.failed,
+            self.warnings,
+        )
         logger.info("=" * 60)
 
         if self.failed == 0:
@@ -343,16 +341,19 @@ class RepositoryVerifier:
 # MAIN
 # ============================================================================
 
+
 def main():
     parser = argparse.ArgumentParser(
         description="Verify that the repository has all required files and imports",
     )
     parser.add_argument(
-        "--fix", action="store_true",
+        "--fix",
+        action="store_true",
         help="Auto-create missing directories",
     )
     parser.add_argument(
-        "--verbose", action="store_true",
+        "--verbose",
+        action="store_true",
         help="Show passing checks too",
     )
     args = parser.parse_args()

@@ -6,21 +6,20 @@ import subprocess
 import sys
 from pathlib import Path
 
+
 def get_flake8_errors():
     """Get all F401 (unused import) errors from flake8."""
     result = subprocess.run(
-        ["flake8", "src/", "--select=F401"],
-        capture_output=True,
-        text=True,
-        cwd=Path.cwd()
+        ["flake8", "src/", "--select=F401"], capture_output=True, text=True, cwd=Path.cwd()
     )
     return result.stdout
+
 
 def parse_flake8_output(output):
     """Parse flake8 output into a dict of {file: [(line_num, import_name), ...]}."""
     errors = {}
     pattern = r"^([^:]+):(\d+):\d+: F401 '([^']+)' imported but unused"
-    
+
     for line in output.split("\n"):
         if not line.strip():
             continue
@@ -31,8 +30,9 @@ def parse_flake8_output(output):
             if file_path not in errors:
                 errors[file_path] = []
             errors[file_path].append((line_num, import_name))
-    
+
     return errors
+
 
 def remove_import_from_line(line, import_name):
     """Remove a specific import from an import statement."""
@@ -49,12 +49,12 @@ def remove_import_from_line(line, import_name):
             name = imp.split()[0]  # Get the part before 'as'
             if name != import_name.split()[0]:
                 import_names.append(imp)
-        
+
         if import_names:
             return prefix + ", ".join(import_names) + "\n"
         else:
             return ""  # Remove entire line if no imports left
-    
+
     # Handle 'import X' style
     import_match = re.match(r"^(\s*import\s+)(.*)", line)
     if import_match:
@@ -62,23 +62,24 @@ def remove_import_from_line(line, import_name):
         imports = import_match.group(2)
         import_list = [i.strip() for i in imports.split(",")]
         import_names = [i for i in import_list if i.split()[0] != import_name.split()[0]]
-        
+
         if import_names:
             return prefix + ", ".join(import_names) + "\n"
         else:
             return ""
-    
+
     return line
+
 
 def fix_file(file_path, errors):
     """Remove unused imports from a file."""
     if not Path(file_path).exists():
         print(f"  ⚠️  File not found: {file_path}")
         return False
-    
+
     with open(file_path, "r", encoding="utf-8") as f:
         lines = f.readlines()
-    
+
     modified = False
     for line_num, import_name in sorted(errors, reverse=True):  # Process in reverse order
         line_idx = line_num - 1  # Convert to 0-indexed
@@ -92,33 +93,35 @@ def fix_file(file_path, errors):
                     lines.pop(line_idx)
                 modified = True
                 print(f"  ✓ Removed '{import_name}' from line {line_num}")
-    
+
     if modified:
         with open(file_path, "w", encoding="utf-8") as f:
             f.writelines(lines)
         return True
     return False
 
+
 def main():
     print("🔍 Scanning for unused imports...")
     output = get_flake8_errors()
     errors = parse_flake8_output(output)
-    
+
     if not errors:
         print("✅ No unused imports found!")
         return 0
-    
+
     print(f"Found {sum(len(e) for e in errors.values())} unused imports in {len(errors)} files\n")
-    
+
     total_fixed = 0
     for file_path in sorted(errors.keys()):
         print(f"📝 {file_path}")
         fixed = fix_file(file_path, errors[file_path])
         if fixed:
             total_fixed += 1
-    
+
     print(f"\n✅ Fixed {total_fixed} files")
     return 0
+
 
 if __name__ == "__main__":
     sys.exit(main())

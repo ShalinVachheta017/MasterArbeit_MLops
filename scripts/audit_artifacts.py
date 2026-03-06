@@ -163,7 +163,9 @@ def run_audit(root: Path, include_retrain: bool, run_id: str | None) -> int:
     else:
         for stage_name in stages_to_verify:
             stage_key = {"validation": "2_validation", "registration": "9_registration"}[stage_name]
-            print(f"  {stage_key:<18} {'Stage completed (JSON)':<28} [X] FAIL (no pipeline_result JSON found)")
+            print(
+                f"  {stage_key:<18} {'Stage completed (JSON)':<28} [X] FAIL (no pipeline_result JSON found)"
+            )
             n_fail += 1
 
     # Artifact dir check (bonus traceability)
@@ -186,12 +188,23 @@ def run_audit(root: Path, include_retrain: bool, run_id: str | None) -> int:
 
 def main():
     parser = argparse.ArgumentParser(description="Audit pipeline artifacts for a given run.")
-    parser.add_argument("--run-id", type=str, default=None,
-                        help="Run ID (timestamp folder name). Default: auto-pick latest.")
-    parser.add_argument("--retrain", action="store_true",
-                        help="Include stages 8-10 checks (retraining/registration/baseline).")
-    parser.add_argument("--root", type=str, default=None,
-                        help="Project root directory. Default: auto-detect from script location.")
+    parser.add_argument(
+        "--run-id",
+        type=str,
+        default=None,
+        help="Run ID (timestamp folder name). Default: auto-pick latest.",
+    )
+    parser.add_argument(
+        "--retrain",
+        action="store_true",
+        help="Include stages 8-10 checks (retraining/registration/baseline).",
+    )
+    parser.add_argument(
+        "--root",
+        type=str,
+        default=None,
+        help="Project root directory. Default: auto-detect from script location.",
+    )
     args = parser.parse_args()
 
     root = Path(args.root) if args.root else PROJECT_ROOT

@@ -45,16 +45,16 @@ def test_trigger_confidence_warn_geq_monitoring_warn():
 def test_uncertain_window_threshold_is_probability():
     """uncertain_window_threshold must be a valid probability in (0, 1]."""
     mon = PostInferenceMonitoringConfig()
-    assert 0.0 < mon.uncertain_window_threshold <= 1.0, (
-        f"uncertain_window_threshold={mon.uncertain_window_threshold} must be in (0, 1]"
-    )
+    assert (
+        0.0 < mon.uncertain_window_threshold <= 1.0
+    ), f"uncertain_window_threshold={mon.uncertain_window_threshold} must be in (0, 1]"
 
 
 def test_uncertain_pct_threshold_positive():
     mon = PostInferenceMonitoringConfig()
-    assert 0.0 < mon.uncertain_pct_threshold <= 100.0, (
-        f"uncertain_pct_threshold={mon.uncertain_pct_threshold} must be in (0, 100]"
-    )
+    assert (
+        0.0 < mon.uncertain_pct_threshold <= 100.0
+    ), f"uncertain_pct_threshold={mon.uncertain_pct_threshold} must be in (0, 100]"
 
 
 def test_monitoring_and_api_use_same_config_class():
@@ -63,6 +63,7 @@ def test_monitoring_and_api_use_same_config_class():
     and must expose all fields consumed by the API.
     """
     from src.entity.config_entity import PostInferenceMonitoringConfig as Cfg
+
     cfg = Cfg()
     required_fields = [
         "confidence_warn_threshold",
@@ -99,12 +100,8 @@ def test_pipeline_and_api_share_same_monitoring_overrides(monkeypatch):
     assert api_cfg.confidence_warn_threshold == pytest.approx(
         pipeline_cfg.confidence_warn_threshold
     )
-    assert api_cfg.uncertain_pct_threshold == pytest.approx(
-        pipeline_cfg.uncertain_pct_threshold
-    )
+    assert api_cfg.uncertain_pct_threshold == pytest.approx(pipeline_cfg.uncertain_pct_threshold)
     assert api_cfg.transition_rate_threshold == pytest.approx(
         pipeline_cfg.transition_rate_threshold
     )
-    assert api_cfg.drift_zscore_threshold == pytest.approx(
-        pipeline_cfg.drift_zscore_threshold
-    )
+    assert api_cfg.drift_zscore_threshold == pytest.approx(pipeline_cfg.drift_zscore_threshold)

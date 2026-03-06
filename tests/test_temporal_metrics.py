@@ -34,4 +34,3 @@ def test_flip_rate_summary_returns_median_and_p95():
     assert summary["n_sessions"] == 3
     assert summary["median"] == pytest.approx(0.30)
     assert summary["p95"] == pytest.approx(0.39, abs=0.02)
-

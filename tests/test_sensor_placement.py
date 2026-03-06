@@ -38,20 +38,17 @@ def sample_labels():
 
 # ── Axis Mirror Augmenter ────────────────────────────────────────────
 
+
 class TestAxisMirrorAugmenter:
     def test_mirror_flips_correct_axes(self, sample_windows):
         augmenter = AxisMirrorAugmenter()
         mirrored = augmenter.mirror(sample_windows)
         # Axes 1,2,4,5 should be negated
         for ax in [1, 2, 4, 5]:
-            np.testing.assert_array_almost_equal(
-                mirrored[:, :, ax], -sample_windows[:, :, ax]
-            )
+            np.testing.assert_array_almost_equal(mirrored[:, :, ax], -sample_windows[:, :, ax])
         # Axes 0,3 should be unchanged
         for ax in [0, 3]:
-            np.testing.assert_array_almost_equal(
-                mirrored[:, :, ax], sample_windows[:, :, ax]
-            )
+            np.testing.assert_array_almost_equal(mirrored[:, :, ax], sample_windows[:, :, ax])
 
     def test_augment_increases_dataset(self, sample_windows, sample_labels):
         augmenter = AxisMirrorAugmenter()
@@ -73,12 +70,11 @@ class TestAxisMirrorAugmenter:
         config = SensorPlacementConfig(mirror_axes=[0, 1])
         augmenter = AxisMirrorAugmenter(config)
         mirrored = augmenter.mirror(sample_windows)
-        np.testing.assert_array_almost_equal(
-            mirrored[:, :, 0], -sample_windows[:, :, 0]
-        )
+        np.testing.assert_array_almost_equal(mirrored[:, :, 0], -sample_windows[:, :, 0])
 
 
 # ── Hand Detector ────────────────────────────────────────────────────
+
 
 class TestHandDetector:
     def test_detect_returns_keys(self, sample_windows):
@@ -106,13 +102,15 @@ class TestHandDetector:
 
 # ── Hand Performance Reporter ────────────────────────────────────────
 
+
 class TestHandPerformanceReporter:
     def test_report_with_labels(self):
         reporter = HandPerformanceReporter()
         predictions = np.array([0, 1, 2, 0, 1, 2])
         confidences = np.array([0.9, 0.8, 0.7, 0.6, 0.5, 0.4])
-        hand_labels = np.array(["DOMINANT", "DOMINANT", "DOMINANT",
-                                "NON_DOMINANT", "NON_DOMINANT", "NON_DOMINANT"])
+        hand_labels = np.array(
+            ["DOMINANT", "DOMINANT", "DOMINANT", "NON_DOMINANT", "NON_DOMINANT", "NON_DOMINANT"]
+        )
         true_labels = np.array([0, 1, 2, 0, 0, 2])
 
         result = reporter.report(predictions, confidences, hand_labels, true_labels)

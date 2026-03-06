@@ -24,15 +24,24 @@ STEP_SIZE = int(WINDOW_SIZE * (1 - OVERLAP))
 CONFIDENCE_THRESHOLD = 0.50
 
 ACTIVITY_LABELS = [
-    "hand_tapping", "ear_rubbing", "forehead_rubbing", "smoking",
-    "hand_scratching", "nail_biting", "nape_rubbing", "hair_pulling",
-    "knuckles_cracking", "sitting", "standing",
+    "hand_tapping",
+    "ear_rubbing",
+    "forehead_rubbing",
+    "smoking",
+    "hand_scratching",
+    "nail_biting",
+    "nape_rubbing",
+    "hair_pulling",
+    "knuckles_cracking",
+    "sitting",
+    "standing",
 ]
 
 
 def load_model():
     os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
     import tensorflow as tf
+
     tf.get_logger().setLevel("ERROR")
     model_path = Path("models/pretrained/fine_tuned_model_1dcnnbilstm.keras")
     if not model_path.exists():
@@ -61,10 +70,14 @@ def fuse_and_normalize(accel_file, gyro_file, scaler_mean, scaler_scale):
         return None
 
     # Detect column names
-    accel_cols = [c for c in a.columns if any(k in c.lower() for k in ["accel_x", "accel_y", "accel_z"])]
+    accel_cols = [
+        c for c in a.columns if any(k in c.lower() for k in ["accel_x", "accel_y", "accel_z"])
+    ]
     if not accel_cols:
         accel_cols = [c for c in a.columns if c in ["Ax", "Ay", "Az", "x", "y", "z"]]
-    gyro_cols = [c for c in g.columns if any(k in c.lower() for k in ["gyro_x", "gyro_y", "gyro_z"])]
+    gyro_cols = [
+        c for c in g.columns if any(k in c.lower() for k in ["gyro_x", "gyro_y", "gyro_z"])
+    ]
     if not gyro_cols:
         gyro_cols = [c for c in g.columns if c in ["Gx", "Gy", "Gz", "x", "y", "z"]]
 
@@ -91,10 +104,9 @@ def create_windows(data):
     n_windows = (n_samples - WINDOW_SIZE) // STEP_SIZE + 1
     if n_windows <= 0:
         return None
-    windows = np.array([
-        data[i * STEP_SIZE: i * STEP_SIZE + WINDOW_SIZE]
-        for i in range(n_windows)
-    ])
+    windows = np.array(
+        [data[i * STEP_SIZE : i * STEP_SIZE + WINDOW_SIZE] for i in range(n_windows)]
+    )
     # Remove windows with NaN
     valid = ~np.isnan(windows).any(axis=(1, 2))
     return windows[valid] if valid.sum() > 0 else None
@@ -146,20 +158,22 @@ def main():
             dominant_pct = max(counts) / n_windows * 100
             n_activities = len(unique)
 
-            results.append({
-                "file": pair_id[:35],
-                "n_windows": n_windows,
-                "mean_conf": float(confs.mean()),
-                "std_conf": float(confs.std()),
-                "min_conf": float(confs.min()),
-                "median_conf": float(np.median(confs)),
-                "uncertain_pct": uncertain_pct,
-                "n_uncertain": n_uncertain,
-                "n_activities": n_activities,
-                "dominant_activity": dominant_activity,
-                "dominant_pct": dominant_pct,
-                "activity_dist": activity_dist,
-            })
+            results.append(
+                {
+                    "file": pair_id[:35],
+                    "n_windows": n_windows,
+                    "mean_conf": float(confs.mean()),
+                    "std_conf": float(confs.std()),
+                    "min_conf": float(confs.min()),
+                    "median_conf": float(np.median(confs)),
+                    "uncertain_pct": uncertain_pct,
+                    "n_uncertain": n_uncertain,
+                    "n_activities": n_activities,
+                    "dominant_activity": dominant_activity,
+                    "dominant_pct": dominant_pct,
+                    "activity_dist": activity_dist,
+                }
+            )
 
         except Exception as e:
             print(f"  Skip {base}: {e}")

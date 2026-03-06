@@ -74,7 +74,9 @@ def _try_download(url: str, dest: Path, description: str, attempt: int = 1) -> b
         with urllib.request.urlopen(req, timeout=60) as resp:
             data = resp.read()
         if len(data) < MIN_SIZE_BYTES:
-            print(f"  WARNING: file too small ({len(data)} bytes) — likely a redirect page, not a PDF")
+            print(
+                f"  WARNING: file too small ({len(data)} bytes) — likely a redirect page, not a PDF"
+            )
             return False
         dest.write_bytes(data)
         print(f"  OK  {dest.name}  ({len(data) / 1024:.0f} KB)")
@@ -146,7 +148,9 @@ def main(dry_run: bool = False) -> int:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Download foundational PDFs to Thesis_report/refs/")
+    parser = argparse.ArgumentParser(
+        description="Download foundational PDFs to Thesis_report/refs/"
+    )
     parser.add_argument(
         "--dry-run",
         action="store_true",
