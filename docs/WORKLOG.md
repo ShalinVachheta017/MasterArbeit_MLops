@@ -17,37 +17,79 @@ Auto-generated from git commit history and supplemented manually.
 - Created pipeline stage documentation (stages 01–10)
 - Created thesis writing guides, chapter drafts, research Q&A, mentor questions
 - Moved archived docs to `99_ARCHIVE/` and `thesis/_snapshots/`
-- Improved CD workflow: added debug endpoints step, increased smoke-test wait to 60 iterations (~120s)
+- Improved CD workflow: added debug endpoints step, robust multi-route smoke test (`/openapi.json` → `/health` → `/api/health` → `/`)
 - Created paper catalog (`archive/_index/PAPERS_CATALOG.md`)
+- Organized 76 research PDFs into `thesis/refs/papers_all/` (6 topic folders)
+- Created `thesis/refs/papers_all/READING_LIST_BY_CHAPTER.md` — chapter-to-paper mapping
+- Created `docs/WORKLOG.md` — this file
+- **Fixed Docker build failure**: `docker/Dockerfile.inference` referenced deleted `api/` folder
+  - Changed `COPY api/ /app/api/` → `COPY src/ /app/src/`
+  - Changed `CMD uvicorn api.main:app` → `CMD uvicorn src.api.app:app`
+  - Updated `PYTHONPATH=/app` → `PYTHONPATH=/app:/app/src`
+  - Updated `HEALTHCHECK` to try `/health` then `/api/health` then `/openapi.json`
+  - Root cause: refactor moved API from `api/` to `src/api/app.py` but Dockerfile was not updated
 
 ### Files / Areas Affected
-- `src/data/`, `src/training/`, `src/inference/`, `src/monitoring/`, `src/deployment/` — new domain subpackages
-- `src/pipeline/inference_pipeline.py` — updated imports
-- `src/components/baseline_update.py`, `src/components/post_inference_monitoring.py` — updated imports
+- `src/data/data_validator.py` — moved from `src/`
+- `src/data/preprocess_data.py` — moved from `src/`
+- `src/data/sensor_data_pipeline.py` — moved from `src/`
+- `src/training/train.py` — moved from `src/`
+- `src/training/active_learning_export.py` — moved from `src/`
+- `src/training/curriculum_pseudo_labeling.py` — moved from `src/`
+- `src/inference/run_inference.py` — moved from `src/`
+- `src/inference/evaluate_predictions.py` — moved from `src/`
+- `src/monitoring/build_training_baseline.py` — moved from `src/`
+- `src/monitoring/calibration.py` — moved from `src/`
+- `src/monitoring/ood_detection.py` — moved from `src/`
+- `src/monitoring/prometheus_metrics.py` — moved from `src/`
+- `src/monitoring/robustness.py` — moved from `src/`
+- `src/monitoring/sensor_placement.py` — moved from `src/`
+- `src/monitoring/trigger_policy.py` — moved from `src/`
+- `src/monitoring/wasserstein_drift.py` — moved from `src/`
+- `src/deployment/deployment_manager.py` — moved from `src/`
+- `src/deployment/mlflow_tracking.py` — moved from `src/`
+- `src/deployment/model_rollback.py` — moved from `src/`
+- `src/pipeline/inference_pipeline.py` — updated imports to new subpackage paths
+- `src/components/baseline_update.py` — updated imports
+- `src/components/post_inference_monitoring.py` — updated imports
 - `tests/test_baseline_update.py` — updated imports
-- `.github/workflows/cd.yml` — debug step + 60-iteration wait
-- `docs/01_PIPELINE/`, `docs/02_TECH/`, `docs/03_EXPERIMENTS/`, `docs/04_THESIS_WRITING/` — new doc structure
-- `docs/99_ARCHIVE/` — archived old docs
-- `thesis/_snapshots/` — historical snapshots preserved
-- `archive/_index/PAPERS_CATALOG.md` — paper index
+- `docker/Dockerfile.inference` — fixed COPY path, CMD entrypoint, PYTHONPATH, HEALTHCHECK
+- `.github/workflows/cd.yml` — debug step + 60-iteration wait + multi-route smoke test
+- `docs/01_PIPELINE/stages/` — 10 new stage documentation files (01–10)
+- `docs/02_TECH/guides/` — 8 new operation guides
+- `docs/03_EXPERIMENTS/` — evidence pack, threshold calibration summary
+- `docs/04_THESIS_WRITING/` — chapter drafts, mentor Q&A, research analysis
+- `docs/99_ARCHIVE/` — archived old doc files
+- `thesis/_snapshots/` — historical work snapshots (Feb snapshots)
+- `archive/_index/PAPERS_CATALOG.md` — 76-paper categorized index
+- `thesis/refs/papers_all/01_mlops/` — 18 MLOps PDFs
+- `thesis/refs/papers_all/02_monitoring_drift/` — 3 monitoring PDFs
+- `thesis/refs/papers_all/03_har_wearables/` — 27 HAR/sensor PDFs
+- `thesis/refs/papers_all/04_domain_adaptation/` — 3 domain adaptation PDFs
+- `thesis/refs/papers_all/05_deployment_cicd/` — 6 deployment PDFs
+- `thesis/refs/papers_all/06_mental_health_anxiety/` — 19 mental health PDFs
+- `thesis/refs/papers_all/READING_LIST_BY_CHAPTER.md` — chapter-to-paper map
+- `docs/WORKLOG.md` — this file (new)
 
 ### Why
 - Flat `src/` had 30+ modules — hard to navigate and explain in thesis
 - Reversed dependencies (scripts importing src, src importing scripts) made the codebase fragile
+- `docker/Dockerfile.inference` was never updated after the API moved from `api/` to `src/api/`
+- CD smoke test had insufficient wait time and no debug visibility
 - Docs were scattered with no clear organization
-- CD smoke test was flaky — insufficient wait time and no debug visibility
+- Papers were spread across multiple archive folders with no single library
 
 ### Status
 - Refactor complete and tests passing (258/258)
-- CD workflow improved but not yet validated (needs tag push)
+- Docker build error fixed — `COPY api/` → `COPY src/`
+- CD workflow improved and tag `v0.9.1` pushed
 - Docs restructured into 4 clear categories
-- Paper catalog created
+- 76 PDFs organized into thesis paper library
 
 ### Next
-- Run full pipeline locally end-to-end
-- Push tag to trigger CD and validate debug output
-- Copy PDFs into `thesis/refs/papers_all/` organized library
-- Start paper library index
+- Verify CD passes with `v0.9.1` tag run
+- Run full pipeline locally: `python run_pipeline.py`
+- Confirm `/api/health` endpoint responds in container
 
 ---
 
@@ -311,7 +353,7 @@ Auto-generated from git commit history and supplemented manually.
 - **Branch:** `chore/docs-restructure`
 - **Tests:** 258/258 passing
 - **CI:** Green
-- **CD:** Smoke test improved — debug step added, robust multi-route check, needs tag push
+- **CD:** Docker build fixed (`COPY src/` + `uvicorn src.api.app:app`), tag `v0.9.1` pushed
 - **Refactor:** `src/` domain subpackages complete
 - **Docs:** Restructured into 4 categories
 - **Paper library:** 76 PDFs organized in `thesis/refs/papers_all/` (6 topic folders)
@@ -319,10 +361,10 @@ Auto-generated from git commit history and supplemented manually.
 - **WORKLOG:** `docs/WORKLOG.md` — this file
 
 ## Open Issues
-1. CD smoke test not yet validated — needs tag push to inspect debug output
+1. CD not yet confirmed green — `v0.9.1` run in progress
 2. Full pipeline not yet run end-to-end on real data after refactor
 
 ## Recommended Next 3 Actions
-1. Push tag `v0.9.1` → inspect CD debug output → fix route
+1. Confirm CD green from `v0.9.1` run — check `/api/health` responds
 2. Run `python run_pipeline.py` on real data locally
 3. Wire docs into thesis chapters using `READING_LIST_BY_CHAPTER.md`

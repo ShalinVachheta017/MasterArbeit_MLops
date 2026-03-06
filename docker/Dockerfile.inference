@@ -1,6 +1,6 @@
 # ============================================================================
 # Dockerfile for HAR Inference API (FastAPI)
-# Runs: uvicorn api.main:app --host 0.0.0.0 --port 8000
+# Entrypoint: src/api/app.py  →  uvicorn src.api.app:app
 # ============================================================================
 
 FROM python:3.11-slim
@@ -10,11 +10,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    # keep these configurable
     MODEL_PATH=/app/models/pretrained/fine_tuned_model_1dcnnbilstm.keras \
     CONFIG_PATH=/app/config/pipeline_config.yaml \
-    # make imports work reliably
-    PYTHONPATH=/app
+    # /app and /app/src both on PYTHONPATH so `from src.api.app import app` works
+    PYTHONPATH=/app:/app/src
 
 WORKDIR /app
 
@@ -23,25 +22,27 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install python deps (keep consistent with CI)
+# Install python deps first (layer cache-friendly)
 COPY config/requirements.txt /app/requirements.txt
 RUN python -m pip install --upgrade pip && \
     pip install -r /app/requirements.txt && \
     pip install "uvicorn[standard]"
 
-# Copy application code
-# IMPORTANT: your FastAPI entrypoint is api/main.py -> api.main:app
-COPY api/ /app/api/
+# Copy application source
+# After src/ refactor: API lives at src/api/app.py, domain code at src/*/
+COPY src/ /app/src/
 COPY config/ /app/config/
 
-# Optional directories (mounted via compose usually)
+# Optional runtime directories (usually volume-mounted)
 RUN mkdir -p /app/models /app/logs
 
 EXPOSE 8000
 
-# Healthcheck must match your FastAPI route
-HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-    CMD curl -fsS http://localhost:8000/health || exit 1
+# Healthcheck — must match the FastAPI route registered in src/api/app.py
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=5 \
+    CMD curl -fsS http://localhost:8000/health || \
+        curl -fsS http://localhost:8000/api/health || \
+        curl -fsS http://localhost:8000/openapi.json || exit 1
 
-# Start API
-CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Start API using the refactored entrypoint
+CMD ["uvicorn", "src.api.app:app", "--host", "0.0.0.0", "--port", "8000"]
