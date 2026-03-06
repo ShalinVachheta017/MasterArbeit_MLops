@@ -311,17 +311,18 @@ Auto-generated from git commit history and supplemented manually.
 - **Branch:** `chore/docs-restructure`
 - **Tests:** 258/258 passing
 - **CI:** Green
-- **CD:** Smoke test failing (debug step added, needs re-trigger)
+- **CD:** Smoke test improved — debug step added, robust multi-route check, needs tag push
 - **Refactor:** `src/` domain subpackages complete
 - **Docs:** Restructured into 4 categories
-- **Paper catalog:** Created at `archive/_index/PAPERS_CATALOG.md`
+- **Paper library:** 76 PDFs organized in `thesis/refs/papers_all/` (6 topic folders)
+- **Paper catalog:** `archive/_index/PAPERS_CATALOG.md`
+- **WORKLOG:** `docs/WORKLOG.md` — this file
 
 ## Open Issues
-1. CD smoke test failing — container route mismatch or slow startup
-2. Full pipeline not yet validated end-to-end after refactor
-3. Paper library not yet consolidated into thesis/refs/papers_all/
+1. CD smoke test not yet validated — needs tag push to inspect debug output
+2. Full pipeline not yet run end-to-end on real data after refactor
 
 ## Recommended Next 3 Actions
-1. Run full local pipeline once to validate refactor
-2. Push tag to trigger CD, inspect debug output, fix route
-3. Build thesis paper library with organized subfolders + index
+1. Push tag `v0.9.1` → inspect CD debug output → fix route
+2. Run `python run_pipeline.py` on real data locally
+3. Wire docs into thesis chapters using `READING_LIST_BY_CHAPTER.md`

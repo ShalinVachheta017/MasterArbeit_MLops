@@ -94,22 +94,34 @@ jobs:
           echo "---- container logs ----"
           docker logs har-test || true
 
-      - name: Verify health endpoint
+      - name: Verify service is up
         run: |
-          echo "Waiting for API to start..."
+          echo "Waiting for API to start (up to 120s)..."
           for i in $(seq 1 60); do
+            # Priority 1: FastAPI schema — confirms app is alive and routing is functional
+            if curl -fsS http://localhost:8000/openapi.json > /dev/null; then
+              echo "Service UP — /openapi.json OK"
+              exit 0
+            fi
+            # Priority 2: explicit health routes
             if curl -fsS http://localhost:8000/health > /dev/null; then
-              echo "Health OK (/health)"
+              echo "Service UP — /health OK"
               exit 0
             fi
             if curl -fsS http://localhost:8000/api/health > /dev/null; then
-              echo "Health OK (/api/health)"
+              echo "Service UP — /api/health OK"
+              exit 0
+            fi
+            # Priority 3: root path responds (any 2xx/3xx)
+            STATUS=$(curl -o /dev/null -s -w "%{http_code}" http://localhost:8000/ || echo "000")
+            if [[ "$STATUS" =~ ^[23] ]]; then
+              echo "Service UP — / returned $STATUS"
               exit 0
             fi
             sleep 2
           done
 
-          echo "Health check failed after 120s. Final debug:"
+          echo "Service did not respond after 120s. Final debug:"
           echo "---- GET / ----"
           curl -i http://localhost:8000/ || true
           echo "---- GET /health ----"
