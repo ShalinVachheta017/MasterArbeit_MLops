@@ -1147,8 +1147,6 @@ class DomainAdaptationTrainer(HARTrainer):
         pass to build the graph first if needed.
         """
         try:
-            import tensorflow as tf
-
             # Build the model's graph by running a small prediction
             _ = model.predict(X[:2], verbose=0)
 
