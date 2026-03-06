@@ -44,7 +44,7 @@ _SRC_DIR = Path(__file__).resolve().parent.parent
 _PROJECT_ROOT = _SRC_DIR.parent
 
 try:
-    from src.config import SENSOR_COLUMNS, WINDOW_SIZE, NUM_SENSORS, ACTIVITY_LABELS
+    from src.config import ACTIVITY_LABELS, NUM_SENSORS, SENSOR_COLUMNS, WINDOW_SIZE
 
     _OVERLAP = 0.5
     _STEP = int(WINDOW_SIZE * (1 - _OVERLAP))

@@ -10,7 +10,8 @@ Performs 3-layer monitoring:
 import json
 import logging
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
+
 import numpy as np
 import pandas as pd
 
